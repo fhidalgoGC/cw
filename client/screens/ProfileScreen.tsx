@@ -1,7 +1,8 @@
 import React, { useCallback, useState } from "react";
-import { StyleSheet, View, TextInput, Alert, Pressable } from "react-native";
+import { StyleSheet, View, TextInput, Pressable, Alert } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -13,16 +14,54 @@ import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors, Spacing, BorderRadius, Typography } from "@/constants/theme";
-import {
-  getUserData,
-  saveUserData,
-  UserData,
-  SavedVehicle,
-  VehicleSize,
-  getVehicleName,
-} from "@/lib/storage";
+import { getUserData, saveUserData, UserData, PACKAGES } from "@/lib/storage";
+import { RootStackParamList } from "@/navigation/RootStackNavigator";
+
+type ProfileNavigationProp = NativeStackNavigationProp<RootStackParamList, "Profile">;
+
+interface MenuItemProps {
+  icon: keyof typeof Feather.glyphMap;
+  title: string;
+  subtitle?: string;
+  onPress: () => void;
+  color?: string;
+}
+
+function MenuItem({ icon, title, subtitle, onPress, color }: MenuItemProps) {
+  const { theme, isDark } = useTheme();
+  const iconColor = color || (isDark ? Colors.accent : Colors.primary);
+
+  return (
+    <Pressable
+      onPress={() => {
+        Haptics.selectionAsync();
+        onPress();
+      }}
+      style={({ pressed }) => [
+        styles.menuItem,
+        { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.8 : 1 },
+      ]}
+    >
+      <View style={[styles.menuIcon, { backgroundColor: iconColor + "20" }]}>
+        <Feather name={icon} size={20} color={iconColor} />
+      </View>
+      <View style={styles.menuContent}>
+        <ThemedText type="body" style={{ fontWeight: "600" }}>
+          {title}
+        </ThemedText>
+        {subtitle ? (
+          <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+            {subtitle}
+          </ThemedText>
+        ) : null}
+      </View>
+      <Feather name="chevron-right" size={20} color={theme.textSecondary} />
+    </Pressable>
+  );
+}
 
 export default function ProfileScreen() {
+  const navigation = useNavigation<ProfileNavigationProp>();
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
 
@@ -30,14 +69,8 @@ export default function ProfileScreen() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [street, setStreet] = useState("");
-  const [city, setCity] = useState("");
-  const [zipCode, setZipCode] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [showAddVehicle, setShowAddVehicle] = useState(false);
-  const [newVehicleName, setNewVehicleName] = useState("");
-  const [newVehicleSize, setNewVehicleSize] = useState<VehicleSize>("small");
-  const [newVehiclePlate, setNewVehiclePlate] = useState("");
 
   useFocusEffect(
     useCallback(() => {
@@ -51,9 +84,6 @@ export default function ProfileScreen() {
     setName(data.name);
     setPhone(data.phone || "");
     setEmail(data.email || "");
-    setStreet(data.address?.street || "");
-    setCity(data.address?.city || "");
-    setZipCode(data.address?.zipCode || "");
     setIsLoading(false);
   };
 
@@ -65,61 +95,36 @@ export default function ProfileScreen() {
         name: name.trim() || "Usuario",
         phone: phone.trim() || undefined,
         email: email.trim() || undefined,
-        address: street.trim() || city.trim() || zipCode.trim()
-          ? { street: street.trim(), city: city.trim(), zipCode: zipCode.trim() }
-          : undefined,
       };
       await saveUserData(updatedData);
       setUserData(updatedData);
-      Alert.alert("Guardado", "Tu perfil ha sido actualizado");
+      setIsEditing(false);
     }
   };
 
-  const handleAddVehicle = async () => {
-    if (!newVehicleName.trim()) {
-      Alert.alert("Error", "Por favor ingresa un nombre para el vehículo");
-      return;
-    }
-    if (userData) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const newVehicle: SavedVehicle = {
-        id: Date.now().toString(),
-        name: newVehicleName.trim(),
-        size: newVehicleSize,
-        plate: newVehiclePlate.trim() || undefined,
-      };
-      const updatedData: UserData = {
-        ...userData,
-        vehicles: [...(userData.vehicles || []), newVehicle],
-      };
-      await saveUserData(updatedData);
-      setUserData(updatedData);
-      setNewVehicleName("");
-      setNewVehiclePlate("");
-      setNewVehicleSize("small");
-      setShowAddVehicle(false);
-    }
+  const getAddressSubtitle = () => {
+    if (!userData?.address) return "Agregar dirección";
+    const { street, city } = userData.address;
+    if (street && city) return `${street}, ${city}`;
+    if (street) return street;
+    if (city) return city;
+    return "Agregar dirección";
   };
 
-  const handleRemoveVehicle = (vehicleId: string) => {
-    Alert.alert("Eliminar Vehículo", "¿Estás seguro de eliminar este vehículo?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Eliminar",
-        style: "destructive",
-        onPress: async () => {
-          if (userData) {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            const updatedData: UserData = {
-              ...userData,
-              vehicles: userData.vehicles.filter((v) => v.id !== vehicleId),
-            };
-            await saveUserData(updatedData);
-            setUserData(updatedData);
-          }
-        },
-      },
-    ]);
+  const getVehiclesSubtitle = () => {
+    if (!userData?.vehicles || userData.vehicles.length === 0) {
+      return "Agregar vehículos";
+    }
+    return `${userData.vehicles.length} vehículo${userData.vehicles.length > 1 ? "s" : ""} guardado${userData.vehicles.length > 1 ? "s" : ""}`;
+  };
+
+  const getMembershipSubtitle = () => {
+    if (!userData?.membership) return "Sin membresía activa";
+    const pkg = PACKAGES.find((p) => p.id === userData.membership?.packageId);
+    if (pkg) {
+      return `${pkg.name} - ${userData.membership.washesRemaining} lavadas restantes`;
+    }
+    return "Membresía activa";
   };
 
   if (isLoading) {
@@ -142,295 +147,159 @@ export default function ProfileScreen() {
       >
         <Animated.View entering={FadeInDown.delay(50).springify()}>
           <Card elevation={1} style={styles.section}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Información Personal
-            </ThemedText>
-            <View style={styles.inputGroup}>
-              <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                Nombre
-              </ThemedText>
-              <TextInput
+            <View style={styles.sectionHeader}>
+              <ThemedText type="h3">Información Personal</ThemedText>
+              <Pressable
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  if (isEditing) {
+                    handleSave();
+                  } else {
+                    setIsEditing(true);
+                  }
+                }}
                 style={[
-                  styles.input,
-                  {
-                    backgroundColor: theme.backgroundSecondary,
-                    color: theme.text,
-                    borderColor: theme.backgroundTertiary,
-                  },
+                  styles.editButton,
+                  { backgroundColor: isDark ? Colors.accent + "30" : Colors.primary + "15" },
                 ]}
-                value={name}
-                onChangeText={setName}
-                placeholder="Tu nombre"
-                placeholderTextColor={theme.textSecondary}
-              />
+              >
+                <ThemedText
+                  type="caption"
+                  style={{
+                    color: isDark ? Colors.accent : Colors.primary,
+                    fontWeight: "600",
+                  }}
+                >
+                  {isEditing ? "Guardar" : "Editar"}
+                </ThemedText>
+              </Pressable>
             </View>
-            <View style={styles.inputGroup}>
-              <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                Teléfono
-              </ThemedText>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: theme.backgroundSecondary,
-                    color: theme.text,
-                    borderColor: theme.backgroundTertiary,
-                  },
-                ]}
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="Tu teléfono"
-                placeholderTextColor={theme.textSecondary}
-                keyboardType="phone-pad"
-              />
-            </View>
-            <View style={styles.inputGroup}>
-              <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                Correo Electrónico
-              </ThemedText>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: theme.backgroundSecondary,
-                    color: theme.text,
-                    borderColor: theme.backgroundTertiary,
-                  },
-                ]}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="tu@email.com"
-                placeholderTextColor={theme.textSecondary}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
+
+            {isEditing ? (
+              <View style={styles.editForm}>
+                <View style={styles.inputGroup}>
+                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                    Nombre
+                  </ThemedText>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: theme.backgroundDefault,
+                        color: theme.text,
+                        borderColor: theme.backgroundTertiary,
+                      },
+                    ]}
+                    value={name}
+                    onChangeText={setName}
+                    placeholder="Tu nombre"
+                    placeholderTextColor={theme.textSecondary}
+                  />
+                </View>
+                <View style={styles.inputGroup}>
+                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                    Teléfono
+                  </ThemedText>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: theme.backgroundDefault,
+                        color: theme.text,
+                        borderColor: theme.backgroundTertiary,
+                      },
+                    ]}
+                    value={phone}
+                    onChangeText={setPhone}
+                    placeholder="Tu teléfono"
+                    placeholderTextColor={theme.textSecondary}
+                    keyboardType="phone-pad"
+                  />
+                </View>
+                <View style={styles.inputGroup}>
+                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                    Correo
+                  </ThemedText>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: theme.backgroundDefault,
+                        color: theme.text,
+                        borderColor: theme.backgroundTertiary,
+                      },
+                    ]}
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="tu@email.com"
+                    placeholderTextColor={theme.textSecondary}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+              </View>
+            ) : (
+              <View style={styles.infoDisplay}>
+                <View style={styles.infoRow}>
+                  <Feather name="user" size={18} color={theme.textSecondary} />
+                  <ThemedText type="body">{userData?.name || "Usuario"}</ThemedText>
+                </View>
+                {phone ? (
+                  <View style={styles.infoRow}>
+                    <Feather name="phone" size={18} color={theme.textSecondary} />
+                    <ThemedText type="body">{phone}</ThemedText>
+                  </View>
+                ) : null}
+                {email ? (
+                  <View style={styles.infoRow}>
+                    <Feather name="mail" size={18} color={theme.textSecondary} />
+                    <ThemedText type="body">{email}</ThemedText>
+                  </View>
+                ) : null}
+              </View>
+            )}
           </Card>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(100).springify()}>
           <Card elevation={1} style={styles.section}>
             <ThemedText type="h3" style={styles.sectionTitle}>
-              Dirección
+              Mis Datos
             </ThemedText>
-            <View style={styles.inputGroup}>
-              <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                Calle y Número
-              </ThemedText>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: theme.backgroundSecondary,
-                    color: theme.text,
-                    borderColor: theme.backgroundTertiary,
-                  },
-                ]}
-                value={street}
-                onChangeText={setStreet}
-                placeholder="Av. Principal #123"
-                placeholderTextColor={theme.textSecondary}
+            <View style={styles.menuList}>
+              <MenuItem
+                icon="map-pin"
+                title="Direcciones"
+                subtitle={getAddressSubtitle()}
+                onPress={() => navigation.navigate("AddressManagement")}
               />
-            </View>
-            <View style={styles.rowInputs}>
-              <View style={[styles.inputGroup, { flex: 2 }]}>
-                <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                  Ciudad
-                </ThemedText>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: theme.backgroundSecondary,
-                      color: theme.text,
-                      borderColor: theme.backgroundTertiary,
-                    },
-                  ]}
-                  value={city}
-                  onChangeText={setCity}
-                  placeholder="Ciudad"
-                  placeholderTextColor={theme.textSecondary}
-                />
-              </View>
-              <View style={[styles.inputGroup, { flex: 1 }]}>
-                <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                  C.P.
-                </ThemedText>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: theme.backgroundSecondary,
-                      color: theme.text,
-                      borderColor: theme.backgroundTertiary,
-                    },
-                  ]}
-                  value={zipCode}
-                  onChangeText={setZipCode}
-                  placeholder="00000"
-                  placeholderTextColor={theme.textSecondary}
-                  keyboardType="number-pad"
-                />
-              </View>
+              <MenuItem
+                icon="truck"
+                title="Mis Vehículos"
+                subtitle={getVehiclesSubtitle()}
+                onPress={() => navigation.navigate("VehicleManagement")}
+              />
+              <MenuItem
+                icon="award"
+                title="Mi Membresía"
+                subtitle={getMembershipSubtitle()}
+                onPress={() => navigation.navigate("Packages")}
+                color={userData?.membership ? Colors.success : undefined}
+              />
             </View>
           </Card>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(150).springify()}>
           <Card elevation={1} style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="h3">Mis Vehículos</ThemedText>
-              <Pressable
-                onPress={() => setShowAddVehicle(!showAddVehicle)}
-                style={[
-                  styles.addButton,
-                  { backgroundColor: isDark ? Colors.accent + "30" : Colors.primary + "15" },
-                ]}
-              >
-                <Feather
-                  name={showAddVehicle ? "x" : "plus"}
-                  size={20}
-                  color={isDark ? Colors.accent : Colors.primary}
-                />
-              </Pressable>
-            </View>
-
-            {showAddVehicle ? (
-              <View style={styles.addVehicleForm}>
-                <View style={styles.inputGroup}>
-                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                    Nombre del Vehículo
-                  </ThemedText>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        backgroundColor: theme.backgroundSecondary,
-                        color: theme.text,
-                        borderColor: theme.backgroundTertiary,
-                      },
-                    ]}
-                    value={newVehicleName}
-                    onChangeText={setNewVehicleName}
-                    placeholder="Mi Auto"
-                    placeholderTextColor={theme.textSecondary}
-                  />
-                </View>
-                <View style={styles.inputGroup}>
-                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                    Placa (opcional)
-                  </ThemedText>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        backgroundColor: theme.backgroundSecondary,
-                        color: theme.text,
-                        borderColor: theme.backgroundTertiary,
-                      },
-                    ]}
-                    value={newVehiclePlate}
-                    onChangeText={setNewVehiclePlate}
-                    placeholder="ABC-123"
-                    placeholderTextColor={theme.textSecondary}
-                    autoCapitalize="characters"
-                  />
-                </View>
-                <View style={styles.inputGroup}>
-                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                    Tamaño
-                  </ThemedText>
-                  <View style={styles.sizeOptions}>
-                    {(["small", "suv", "large"] as VehicleSize[]).map((size) => (
-                      <Pressable
-                        key={size}
-                        onPress={() => {
-                          Haptics.selectionAsync();
-                          setNewVehicleSize(size);
-                        }}
-                        style={[
-                          styles.sizeOption,
-                          {
-                            backgroundColor:
-                              newVehicleSize === size
-                                ? isDark
-                                  ? Colors.accent
-                                  : Colors.primary
-                                : theme.backgroundSecondary,
-                            borderColor:
-                              newVehicleSize === size
-                                ? isDark
-                                  ? Colors.accent
-                                  : Colors.primary
-                                : theme.backgroundTertiary,
-                          },
-                        ]}
-                      >
-                        <ThemedText
-                          type="caption"
-                          style={{
-                            color: newVehicleSize === size ? "#FFFFFF" : theme.text,
-                            fontWeight: newVehicleSize === size ? "600" : "400",
-                          }}
-                        >
-                          {getVehicleName(size)}
-                        </ThemedText>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-                <Button onPress={handleAddVehicle} style={styles.addVehicleButton}>
-                  Agregar Vehículo
-                </Button>
-              </View>
-            ) : null}
-
-            {userData?.vehicles && userData.vehicles.length > 0 ? (
-              <View style={styles.vehiclesList}>
-                {userData.vehicles.map((vehicle) => (
-                  <View
-                    key={vehicle.id}
-                    style={[
-                      styles.vehicleItem,
-                      { backgroundColor: theme.backgroundSecondary },
-                    ]}
-                  >
-                    <View style={styles.vehicleInfo}>
-                      <Feather
-                        name="truck"
-                        size={20}
-                        color={isDark ? Colors.accent : Colors.primary}
-                      />
-                      <View style={styles.vehicleText}>
-                        <ThemedText type="body" style={{ fontWeight: "600" }}>
-                          {vehicle.name}
-                        </ThemedText>
-                        <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                          {getVehicleName(vehicle.size)}
-                          {vehicle.plate ? ` - ${vehicle.plate}` : ""}
-                        </ThemedText>
-                      </View>
-                    </View>
-                    <Pressable
-                      onPress={() => handleRemoveVehicle(vehicle.id)}
-                      style={styles.removeButton}
-                    >
-                      <Feather name="trash-2" size={18} color={Colors.error} />
-                    </Pressable>
-                  </View>
-                ))}
-              </View>
-            ) : !showAddVehicle ? (
-              <ThemedText type="body" style={{ color: theme.textSecondary }}>
-                No tienes vehículos guardados. Agrega uno para reservar más rápido.
-              </ThemedText>
-            ) : null}
+            <ThemedText type="h3" style={styles.sectionTitle}>
+              Información
+            </ThemedText>
+            <ThemedText type="body" style={{ color: theme.textSecondary }}>
+              Versión 1.0.0
+            </ThemedText>
           </Card>
         </Animated.View>
-
-        <Button onPress={handleSave} style={styles.saveButton}>
-          Guardar Cambios
-        </Button>
       </KeyboardAwareScrollViewCompat>
     </ThemedView>
   );
@@ -464,9 +333,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: Spacing.md,
   },
+  editButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+  },
+  editForm: {
+    gap: Spacing.sm,
+  },
   inputGroup: {
     gap: Spacing.xs,
-    marginBottom: Spacing.md,
   },
   input: {
     height: Spacing.inputHeight,
@@ -475,59 +351,32 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     ...Typography.body,
   },
-  rowInputs: {
+  infoDisplay: {
+    gap: Spacing.sm,
+  },
+  infoRow: {
     flexDirection: "row",
+    alignItems: "center",
     gap: Spacing.md,
   },
-  addButton: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
+  menuList: {
+    gap: Spacing.sm,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.md,
+  },
+  menuIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
   },
-  addVehicleForm: {
-    marginBottom: Spacing.md,
-  },
-  sizeOptions: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-  },
-  sizeOption: {
+  menuContent: {
     flex: 1,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-    alignItems: "center",
-    borderWidth: 1,
-  },
-  addVehicleButton: {
-    backgroundColor: Colors.primary,
-    marginTop: Spacing.sm,
-  },
-  vehiclesList: {
-    gap: Spacing.sm,
-  },
-  vehicleItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-  },
-  vehicleInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    flex: 1,
-  },
-  vehicleText: {
-    flex: 1,
-  },
-  removeButton: {
-    padding: Spacing.sm,
-  },
-  saveButton: {
-    marginTop: Spacing.lg,
-    backgroundColor: Colors.primary,
   },
 });
