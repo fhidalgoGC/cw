@@ -259,6 +259,7 @@ export default function AppointmentDetailScreen() {
               onPress={handleCancel}
               disabled={isCancelling}
               style={[styles.cancelButton, { backgroundColor: `${Colors.error}15` }]}
+              textColor={Colors.error}
             >
               {isCancelling ? "Cancelando..." : "Cancelar Cita"}
             </Button>

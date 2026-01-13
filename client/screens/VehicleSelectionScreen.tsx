@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.xl,
   },
   subtitle: {
     textAlign: "center",
