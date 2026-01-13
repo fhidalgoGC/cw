@@ -5,6 +5,7 @@ import {
   View,
   Pressable,
   RefreshControl,
+  ViewStyle,
 } from "react-native";
 import { Image } from "expo-image";
 import { Feather } from "@expo/vector-icons";
@@ -32,7 +33,7 @@ import {
   getVehicleName,
 } from "@/lib/storage";
 
-import subscriptionBadge from "../../assets/images/subscription-badge.png";
+import subscriptionBadge from "@assets/images/subscription-badge.png";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -135,10 +136,11 @@ export default function HomeScreen() {
           <Animated.View entering={FadeInDown.delay(100).springify()}>
             <Card
               elevation={2}
-              style={[
+              onPress={() => navigation.navigate("Packages")}
+              style={StyleSheet.flatten([
                 styles.subscriptionCard,
                 { backgroundColor: isDark ? Colors.primary : "#EEF2FF" },
-              ]}
+              ])}
             >
               <View style={styles.subscriptionContent}>
                 <Image
@@ -167,15 +169,15 @@ export default function HomeScreen() {
           <Animated.View entering={FadeInDown.delay(100).springify()}>
             <Card
               elevation={2}
-              onPress={() => navigation.navigate("VehicleSelection")}
-              style={[
+              onPress={() => navigation.navigate("Packages")}
+              style={StyleSheet.flatten([
                 styles.promoCard,
                 {
                   backgroundColor: isDark
                     ? "rgba(6, 182, 212, 0.15)"
                     : "rgba(30, 64, 175, 0.08)",
                 },
-              ]}
+              ])}
             >
               <View style={styles.promoContent}>
                 <Image

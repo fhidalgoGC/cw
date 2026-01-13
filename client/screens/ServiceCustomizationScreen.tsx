@@ -24,7 +24,7 @@ import {
   formatPrice,
 } from "@/lib/storage";
 
-import subscriptionBadge from "../../assets/images/subscription-badge.png";
+import subscriptionBadge from "@assets/images/subscription-badge.png";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteType = RouteProp<RootStackParamList, "ServiceCustomization">;
