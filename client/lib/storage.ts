@@ -194,27 +194,36 @@ export async function updateBooking(updatedBooking: Booking): Promise<void> {
 }
 
 export async function getUserData(): Promise<UserData> {
+  const defaultData: UserData = {
+    name: "Usuario",
+    vehicles: [],
+    hasSubscription: false,
+    subscriptionWashesLeft: 0,
+  };
+
   try {
     const data = await AsyncStorage.getItem(USER_KEY);
     if (data) {
       const parsed = JSON.parse(data);
-      if (parsed.hasSubscription && !parsed.membership) {
-        return {
-          ...parsed,
-          membership: {
-            packageId: "premium",
-            activatedAt: new Date().toISOString(),
-            renewalDate: getNextMonthDate(),
-            washesRemaining: parsed.subscriptionWashesLeft || 20,
-            addOnUsage: {},
-          },
+      const normalized: UserData = {
+        ...defaultData,
+        ...parsed,
+        vehicles: parsed.vehicles ?? [],
+      };
+      if (normalized.hasSubscription && !normalized.membership) {
+        normalized.membership = {
+          packageId: "premium",
+          activatedAt: new Date().toISOString(),
+          renewalDate: getNextMonthDate(),
+          washesRemaining: normalized.subscriptionWashesLeft || 20,
+          addOnUsage: {},
         };
       }
-      return parsed;
+      return normalized;
     }
-    return { name: "Usuario", vehicles: [], hasSubscription: false, subscriptionWashesLeft: 0 };
+    return defaultData;
   } catch {
-    return { name: "Usuario", vehicles: [], hasSubscription: false, subscriptionWashesLeft: 0 };
+    return defaultData;
   }
 }
 
