@@ -283,7 +283,7 @@ export default function ProfileScreen() {
                 icon="award"
                 title="Mi Membresía"
                 subtitle={getMembershipSubtitle()}
-                onPress={() => navigation.navigate("Packages")}
+                onPress={() => navigation.navigate("MembershipDetail")}
                 color={userData?.membership ? Colors.success : undefined}
               />
             </View>

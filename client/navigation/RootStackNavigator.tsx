@@ -12,6 +12,7 @@ import ProfileScreen from "@/screens/ProfileScreen";
 import PackagesScreen from "@/screens/PackagesScreen";
 import AddressManagementScreen from "@/screens/AddressManagementScreen";
 import VehicleManagementScreen from "@/screens/VehicleManagementScreen";
+import MembershipDetailScreen from "@/screens/MembershipDetailScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 import { VehicleSize, WashType, Booking } from "@/lib/storage";
 
@@ -39,6 +40,7 @@ export type RootStackParamList = {
   Packages: undefined;
   AddressManagement: undefined;
   VehicleManagement: undefined;
+  MembershipDetail: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -128,6 +130,13 @@ export default function RootStackNavigator() {
         component={VehicleManagementScreen}
         options={{
           headerTitle: "Mis Vehículos",
+        }}
+      />
+      <Stack.Screen
+        name="MembershipDetail"
+        component={MembershipDetailScreen}
+        options={{
+          headerTitle: "Mi Membresía",
         }}
       />
     </Stack.Navigator>
