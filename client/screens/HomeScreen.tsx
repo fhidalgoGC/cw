@@ -5,7 +5,6 @@ import {
   View,
   Pressable,
   RefreshControl,
-  ViewStyle,
 } from "react-native";
 import { Image } from "expo-image";
 import { Feather } from "@expo/vector-icons";
@@ -33,7 +32,7 @@ import {
   getVehicleName,
 } from "@/lib/storage";
 
-import subscriptionBadge from "@assets/images/subscription-badge.png";
+const subscriptionBadge = require("../../assets/images/subscription-badge.png");
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 

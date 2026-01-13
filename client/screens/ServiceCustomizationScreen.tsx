@@ -24,7 +24,7 @@ import {
   formatPrice,
 } from "@/lib/storage";
 
-import subscriptionBadge from "@assets/images/subscription-badge.png";
+const subscriptionBadge = require("../../assets/images/subscription-badge.png");
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteType = RouteProp<RootStackParamList, "ServiceCustomization">;
@@ -251,7 +251,7 @@ export default function ServiceCustomizationScreen() {
           <Pressable onPress={handleSubscriptionToggle}>
             <Card
               elevation={2}
-              style={[
+              style={StyleSheet.flatten([
                 styles.subscriptionCard,
                 {
                   backgroundColor: wantsSubscription
@@ -268,7 +268,7 @@ export default function ServiceCustomizationScreen() {
                       : Colors.primary
                     : "transparent",
                 },
-              ]}
+              ])}
             >
               <View style={styles.subscriptionContent}>
                 <Image
