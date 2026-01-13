@@ -68,34 +68,9 @@ export default function PackagesScreen() {
     setActiveTab(tab);
   };
 
-  const handleActivatePackage = async (pkg: Package) => {
+  const handleActivatePackage = (pkg: Package) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
-    Alert.alert(
-      `Activar ${pkg.name}`,
-      `¿Deseas activar el paquete ${pkg.name} por ${formatPrice(pkg.price)}/mes?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Activar",
-          onPress: async () => {
-            setIsLoading(true);
-            try {
-              const updatedData = await activateMembership(pkg.id);
-              setUserData(updatedData);
-              setActiveTab("membership");
-              Alert.alert(
-                "¡Paquete Activado!",
-                `Ahora tienes acceso a ${pkg.washesIncluded} lavadas y todos los servicios incluidos.`
-              );
-            } catch (error) {
-              Alert.alert("Error", "No se pudo activar el paquete");
-            }
-            setIsLoading(false);
-          },
-        },
-      ]
-    );
+    navigation.navigate("PackagePurchase", { packageId: pkg.id });
   };
 
   const handleCancelMembership = () => {

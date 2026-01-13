@@ -13,6 +13,7 @@ import PackagesScreen from "@/screens/PackagesScreen";
 import AddressManagementScreen from "@/screens/AddressManagementScreen";
 import VehicleManagementScreen from "@/screens/VehicleManagementScreen";
 import MembershipDetailScreen from "@/screens/MembershipDetailScreen";
+import PackagePurchaseScreen from "@/screens/PackagePurchaseScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 import { VehicleSize, WashType, Booking } from "@/lib/storage";
 
@@ -41,6 +42,7 @@ export type RootStackParamList = {
   AddressManagement: undefined;
   VehicleManagement: undefined;
   MembershipDetail: undefined;
+  PackagePurchase: { packageId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -137,6 +139,13 @@ export default function RootStackNavigator() {
         component={MembershipDetailScreen}
         options={{
           headerTitle: "Mi Membresía",
+        }}
+      />
+      <Stack.Screen
+        name="PackagePurchase"
+        component={PackagePurchaseScreen}
+        options={{
+          headerTitle: "Comprar Paquete",
         }}
       />
     </Stack.Navigator>
