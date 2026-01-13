@@ -1,18 +1,44 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+
 import MainTabNavigator from "@/navigation/MainTabNavigator";
-import ModalScreen from "@/screens/ModalScreen";
+import VehicleSelectionScreen from "@/screens/VehicleSelectionScreen";
+import ServiceCustomizationScreen from "@/screens/ServiceCustomizationScreen";
+import ScheduleSelectionScreen from "@/screens/ScheduleSelectionScreen";
+import PaymentScreen from "@/screens/PaymentScreen";
+import ConfirmationScreen from "@/screens/ConfirmationScreen";
+import AppointmentDetailScreen from "@/screens/AppointmentDetailScreen";
+import ProfileScreen from "@/screens/ProfileScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
+import { VehicleSize, WashType, Booking } from "@/lib/storage";
 
 export type RootStackParamList = {
   Main: undefined;
-  Modal: undefined;
+  VehicleSelection: undefined;
+  ServiceCustomization: { vehicleSize: VehicleSize };
+  ScheduleSelection: {
+    vehicleSize: VehicleSize;
+    washType: WashType;
+    addOns: string[];
+    totalPrice: number;
+  };
+  Payment: {
+    vehicleSize: VehicleSize;
+    washType: WashType;
+    addOns: string[];
+    date: string;
+    time: string;
+    totalPrice: number;
+  };
+  Confirmation: { booking: Booking };
+  AppointmentDetail: { booking: Booking };
+  Profile: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootStackNavigator() {
-  const screenOptions = useScreenOptions();
+  const screenOptions = useScreenOptions({ transparent: false });
 
   return (
     <Stack.Navigator screenOptions={screenOptions}>
@@ -22,11 +48,59 @@ export default function RootStackNavigator() {
         options={{ headerShown: false }}
       />
       <Stack.Screen
-        name="Modal"
-        component={ModalScreen}
+        name="VehicleSelection"
+        component={VehicleSelectionScreen}
         options={{
           presentation: "modal",
-          headerTitle: "Modal",
+          headerTitle: "Selecciona tu Vehículo",
+        }}
+      />
+      <Stack.Screen
+        name="ServiceCustomization"
+        component={ServiceCustomizationScreen}
+        options={{
+          presentation: "modal",
+          headerTitle: "Personaliza tu Lavado",
+        }}
+      />
+      <Stack.Screen
+        name="ScheduleSelection"
+        component={ScheduleSelectionScreen}
+        options={{
+          presentation: "modal",
+          headerTitle: "Elige Horario",
+        }}
+      />
+      <Stack.Screen
+        name="Payment"
+        component={PaymentScreen}
+        options={{
+          presentation: "modal",
+          headerTitle: "Confirmar Pago",
+        }}
+      />
+      <Stack.Screen
+        name="Confirmation"
+        component={ConfirmationScreen}
+        options={{
+          presentation: "fullScreenModal",
+          headerShown: false,
+          gestureEnabled: false,
+        }}
+      />
+      <Stack.Screen
+        name="AppointmentDetail"
+        component={AppointmentDetailScreen}
+        options={{
+          headerTitle: "Detalles de Cita",
+        }}
+      />
+      <Stack.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          presentation: "modal",
+          headerTitle: "Perfil",
         }}
       />
     </Stack.Navigator>

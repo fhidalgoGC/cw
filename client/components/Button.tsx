@@ -9,13 +9,14 @@ import Animated, {
 
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { BorderRadius, Spacing } from "@/constants/theme";
+import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 
 interface ButtonProps {
   onPress?: () => void;
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   disabled?: boolean;
+  textColor?: string;
 }
 
 const springConfig: WithSpringConfig = {
@@ -33,8 +34,9 @@ export function Button({
   children,
   style,
   disabled = false,
+  textColor,
 }: ButtonProps) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -53,6 +55,27 @@ export function Button({
     }
   };
 
+  const flatStyle = StyleSheet.flatten(style);
+  const bgColor = flatStyle?.backgroundColor as string | undefined;
+
+  const getTextColor = () => {
+    if (textColor) return textColor;
+    if (!bgColor) return theme.buttonText;
+    
+    const isTransparentBg = bgColor === "transparent";
+    const isSecondaryBg = 
+      bgColor === theme.backgroundSecondary || 
+      bgColor === theme.backgroundDefault ||
+      bgColor === theme.backgroundTertiary ||
+      bgColor?.includes("rgba");
+    
+    if (isTransparentBg || isSecondaryBg) {
+      return isDark ? Colors.accent : Colors.primary;
+    }
+    
+    return theme.buttonText;
+  };
+
   return (
     <AnimatedPressable
       onPress={disabled ? undefined : onPress}
@@ -62,7 +85,7 @@ export function Button({
       style={[
         styles.button,
         {
-          backgroundColor: theme.link,
+          backgroundColor: Colors.primary,
           opacity: disabled ? 0.5 : 1,
         },
         style,
@@ -71,7 +94,7 @@ export function Button({
     >
       <ThemedText
         type="body"
-        style={[styles.buttonText, { color: theme.buttonText }]}
+        style={[styles.buttonText, { color: getTextColor() }]}
       >
         {children}
       </ThemedText>
