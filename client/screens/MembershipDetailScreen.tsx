@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, ScrollView } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { ThemedText } from "@/components/ThemedText";
@@ -97,7 +98,11 @@ export default function MembershipDetailScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <View style={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
+        showsVerticalScrollIndicator={false}
+      >
         <Animated.View entering={FadeInDown.delay(50).springify()}>
           <Card
             elevation={2}
@@ -213,7 +218,30 @@ export default function MembershipDetailScreen() {
             </Card>
           </Animated.View>
         ) : null}
-      </View>
+
+        <Animated.View entering={FadeInDown.delay(200).springify()}>
+          <Button
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              navigation.navigate("VehicleSelection");
+            }}
+            disabled={membership.washesRemaining <= 0}
+            style={[
+              styles.bookButton,
+              { backgroundColor: membership.washesRemaining > 0 ? pkg.color : theme.backgroundTertiary },
+            ]}
+          >
+            <View style={styles.bookButtonContent}>
+              <Feather name="calendar" size={20} color="#FFFFFF" />
+              <ThemedText type="body" style={styles.bookButtonText}>
+                {membership.washesRemaining > 0
+                  ? "Agendar Cita con mi Paquete"
+                  : "Sin lavadas disponibles"}
+              </ThemedText>
+            </View>
+          </Button>
+        </Animated.View>
+      </ScrollView>
     </ThemedView>
   );
 }
@@ -222,8 +250,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  content: {
     padding: Spacing.xl,
     gap: Spacing.lg,
   },
@@ -344,5 +374,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
+  },
+  bookButton: {
+    marginTop: Spacing.md,
+  },
+  bookButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+  },
+  bookButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
 });
