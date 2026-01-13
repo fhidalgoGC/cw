@@ -7,13 +7,17 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import HomeScreen from "@/screens/HomeScreen";
 import AppointmentsScreen from "@/screens/AppointmentsScreen";
+import HistoryScreen from "@/screens/HistoryScreen";
+import PackagesScreen from "@/screens/PackagesScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors, Spacing, BorderRadius } from "@/constants/theme";
 
 export type MainTabParamList = {
   HomeTab: undefined;
-  BookTab: undefined;
   AppointmentsTab: undefined;
+  BookTab: undefined;
+  HistoryTab: undefined;
+  PackagesTab: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -52,6 +56,9 @@ export default function MainTabNavigator() {
             />
           ) : null,
         headerShown: false,
+        tabBarLabelStyle: {
+          fontSize: 10,
+        },
       }}
     >
       <Tab.Screen
@@ -65,12 +72,22 @@ export default function MainTabNavigator() {
         }}
       />
       <Tab.Screen
+        name="AppointmentsTab"
+        component={AppointmentsScreen}
+        options={{
+          title: "Citas",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="calendar" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
         name="BookTab"
         component={BookTabPlaceholder}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            navigation.navigate("VehicleSelection");
+            (navigation as any).navigate("VehicleSelection");
           },
         })}
         options={{
@@ -82,19 +99,29 @@ export default function MainTabNavigator() {
                 { backgroundColor: isDark ? Colors.accent : Colors.primary },
               ]}
             >
-              <Feather name="plus" size={28} color="#FFFFFF" />
+              <Feather name="plus" size={24} color="#FFFFFF" />
             </View>
           ),
           tabBarLabel: () => null,
         }}
       />
       <Tab.Screen
-        name="AppointmentsTab"
-        component={AppointmentsScreen}
+        name="HistoryTab"
+        component={HistoryScreen}
         options={{
-          title: "Mis Citas",
+          title: "Historial",
           tabBarIcon: ({ color, size }) => (
-            <Feather name="calendar" size={size} color={color} />
+            <Feather name="clock" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="PackagesTab"
+        component={PackagesScreen}
+        options={{
+          title: "Paquetes",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="award" size={size} color={color} />
           ),
         }}
       />
@@ -104,12 +131,12 @@ export default function MainTabNavigator() {
 
 const styles = StyleSheet.create({
   centerTab: {
-    width: 56,
-    height: 56,
+    width: 48,
+    height: 48,
     borderRadius: BorderRadius.full,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

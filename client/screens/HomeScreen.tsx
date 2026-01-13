@@ -135,7 +135,7 @@ export default function HomeScreen() {
           <Animated.View entering={FadeInDown.delay(100).springify()}>
             <Card
               elevation={2}
-              onPress={() => navigation.navigate("Packages")}
+              onPress={() => (navigation as any).navigate("PackagesTab")}
               style={StyleSheet.flatten([
                 styles.subscriptionCard,
                 { backgroundColor: isDark ? Colors.primary : "#EEF2FF" },
@@ -168,7 +168,7 @@ export default function HomeScreen() {
           <Animated.View entering={FadeInDown.delay(100).springify()}>
             <Card
               elevation={2}
-              onPress={() => navigation.navigate("Packages")}
+              onPress={() => (navigation as any).navigate("PackagesTab")}
               style={StyleSheet.flatten([
                 styles.promoCard,
                 {
