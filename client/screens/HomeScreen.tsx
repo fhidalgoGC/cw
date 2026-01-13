@@ -25,6 +25,8 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import {
   getBookings,
   getUserData,
+  getActiveMembership,
+  PACKAGES,
   Booking,
   UserData,
   formatDate,
@@ -131,39 +133,70 @@ export default function HomeScreen() {
           </Pressable>
         </Animated.View>
 
-        {userData?.hasSubscription ? (
-          <Animated.View entering={FadeInDown.delay(100).springify()}>
-            <Card
-              elevation={2}
-              onPress={() => (navigation as any).navigate("PackagesTab")}
-              style={StyleSheet.flatten([
-                styles.subscriptionCard,
-                { backgroundColor: isDark ? Colors.primary : "#EEF2FF" },
-              ])}
-            >
-              <View style={styles.subscriptionContent}>
-                <Image
-                  source={subscriptionBadge}
-                  style={styles.subscriptionBadge}
-                  contentFit="contain"
-                />
-                <View style={styles.subscriptionInfo}>
-                  <ThemedText
-                    type="h3"
-                    style={{ color: isDark ? "#FFFFFF" : Colors.primary }}
-                  >
-                    Pase Premium Activo
-                  </ThemedText>
-                  <ThemedText
-                    type="body"
-                    style={{ color: isDark ? "#E0E7FF" : "#4338CA" }}
-                  >
-                    {userData.subscriptionWashesLeft} lavadas restantes
-                  </ThemedText>
-                </View>
-              </View>
-            </Card>
-          </Animated.View>
+        {userData?.membership ? (
+          (() => {
+            const activeMembership = getActiveMembership(userData);
+            if (!activeMembership) return null;
+            const { package: pkg, membership } = activeMembership;
+            const totalWashes = pkg.washesIncluded;
+            const washesUsed = totalWashes - membership.washesRemaining;
+            const progressPercent = (membership.washesRemaining / totalWashes) * 100;
+            
+            return (
+              <Animated.View entering={FadeInDown.delay(100).springify()}>
+                <Card
+                  elevation={2}
+                  onPress={() => (navigation as any).navigate("PackagesTab")}
+                  style={StyleSheet.flatten([
+                    styles.membershipCard,
+                    { backgroundColor: isDark ? `${pkg.color}30` : `${pkg.color}15`, borderColor: pkg.color, borderWidth: 2 },
+                  ])}
+                >
+                  <View style={styles.membershipHeader}>
+                    <View style={[styles.membershipIconContainer, { backgroundColor: `${pkg.color}30` }]}>
+                      <Feather
+                        name={pkg.id === "elite" ? "award" : pkg.id === "premium" ? "star" : "check-circle"}
+                        size={28}
+                        color={pkg.color}
+                      />
+                    </View>
+                    <View style={styles.membershipInfo}>
+                      <ThemedText type="h3" style={{ color: pkg.color }}>
+                        {pkg.name}
+                      </ThemedText>
+                      <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                        Membresía activa
+                      </ThemedText>
+                    </View>
+                    <Feather name="chevron-right" size={20} color={theme.textSecondary} />
+                  </View>
+                  
+                  <View style={styles.washesContainer}>
+                    <View style={styles.washesTextRow}>
+                      <Feather name="droplet" size={18} color={pkg.color} />
+                      <ThemedText type="h2" style={{ color: pkg.color, marginLeft: Spacing.xs }}>
+                        {membership.washesRemaining}
+                      </ThemedText>
+                      <ThemedText type="body" style={{ color: theme.textSecondary }}>
+                        {" "}de {totalWashes} lavadas
+                      </ThemedText>
+                    </View>
+                    <View style={[styles.progressBarBg, { backgroundColor: theme.backgroundTertiary }]}>
+                      <View 
+                        style={[
+                          styles.progressBarFill, 
+                          { width: `${progressPercent}%`, backgroundColor: pkg.color }
+                        ]} 
+                      />
+                    </View>
+                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                      {washesUsed} usadas este mes
+                    </ThemedText>
+                  </View>
+                </Card>
+              </Animated.View>
+            );
+          })()
         ) : (
           <Animated.View entering={FadeInDown.delay(100).springify()}>
             <Card
@@ -405,5 +438,41 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     marginBottom: Spacing.xs,
+  },
+  membershipCard: {
+    marginBottom: Spacing.lg,
+    padding: Spacing.lg,
+  },
+  membershipHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.lg,
+  },
+  membershipIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.full,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: Spacing.md,
+  },
+  membershipInfo: {
+    flex: 1,
+  },
+  washesContainer: {
+    gap: Spacing.sm,
+  },
+  washesTextRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  progressBarBg: {
+    height: 8,
+    borderRadius: BorderRadius.full,
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    height: "100%",
+    borderRadius: BorderRadius.full,
   },
 });
