@@ -48,8 +48,25 @@ export interface Booking {
   usedMembership?: boolean;
 }
 
+export interface SavedVehicle {
+  id: string;
+  name: string;
+  size: VehicleSize;
+  plate?: string;
+}
+
+export interface UserAddress {
+  street: string;
+  city: string;
+  zipCode: string;
+}
+
 export interface UserData {
   name: string;
+  phone?: string;
+  email?: string;
+  address?: UserAddress;
+  vehicles: SavedVehicle[];
   membership?: Membership;
   hasSubscription: boolean;
   subscriptionWashesLeft: number;
@@ -195,9 +212,9 @@ export async function getUserData(): Promise<UserData> {
       }
       return parsed;
     }
-    return { name: "Usuario", hasSubscription: false, subscriptionWashesLeft: 0 };
+    return { name: "Usuario", vehicles: [], hasSubscription: false, subscriptionWashesLeft: 0 };
   } catch {
-    return { name: "Usuario", hasSubscription: false, subscriptionWashesLeft: 0 };
+    return { name: "Usuario", vehicles: [], hasSubscription: false, subscriptionWashesLeft: 0 };
   }
 }
 
