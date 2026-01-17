@@ -72,7 +72,7 @@ export default function HomeScreen() {
 
   const handleBookPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    navigation.navigate("VehicleSelection");
+    navigation.navigate("BookingPaymentSelection");
   };
 
   const handleProfilePress = () => {

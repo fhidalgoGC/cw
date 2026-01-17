@@ -14,18 +14,21 @@ import AddressManagementScreen from "@/screens/AddressManagementScreen";
 import VehicleManagementScreen from "@/screens/VehicleManagementScreen";
 import MembershipDetailScreen from "@/screens/MembershipDetailScreen";
 import PackagePurchaseScreen from "@/screens/PackagePurchaseScreen";
+import BookingPaymentSelectionScreen from "@/screens/BookingPaymentSelectionScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 import { VehicleSize, WashType, Booking } from "@/lib/storage";
 
 export type RootStackParamList = {
   Main: undefined;
-  VehicleSelection: undefined;
-  ServiceCustomization: { vehicleSize: VehicleSize };
+  BookingPaymentSelection: undefined;
+  VehicleSelection: { membershipId?: string };
+  ServiceCustomization: { vehicleSize: VehicleSize; membershipId?: string };
   ScheduleSelection: {
     vehicleSize: VehicleSize;
     washType: WashType;
     addOns: string[];
     totalPrice: number;
+    membershipId?: string;
   };
   Payment: {
     vehicleSize: VehicleSize;
@@ -34,6 +37,7 @@ export type RootStackParamList = {
     date: string;
     time: string;
     totalPrice: number;
+    membershipId?: string;
   };
   Confirmation: { booking: Booking };
   AppointmentDetail: { booking: Booking };
@@ -56,6 +60,14 @@ export default function RootStackNavigator() {
         name="Main"
         component={MainTabNavigator}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="BookingPaymentSelection"
+        component={BookingPaymentSelectionScreen}
+        options={{
+          presentation: "modal",
+          headerTitle: "Método de Pago",
+        }}
       />
       <Stack.Screen
         name="VehicleSelection"

@@ -235,14 +235,14 @@ export default function MembershipDetailScreen() {
           <Button
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              navigation.navigate("VehicleSelection");
+              navigation.navigate("BookingPaymentSelection");
             }}
             style={styles.bookButton}
           >
             <View style={styles.bookButtonContent}>
               <Feather name="calendar" size={20} color="#FFFFFF" />
               <ThemedText type="body" style={styles.bookButtonText}>
-                Agendar Cita con Paquete
+                Agendar Cita
               </ThemedText>
             </View>
           </Button>

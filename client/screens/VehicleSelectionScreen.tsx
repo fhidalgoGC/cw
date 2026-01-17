@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { StyleSheet, View, Pressable } from "react-native";
 import { Image } from "expo-image";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -19,7 +19,8 @@ import vehicleSmall from "../../assets/images/vehicle-small.png";
 import vehicleSuv from "../../assets/images/vehicle-suv.png";
 import vehicleLarge from "../../assets/images/vehicle-large.png";
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, "VehicleSelection">;
+type RouteType = RouteProp<RootStackParamList, "VehicleSelection">;
 
 interface VehicleOption {
   size: VehicleSize;
@@ -51,8 +52,11 @@ const VEHICLE_OPTIONS: VehicleOption[] = [
 
 export default function VehicleSelectionScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<RouteType>();
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+
+  const membershipId = route.params?.membershipId;
 
   const [selectedSize, setSelectedSize] = useState<VehicleSize | null>(null);
 
@@ -64,7 +68,7 @@ export default function VehicleSelectionScreen() {
   const handleContinue = () => {
     if (selectedSize) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      navigation.navigate("ServiceCustomization", { vehicleSize: selectedSize });
+      navigation.navigate("ServiceCustomization", { vehicleSize: selectedSize, membershipId });
     }
   };
 

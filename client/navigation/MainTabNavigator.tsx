@@ -87,7 +87,7 @@ export default function MainTabNavigator() {
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            (navigation as any).navigate("VehicleSelection");
+            (navigation as any).navigate("BookingPaymentSelection");
           },
         })}
         options={{
