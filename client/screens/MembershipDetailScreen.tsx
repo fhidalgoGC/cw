@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { StyleSheet, View, ScrollView } from "react-native";
+import { StyleSheet, View, ScrollView, Alert } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -13,7 +13,17 @@ import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors, Spacing, BorderRadius } from "@/constants/theme";
-import { getUserData, UserData, PACKAGES, ADD_ONS } from "@/lib/storage";
+import {
+  getUserData,
+  UserData,
+  PACKAGES,
+  ADD_ONS,
+  getActiveMemberships,
+  getDaysRemaining,
+  cancelMembership,
+  Package,
+  Membership,
+} from "@/lib/storage";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 type MembershipNavigationProp = NativeStackNavigationProp<RootStackParamList, "MembershipDetail">;
@@ -38,6 +48,25 @@ export default function MembershipDetailScreen() {
     setIsLoading(false);
   };
 
+  const handleCancelMembership = (membership: Membership, pkg: Package) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      "Cancelar Paquete",
+      `¿Estás seguro de cancelar tu paquete ${pkg.name}? Perderás las lavadas restantes.`,
+      [
+        { text: "No", style: "cancel" },
+        {
+          text: "Sí, cancelar",
+          style: "destructive",
+          onPress: async () => {
+            await cancelMembership(membership.id);
+            loadUserData();
+          },
+        },
+      ]
+    );
+  };
+
   if (isLoading) {
     return (
       <ThemedView style={styles.container}>
@@ -46,10 +75,9 @@ export default function MembershipDetailScreen() {
     );
   }
 
-  const membership = userData?.membership;
-  const pkg = membership ? PACKAGES.find((p) => p.id === membership.packageId) : null;
+  const activeMemberships = userData ? getActiveMemberships(userData) : [];
 
-  if (!membership || !pkg) {
+  if (activeMemberships.length === 0) {
     return (
       <ThemedView style={styles.container}>
         <View style={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}>
@@ -67,14 +95,14 @@ export default function MembershipDetailScreen() {
               />
             </View>
             <ThemedText type="h2" style={styles.emptyTitle}>
-              Sin Membresía
+              Sin Paquetes Activos
             </ThemedText>
             <ThemedText
               type="body"
               style={[styles.emptyText, { color: theme.textSecondary }]}
             >
-              Aún no tienes una membresía activa. Obtén un paquete para disfrutar de
-              lavadas ilimitadas y beneficios exclusivos.
+              Aún no tienes paquetes activos. Adquiere uno para disfrutar de
+              lavadas y beneficios exclusivos.
             </ThemedText>
             <Button
               onPress={() => navigation.navigate("Packages")}
@@ -88,14 +116,6 @@ export default function MembershipDetailScreen() {
     );
   }
 
-  const progressPercent = (membership.washesRemaining / pkg.washesIncluded) * 100;
-  const renewalDate = new Date(membership.renewalDate);
-  const formattedRenewal = renewalDate.toLocaleDateString("es-MX", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-
   return (
     <ThemedView style={styles.container}>
       <ScrollView
@@ -103,104 +123,88 @@ export default function MembershipDetailScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
         showsVerticalScrollIndicator={false}
       >
-        <Animated.View entering={FadeInDown.delay(50).springify()}>
-          <Card
-            elevation={2}
-            style={{ ...styles.mainCard, backgroundColor: pkg.color }}
-          >
-            <View style={styles.packageHeader}>
-              <View style={styles.packageBadge}>
-                <Feather name="award" size={24} color="#FFFFFF" />
-              </View>
-              <ThemedText type="h2" style={styles.packageName}>
-                {pkg.name}
-              </ThemedText>
-            </View>
+        <ThemedText type="h3" style={styles.sectionHeader}>
+          Mis Paquetes Activos ({activeMemberships.length})
+        </ThemedText>
 
-            <View style={styles.washesSection}>
-              <ThemedText type="h1" style={styles.washesCount}>
-                {membership.washesRemaining}
-              </ThemedText>
-              <ThemedText type="body" style={styles.washesLabel}>
-                de {pkg.washesIncluded} lavadas restantes
-              </ThemedText>
-              <View style={styles.progressBar}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    { width: `${progressPercent}%` },
-                  ]}
-                />
-              </View>
-            </View>
+        {activeMemberships.map(({ package: pkg, membership, daysRemaining }, index) => {
+          const progressPercent = (membership.washesRemaining / pkg.washesIncluded) * 100;
 
-            <View style={styles.renewalInfo}>
-              <Feather name="calendar" size={16} color="rgba(255,255,255,0.8)" />
-              <ThemedText type="caption" style={styles.renewalText}>
-                Se renueva el {formattedRenewal}
-              </ThemedText>
-            </View>
-          </Card>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <Card elevation={1} style={styles.section}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Servicios Incluidos
-            </ThemedText>
-            <View style={styles.perksList}>
-              {pkg.perks.map((perk, index) => (
-                <View key={index} style={styles.perkItem}>
-                  <Feather
-                    name="check-circle"
-                    size={18}
-                    color={Colors.success}
-                  />
-                  <ThemedText type="body">{perk}</ThemedText>
+          return (
+            <Animated.View
+              key={membership.id}
+              entering={FadeInDown.delay(index * 100).springify()}
+            >
+              <Card
+                elevation={2}
+                style={{ ...styles.packageCard, backgroundColor: pkg.color }}
+              >
+                <View style={styles.packageHeader}>
+                  <View style={styles.packageBadge}>
+                    <Feather
+                      name={pkg.id === "elite" ? "award" : pkg.id === "premium" ? "star" : "check-circle"}
+                      size={24}
+                      color="#FFFFFF"
+                    />
+                  </View>
+                  <View style={styles.packageTitleContainer}>
+                    <ThemedText type="h2" style={styles.packageName}>
+                      {pkg.name}
+                    </ThemedText>
+                    <View style={styles.daysContainer}>
+                      <Feather name="clock" size={14} color="rgba(255,255,255,0.8)" />
+                      <ThemedText type="caption" style={styles.daysText}>
+                        {daysRemaining} {daysRemaining === 1 ? "día" : "días"} restantes
+                      </ThemedText>
+                    </View>
+                  </View>
                 </View>
-              ))}
-            </View>
-          </Card>
-        </Animated.View>
 
-        {pkg.addOnsIncluded.length > 0 ? (
-          <Animated.View entering={FadeInDown.delay(150).springify()}>
-            <Card elevation={1} style={styles.section}>
-              <ThemedText type="h3" style={styles.sectionTitle}>
-                Add-Ons Incluidos
-              </ThemedText>
-              <View style={styles.addOnsList}>
-                {pkg.addOnsIncluded.map((addon) => {
-                  const addOnInfo = ADD_ONS.find((a) => a.id === addon.addOnId);
-                  const remaining = membership.addOnUsage[addon.addOnId] || 0;
-                  return (
+                <View style={styles.washesSection}>
+                  <ThemedText type="h1" style={styles.washesCount}>
+                    {membership.washesRemaining}
+                  </ThemedText>
+                  <ThemedText type="body" style={styles.washesLabel}>
+                    de {pkg.washesIncluded} lavadas restantes
+                  </ThemedText>
+                  <View style={styles.progressBar}>
                     <View
-                      key={addon.addOnId}
                       style={[
-                        styles.addOnItem,
-                        { backgroundColor: theme.backgroundSecondary },
+                        styles.progressFill,
+                        { width: `${progressPercent}%` },
                       ]}
-                    >
-                      <View style={styles.addOnInfo}>
-                        <ThemedText type="body" style={{ fontWeight: "600" }}>
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.expirationInfo}>
+                  <Feather name="calendar" size={14} color="rgba(255,255,255,0.8)" />
+                  <ThemedText type="caption" style={styles.expirationText}>
+                    Vence: {new Date(membership.expirationDate).toLocaleDateString("es-MX", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </ThemedText>
+                </View>
+              </Card>
+
+              {pkg.addOnsIncluded.length > 0 ? (
+                <Card elevation={1} style={styles.addOnsCard}>
+                  <ThemedText type="body" style={{ fontWeight: "600", marginBottom: Spacing.sm }}>
+                    Add-Ons Incluidos
+                  </ThemedText>
+                  {pkg.addOnsIncluded.map((addon) => {
+                    const addOnInfo = ADD_ONS.find((a) => a.id === addon.addOnId);
+                    const remaining = membership.addOnUsage[addon.addOnId] || 0;
+                    return (
+                      <View
+                        key={addon.addOnId}
+                        style={[styles.addOnRow, { borderBottomColor: theme.backgroundTertiary }]}
+                      >
+                        <ThemedText type="caption">
                           {addOnInfo?.name || addon.addOnId}
                         </ThemedText>
-                        <ThemedText
-                          type="caption"
-                          style={{ color: theme.textSecondary }}
-                        >
-                          {remaining} de {addon.includedUses} disponibles
-                        </ThemedText>
-                      </View>
-                      <View
-                        style={[
-                          styles.addOnBadge,
-                          {
-                            backgroundColor:
-                              remaining > 0 ? Colors.success + "20" : Colors.error + "20",
-                          },
-                        ]}
-                      >
                         <ThemedText
                           type="caption"
                           style={{
@@ -208,37 +212,49 @@ export default function MembershipDetailScreen() {
                             fontWeight: "600",
                           }}
                         >
-                          {remaining}
+                          {remaining}/{addon.includedUses}
                         </ThemedText>
                       </View>
-                    </View>
-                  );
-                })}
-              </View>
-            </Card>
-          </Animated.View>
-        ) : null}
+                    );
+                  })}
+                </Card>
+              ) : null}
 
-        <Animated.View entering={FadeInDown.delay(200).springify()}>
+              <Button
+                onPress={() => handleCancelMembership(membership, pkg)}
+                style={[styles.cancelButton, { backgroundColor: Colors.error + "15" }]}
+                textColor={Colors.error}
+              >
+                Cancelar Paquete
+              </Button>
+            </Animated.View>
+          );
+        })}
+
+        <Animated.View entering={FadeInDown.delay(activeMemberships.length * 100 + 50).springify()}>
           <Button
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               navigation.navigate("VehicleSelection");
             }}
-            disabled={membership.washesRemaining <= 0}
-            style={[
-              styles.bookButton,
-              { backgroundColor: membership.washesRemaining > 0 ? pkg.color : theme.backgroundTertiary },
-            ]}
+            style={styles.bookButton}
           >
             <View style={styles.bookButtonContent}>
               <Feather name="calendar" size={20} color="#FFFFFF" />
               <ThemedText type="body" style={styles.bookButtonText}>
-                {membership.washesRemaining > 0
-                  ? "Agendar Cita con mi Paquete"
-                  : "Sin lavadas disponibles"}
+                Agendar Cita con Paquete
               </ThemedText>
             </View>
+          </Button>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(activeMemberships.length * 100 + 100).springify()}>
+          <Button
+            onPress={() => navigation.navigate("Packages")}
+            style={[styles.addMoreButton, { backgroundColor: theme.backgroundSecondary }]}
+            textColor={isDark ? Colors.accent : Colors.primary}
+          >
+            Comprar Otro Paquete
           </Button>
         </Animated.View>
       </ScrollView>
@@ -288,14 +304,17 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing["2xl"],
   },
-  mainCard: {
+  sectionHeader: {
+    marginBottom: Spacing.sm,
+  },
+  packageCard: {
     padding: Spacing.xl,
   },
   packageHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: Spacing.md,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   packageBadge: {
     width: 48,
@@ -305,18 +324,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  packageTitleContainer: {
+    flex: 1,
+  },
   packageName: {
     color: "#FFFFFF",
   },
+  daysContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    marginTop: Spacing.xs,
+  },
+  daysText: {
+    color: "rgba(255,255,255,0.9)",
+    fontWeight: "600",
+  },
   washesSection: {
     alignItems: "center",
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   washesCount: {
-    fontSize: 64,
+    fontSize: 56,
     fontWeight: "700",
     color: "#FFFFFF",
-    lineHeight: 72,
+    lineHeight: 64,
   },
   washesLabel: {
     color: "rgba(255,255,255,0.9)",
@@ -334,49 +366,30 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: "#FFFFFF",
   },
-  renewalInfo: {
+  expirationInfo: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
-  renewalText: {
+  expirationText: {
     color: "rgba(255,255,255,0.8)",
   },
-  section: {
-    marginBottom: Spacing.sm,
+  addOnsCard: {
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
-  sectionTitle: {
-    marginBottom: Spacing.md,
-  },
-  perksList: {
-    gap: Spacing.sm,
-  },
-  perkItem: {
+  addOnRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-  },
-  addOnsList: {
-    gap: Spacing.sm,
-  },
-  addOnItem: {
-    flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-  },
-  addOnInfo: {
-    flex: 1,
-  },
-  addOnBadge: {
-    paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.full,
+    borderBottomWidth: 1,
+  },
+  cancelButton: {
+    marginBottom: Spacing.xl,
   },
   bookButton: {
-    marginTop: Spacing.md,
+    backgroundColor: Colors.primary,
   },
   bookButtonContent: {
     flexDirection: "row",
@@ -387,5 +400,8 @@ const styles = StyleSheet.create({
   bookButtonText: {
     color: "#FFFFFF",
     fontWeight: "600",
+  },
+  addMoreButton: {
+    marginTop: Spacing.sm,
   },
 });
