@@ -21,6 +21,7 @@ export interface Package {
   price: number;
   monthlyPrice?: number;
   washesIncluded: number;
+  durationDays: number;
   addOnsIncluded: PackageAddOn[];
   perks: string[];
   popular?: boolean;
@@ -28,9 +29,10 @@ export interface Package {
 }
 
 export interface Membership {
+  id: string;
   packageId: string;
   activatedAt: string;
-  renewalDate: string;
+  expirationDate: string;
   washesRemaining: number;
   addOnUsage: Record<string, number>;
 }
@@ -67,6 +69,7 @@ export interface UserData {
   email?: string;
   address?: UserAddress;
   vehicles: SavedVehicle[];
+  memberships: Membership[];
   membership?: Membership;
   hasSubscription: boolean;
   subscriptionWashesLeft: number;
@@ -101,13 +104,15 @@ export const PACKAGES: Package[] = [
     description: "Perfecto para mantener tu auto impecable cada semana",
     price: 599,
     washesIncluded: 4,
+    durationDays: 30,
     addOnsIncluded: [
       { addOnId: "interior", includedUses: 1 },
     ],
     perks: [
-      "4 lavadas al mes",
+      "4 lavadas",
       "1 interior completo",
       "Prioridad en citas",
+      "Vigencia: 30 días",
     ],
     color: "#3B82F6",
   },
@@ -117,17 +122,18 @@ export const PACKAGES: Package[] = [
     description: "El más popular para quienes cuidan cada detalle",
     price: 1299,
     washesIncluded: 12,
+    durationDays: 30,
     addOnsIncluded: [
       { addOnId: "interior", includedUses: 4 },
       { addOnId: "rines", includedUses: 4 },
       { addOnId: "cera", includedUses: 2 },
     ],
     perks: [
-      "12 lavadas al mes",
+      "12 lavadas",
       "4 interiores completos",
       "4 detallados de rines",
       "2 encerados premium",
-      "Acceso prioritario",
+      "Vigencia: 30 días",
     ],
     popular: true,
     color: "#8B5CF6",
@@ -138,6 +144,7 @@ export const PACKAGES: Package[] = [
     description: "Cuidado ilimitado para los más exigentes",
     price: 2499,
     washesIncluded: 30,
+    durationDays: 30,
     addOnsIncluded: [
       { addOnId: "interior", includedUses: 8 },
       { addOnId: "rines", includedUses: 8 },
@@ -146,15 +153,30 @@ export const PACKAGES: Package[] = [
       { addOnId: "tapiceria", includedUses: 2 },
     ],
     perks: [
-      "30 lavadas al mes",
+      "30 lavadas",
       "8 interiores completos",
       "8 detallados de rines",
       "4 encerados premium",
       "2 lavados de motor",
       "2 limpiezas de tapicería",
-      "Servicio VIP express",
+      "Vigencia: 30 días",
     ],
     color: "#F59E0B",
+  },
+  {
+    id: "express15",
+    name: "Express 15",
+    description: "Paquete rápido para 15 días",
+    price: 349,
+    washesIncluded: 2,
+    durationDays: 15,
+    addOnsIncluded: [],
+    perks: [
+      "2 lavadas",
+      "Vigencia: 15 días",
+      "Ideal para probar",
+    ],
+    color: "#10B981",
   },
 ];
 
@@ -197,6 +219,7 @@ export async function getUserData(): Promise<UserData> {
   const defaultData: UserData = {
     name: "Usuario",
     vehicles: [],
+    memberships: [],
     hasSubscription: false,
     subscriptionWashesLeft: 0,
   };
@@ -209,15 +232,15 @@ export async function getUserData(): Promise<UserData> {
         ...defaultData,
         ...parsed,
         vehicles: parsed.vehicles ?? [],
+        memberships: parsed.memberships ?? [],
       };
-      if (normalized.hasSubscription && !normalized.membership) {
-        normalized.membership = {
-          packageId: "premium",
-          activatedAt: new Date().toISOString(),
-          renewalDate: getNextMonthDate(),
-          washesRemaining: normalized.subscriptionWashesLeft || 20,
-          addOnUsage: {},
+      if (parsed.membership && !parsed.memberships?.length) {
+        const legacyMembership: Membership = {
+          ...parsed.membership,
+          id: parsed.membership.id || generateId(),
+          expirationDate: parsed.membership.expirationDate || parsed.membership.renewalDate,
         };
+        normalized.memberships = [legacyMembership];
       }
       return normalized;
     }
@@ -248,10 +271,14 @@ export async function activateMembership(packageId: string): Promise<UserData> {
     addOnUsage[addon.addOnId] = addon.includedUses;
   });
 
+  const expirationDate = new Date();
+  expirationDate.setDate(expirationDate.getDate() + pkg.durationDays);
+
   const membership: Membership = {
+    id: generateId(),
     packageId,
     activatedAt: new Date().toISOString(),
-    renewalDate: getNextMonthDate(),
+    expirationDate: expirationDate.toISOString(),
     washesRemaining: pkg.washesIncluded,
     addOnUsage,
   };
@@ -259,93 +286,118 @@ export async function activateMembership(packageId: string): Promise<UserData> {
   const updatedUserData: UserData = {
     ...userData,
     hasSubscription: true,
-    subscriptionWashesLeft: pkg.washesIncluded,
-    membership,
+    memberships: [...userData.memberships, membership],
   };
 
   await saveUserData(updatedUserData);
   return updatedUserData;
 }
 
-export async function cancelMembership(): Promise<UserData> {
+export async function cancelMembership(membershipId: string): Promise<UserData> {
   const userData = await getUserData();
   
   const updatedUserData: UserData = {
     ...userData,
-    hasSubscription: false,
-    subscriptionWashesLeft: 0,
-    membership: undefined,
+    memberships: userData.memberships.filter((m) => m.id !== membershipId),
+    hasSubscription: userData.memberships.length > 1,
   };
 
   await saveUserData(updatedUserData);
   return updatedUserData;
 }
 
-export async function useMembershipWash(): Promise<UserData | null> {
+export async function useMembershipWash(membershipId: string): Promise<UserData | null> {
   const userData = await getUserData();
   
-  if (!userData.membership || userData.membership.washesRemaining <= 0) {
+  const membershipIndex = userData.memberships.findIndex((m) => m.id === membershipId);
+  if (membershipIndex === -1) {
     return null;
   }
+
+  const membership = userData.memberships[membershipIndex];
+  if (membership.washesRemaining <= 0) {
+    return null;
+  }
+
+  const updatedMemberships = [...userData.memberships];
+  updatedMemberships[membershipIndex] = {
+    ...membership,
+    washesRemaining: membership.washesRemaining - 1,
+  };
 
   const updatedUserData: UserData = {
     ...userData,
-    subscriptionWashesLeft: userData.membership.washesRemaining - 1,
-    membership: {
-      ...userData.membership,
-      washesRemaining: userData.membership.washesRemaining - 1,
-    },
+    memberships: updatedMemberships,
   };
 
   await saveUserData(updatedUserData);
   return updatedUserData;
 }
 
-export async function useMembershipAddOn(addOnId: string): Promise<UserData | null> {
+export async function useMembershipAddOn(membershipId: string, addOnId: string): Promise<UserData | null> {
   const userData = await getUserData();
   
-  if (!userData.membership) {
+  const membershipIndex = userData.memberships.findIndex((m) => m.id === membershipId);
+  if (membershipIndex === -1) {
     return null;
   }
 
-  const remaining = userData.membership.addOnUsage[addOnId] || 0;
+  const membership = userData.memberships[membershipIndex];
+  const remaining = membership.addOnUsage[addOnId] || 0;
   if (remaining <= 0) {
     return null;
   }
 
+  const updatedMemberships = [...userData.memberships];
+  updatedMemberships[membershipIndex] = {
+    ...membership,
+    addOnUsage: {
+      ...membership.addOnUsage,
+      [addOnId]: remaining - 1,
+    },
+  };
+
   const updatedUserData: UserData = {
     ...userData,
-    membership: {
-      ...userData.membership,
-      addOnUsage: {
-        ...userData.membership.addOnUsage,
-        [addOnId]: remaining - 1,
-      },
-    },
+    memberships: updatedMemberships,
   };
 
   await saveUserData(updatedUserData);
   return updatedUserData;
 }
 
-export function getActiveMembership(userData: UserData): { package: Package; membership: Membership } | null {
-  if (!userData.membership) {
-    return null;
-  }
-  
-  const pkg = PACKAGES.find((p) => p.id === userData.membership?.packageId);
-  if (!pkg) {
-    return null;
-  }
-
-  return { package: pkg, membership: userData.membership };
+export function getActiveMemberships(userData: UserData): { package: Package; membership: Membership; daysRemaining: number }[] {
+  const now = new Date();
+  return userData.memberships
+    .filter((m) => {
+      const expDate = new Date(m.expirationDate);
+      return expDate > now && m.washesRemaining > 0;
+    })
+    .map((m) => {
+      const pkg = PACKAGES.find((p) => p.id === m.packageId);
+      const expDate = new Date(m.expirationDate);
+      const daysRemaining = Math.ceil((expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      return pkg ? { package: pkg, membership: m, daysRemaining } : null;
+    })
+    .filter((item): item is { package: Package; membership: Membership; daysRemaining: number } => item !== null);
 }
 
-export function getMembershipAddOnRemaining(userData: UserData, addOnId: string): number {
-  if (!userData.membership) {
-    return 0;
+export function getActiveMembership(userData: UserData): { package: Package; membership: Membership } | null {
+  const actives = getActiveMemberships(userData);
+  if (actives.length === 0) {
+    return null;
   }
-  return userData.membership.addOnUsage[addOnId] || 0;
+  return { package: actives[0].package, membership: actives[0].membership };
+}
+
+export function getMembershipAddOnRemaining(membership: Membership, addOnId: string): number {
+  return membership.addOnUsage[addOnId] || 0;
+}
+
+export function getDaysRemaining(expirationDate: string): number {
+  const now = new Date();
+  const expDate = new Date(expirationDate);
+  return Math.max(0, Math.ceil((expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
 export function getNextMonthDate(): string {
