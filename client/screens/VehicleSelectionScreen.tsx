@@ -62,25 +62,6 @@ const VEHICLE_IMAGES: Record<VehicleSize, any> = {
   large: vehicleLarge,
 };
 
-const COLOR_MAP: Record<string, string> = {
-  blanco: "#F5F5F5",
-  negro: "#1A1A1A",
-  gris: "#9E9E9E",
-  plata: "#C0C0C0",
-  rojo: "#E53935",
-  azul: "#1E88E5",
-  verde: "#43A047",
-  amarillo: "#FDD835",
-  naranja: "#FB8C00",
-  café: "#795548",
-  beige: "#D7CCC8",
-  dorado: "#FFD54F",
-};
-
-function getColorDot(colorName: string): string {
-  const lower = colorName.toLowerCase();
-  return COLOR_MAP[lower] || "#9E9E9E";
-}
 
 export default function VehicleSelectionScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -186,27 +167,14 @@ export default function VehicleSelectionScreen() {
                         contentFit="contain"
                       />
                       <View style={styles.optionInfo}>
-                        <ThemedText type="h3">{vehicle.brand} {vehicle.model}</ThemedText>
+                        <ThemedText type="h3">{vehicle.brand} {vehicle.model} {vehicle.color}</ThemedText>
                         <View style={styles.vehicleMeta}>
-                          <View
-                            style={[
-                              styles.colorDot,
-                              { backgroundColor: getColorDot(vehicle.color) },
-                            ]}
-                          />
                           <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                            {vehicle.color}
+                            Tamaño: {getVehicleName(vehicle.size)}
                           </ThemedText>
-                          <View style={[styles.sizeBadge, { backgroundColor: (isDark ? Colors.accent : Colors.primary) + "15" }]}>
-                            <ThemedText type="small" style={{ color: isDark ? Colors.accent : Colors.primary, fontWeight: "600", fontSize: 11 }}>
-                              {getVehicleName(vehicle.size)}
-                            </ThemedText>
-                          </View>
-                          {vehicle.plate ? (
-                            <ThemedText type="small" style={{ color: theme.textSecondary, marginLeft: Spacing.xs }}>
-                              {vehicle.plate}
-                            </ThemedText>
-                          ) : null}
+                          <ThemedText type="small" style={{ color: theme.textSecondary, marginLeft: Spacing.md }}>
+                            Placa: {vehicle.plate || "—"}
+                          </ThemedText>
                         </View>
                       </View>
                       <Feather
@@ -459,19 +427,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.xs,
     marginTop: 4,
-  },
-  colorDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)",
-  },
-  sizeBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginLeft: Spacing.xs,
   },
   addButton: {
     flexDirection: "row",
