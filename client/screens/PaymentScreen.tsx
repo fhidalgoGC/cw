@@ -287,7 +287,7 @@ export default function PaymentScreen() {
               <View style={{ alignItems: "flex-end" }}>
                 <ThemedText type="body">{getWashTypeName(washType)}</ThemedText>
                 <ThemedText type="small" style={{ color: isDark ? Colors.accent : Colors.primary, fontWeight: "600" }}>
-                  {WASH_TYPE_PRICES[washType] > 0 ? formatPrice(WASH_TYPE_PRICES[washType]) : "Base"}
+                  {formatPrice(WASH_TYPE_PRICES[washType])}
                 </ThemedText>
               </View>
             </View>
@@ -318,29 +318,38 @@ export default function PaymentScreen() {
                 </Pressable>
                 {servicesExpanded ? (
                   <View style={styles.servicesExpandedList}>
-                    {allIncludedServices.map((service) => (
-                      <View key={service.id} style={styles.serviceItem}>
-                        <View style={styles.serviceItemLeft}>
-                          <Feather
-                            name="check-circle"
-                            size={14}
-                            color={service.isIncluded ? Colors.success : (isDark ? Colors.accent : Colors.primary)}
-                          />
-                          <ThemedText type="body" style={{ fontSize: 14 }}>
-                            {service.name}
-                          </ThemedText>
+                    {allIncludedServices.map((service, index) => {
+                      const prevService = index > 0 ? allIncludedServices[index - 1] : null;
+                      const showDivider = prevService !== null && prevService.isIncluded && !service.isIncluded;
+                      return (
+                        <View key={service.id}>
+                          {showDivider ? (
+                            <View style={styles.servicesDivider} />
+                          ) : null}
+                          <View style={styles.serviceItem}>
+                            <View style={styles.serviceItemLeft}>
+                              <Feather
+                                name="check-circle"
+                                size={14}
+                                color={service.isIncluded ? Colors.success : (isDark ? Colors.accent : Colors.primary)}
+                              />
+                              <ThemedText type="body" style={{ fontSize: 14 }}>
+                                {service.name}
+                              </ThemedText>
+                            </View>
+                            <ThemedText
+                              type="small"
+                              style={{
+                                color: service.isIncluded ? Colors.success : theme.textSecondary,
+                                fontWeight: "600",
+                              }}
+                            >
+                              {service.isIncluded ? "Incluido" : `+${formatPrice(service.price)}`}
+                            </ThemedText>
+                          </View>
                         </View>
-                        <ThemedText
-                          type="small"
-                          style={{
-                            color: service.isIncluded ? Colors.success : theme.textSecondary,
-                            fontWeight: "600",
-                          }}
-                        >
-                          {service.isIncluded ? "Incluido" : `+$${service.price}`}
-                        </ThemedText>
-                      </View>
-                    ))}
+                      );
+                    })}
                   </View>
                 ) : null}
               </View>
@@ -756,6 +765,11 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xs,
     paddingBottom: Spacing.sm,
     gap: Spacing.xs,
+  },
+  servicesDivider: {
+    height: 1,
+    backgroundColor: "rgba(128, 128, 128, 0.2)",
+    marginVertical: Spacing.sm,
   },
   serviceItem: {
     flexDirection: "row",
