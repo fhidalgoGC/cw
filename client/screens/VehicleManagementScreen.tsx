@@ -1,315 +1,350 @@
 import React, { useCallback, useState } from "react";
-import { StyleSheet, View, TextInput, Pressable, Alert } from "react-native";
+import { StyleSheet, View, TextInput, Pressable, Alert, Modal, ScrollView } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown, FadeIn, Layout } from "react-native-reanimated";
+import Animated, { FadeInDown, Layout } from "react-native-reanimated";
 
-import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { useTheme } from "@/hooks/useTheme";
-import { Colors, Spacing, BorderRadius, Typography } from "@/constants/theme";
+import { Colors, Spacing, BorderRadius } from "@/constants/theme";
 import {
-  getUserData,
-  saveUserData,
-  UserData,
   SavedVehicle,
   VehicleSize,
   getVehicleName,
+  getSavedVehicles,
+  saveVehicle,
+  deleteVehicle,
 } from "@/lib/storage";
+
+import vehicleSmall from "../../assets/images/vehicle-small.png";
+import vehicleSuv from "../../assets/images/vehicle-suv.png";
+import vehicleLarge from "../../assets/images/vehicle-large.png";
+
+interface VehicleOption {
+  size: VehicleSize;
+  name: string;
+  description: string;
+  image: any;
+}
+
+const VEHICLE_OPTIONS: VehicleOption[] = [
+  { size: "small", name: "Pequeño", description: "Sedán, Hatchback, Coupé", image: vehicleSmall },
+  { size: "suv", name: "Camioneta", description: "SUV, Crossover, Van", image: vehicleSuv },
+  { size: "large", name: "Grande", description: "Pickup, Camión, SUV Grande", image: vehicleLarge },
+];
+
+const VEHICLE_IMAGES: Record<VehicleSize, any> = {
+  small: vehicleSmall,
+  suv: vehicleSuv,
+  large: vehicleLarge,
+};
+
+const COLOR_MAP: Record<string, string> = {
+  blanco: "#F5F5F5",
+  negro: "#1A1A1A",
+  gris: "#9E9E9E",
+  plata: "#C0C0C0",
+  rojo: "#E53935",
+  azul: "#1E88E5",
+  verde: "#43A047",
+  amarillo: "#FDD835",
+  naranja: "#FB8C00",
+  café: "#795548",
+  beige: "#D7CCC8",
+  dorado: "#FFD54F",
+};
+
+function getColorDot(colorName: string | undefined): string {
+  if (!colorName) return "#9E9E9E";
+  return COLOR_MAP[colorName.toLowerCase()] || "#9E9E9E";
+}
 
 export default function VehicleManagementScreen() {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
 
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newVehicleName, setNewVehicleName] = useState("");
-  const [newVehicleSize, setNewVehicleSize] = useState<VehicleSize>("small");
-  const [newVehiclePlate, setNewVehiclePlate] = useState("");
+  const [vehicles, setVehicles] = useState<SavedVehicle[]>([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newBrand, setNewBrand] = useState("");
+  const [newModel, setNewModel] = useState("");
+  const [newColor, setNewColor] = useState("");
+  const [newPlate, setNewPlate] = useState("");
+  const [newSize, setNewSize] = useState<VehicleSize>("small");
 
   useFocusEffect(
     useCallback(() => {
-      loadUserData();
+      const load = async () => {
+        const v = await getSavedVehicles();
+        setVehicles(v);
+      };
+      load();
     }, [])
   );
 
-  const loadUserData = async () => {
-    const data = await getUserData();
-    setUserData(data);
-    setIsLoading(false);
-  };
-
   const handleAddVehicle = async () => {
-    if (!newVehicleName.trim()) {
-      Alert.alert("Error", "Por favor ingresa un nombre para el vehículo");
-      return;
-    }
-    if (userData) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const newVehicle: SavedVehicle = {
-        id: Date.now().toString(),
-        name: newVehicleName.trim(),
-        size: newVehicleSize,
-        plate: newVehiclePlate.trim() || undefined,
-      };
-      const updatedData: UserData = {
-        ...userData,
-        vehicles: [...(userData.vehicles || []), newVehicle],
-      };
-      await saveUserData(updatedData);
-      setUserData(updatedData);
-      setNewVehicleName("");
-      setNewVehiclePlate("");
-      setNewVehicleSize("small");
-      setShowAddForm(false);
-    }
+    if (!newBrand.trim() || !newModel.trim() || !newColor.trim()) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const vehicle = await saveVehicle({
+      brand: newBrand.trim(),
+      model: newModel.trim(),
+      color: newColor.trim(),
+      size: newSize,
+      plate: newPlate.trim() || undefined,
+    });
+    setVehicles((prev) => [...prev, vehicle]);
+    setShowAddModal(false);
+    setNewBrand("");
+    setNewModel("");
+    setNewColor("");
+    setNewPlate("");
+    setNewSize("small");
   };
 
-  const handleRemoveVehicle = (vehicleId: string, vehicleName: string) => {
+  const handleRemoveVehicle = (vehicleId: string, vehicleLabel: string) => {
     Alert.alert(
       "Eliminar Vehículo",
-      `¿Estás seguro de eliminar "${vehicleName}"?`,
+      `¿Eliminar "${vehicleLabel}"?`,
       [
         { text: "Cancelar", style: "cancel" },
         {
           text: "Eliminar",
           style: "destructive",
           onPress: async () => {
-            if (userData) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-              const updatedData: UserData = {
-                ...userData,
-                vehicles: userData.vehicles.filter((v) => v.id !== vehicleId),
-              };
-              await saveUserData(updatedData);
-              setUserData(updatedData);
-            }
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            await deleteVehicle(vehicleId);
+            setVehicles((prev) => prev.filter((v) => v.id !== vehicleId));
           },
         },
       ]
     );
   };
 
-  const getVehicleIcon = (size: VehicleSize): keyof typeof Feather.glyphMap => {
-    switch (size) {
-      case "small":
-        return "circle";
-      case "suv":
-        return "truck";
-      case "large":
-        return "truck";
-      default:
-        return "truck";
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <ThemedView style={styles.container}>
-        <View style={[styles.skeleton, { backgroundColor: theme.backgroundSecondary }]} />
-      </ThemedView>
-    );
-  }
-
-  const vehicles = userData?.vehicles || [];
-
   return (
     <ThemedView style={styles.container}>
-      <KeyboardAwareScrollViewCompat
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: insets.bottom + Spacing.xl },
         ]}
-        scrollIndicatorInsets={{ bottom: insets.bottom }}
+        showsVerticalScrollIndicator={false}
       >
-        <Animated.View entering={FadeInDown.delay(50).springify()}>
-          <Card elevation={1} style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="h3">Mis Vehículos</ThemedText>
-              <Pressable
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setShowAddForm(!showAddForm);
-                }}
-                style={[
-                  styles.addButton,
-                  { backgroundColor: isDark ? Colors.accent + "30" : Colors.primary + "15" },
-                ]}
+        {vehicles.length > 0 ? (
+          <Animated.View layout={Layout} style={styles.vehiclesList}>
+            {vehicles.map((vehicle, index) => (
+              <Animated.View
+                key={vehicle.id}
+                entering={FadeInDown.delay(index * 50).springify()}
+                layout={Layout}
               >
-                <Feather
-                  name={showAddForm ? "x" : "plus"}
-                  size={20}
-                  color={isDark ? Colors.accent : Colors.primary}
-                />
-              </Pressable>
+                <View
+                  style={[
+                    styles.vehicleCard,
+                    { backgroundColor: theme.backgroundDefault },
+                  ]}
+                >
+                  <Image
+                    source={VEHICLE_IMAGES[vehicle.size]}
+                    style={styles.vehicleImage}
+                    contentFit="contain"
+                  />
+                  <View style={styles.vehicleInfo}>
+                    <ThemedText type="h3" style={{ fontSize: 16 }}>
+                      {vehicle.brand ? `${vehicle.brand} ${vehicle.model || ""}`.trim() : (vehicle as any).name || "Vehículo"}
+                    </ThemedText>
+                    <View style={styles.vehicleMeta}>
+                      {vehicle.color ? (
+                        <>
+                          <View
+                            style={[
+                              styles.colorDot,
+                              { backgroundColor: getColorDot(vehicle.color) },
+                            ]}
+                          />
+                          <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                            {vehicle.color}
+                          </ThemedText>
+                        </>
+                      ) : null}
+                      <View style={[styles.sizeBadge, { backgroundColor: (isDark ? Colors.accent : Colors.primary) + "15" }]}>
+                        <ThemedText type="small" style={{ color: isDark ? Colors.accent : Colors.primary, fontWeight: "600", fontSize: 11 }}>
+                          {getVehicleName(vehicle.size)}
+                        </ThemedText>
+                      </View>
+                      {vehicle.plate ? (
+                        <ThemedText type="small" style={{ color: theme.textSecondary, marginLeft: Spacing.xs }}>
+                          {vehicle.plate}
+                        </ThemedText>
+                      ) : null}
+                    </View>
+                  </View>
+                  <Pressable
+                    onPress={() => handleRemoveVehicle(vehicle.id, `${vehicle.brand} ${vehicle.model}`)}
+                    style={styles.removeButton}
+                  >
+                    <Feather name="trash-2" size={18} color={Colors.error} />
+                  </Pressable>
+                </View>
+              </Animated.View>
+            ))}
+          </Animated.View>
+        ) : (
+          <View style={[styles.emptyState, { backgroundColor: theme.backgroundDefault }]}>
+            <Feather name="truck" size={40} color={theme.textSecondary + "60"} />
+            <ThemedText type="body" style={{ color: theme.textSecondary, textAlign: "center", marginTop: Spacing.md }}>
+              No tienes vehículos guardados
+            </ThemedText>
+            <ThemedText type="small" style={{ color: theme.textSecondary + "80", textAlign: "center" }}>
+              Agrega un vehículo para reservar más rápido
+            </ThemedText>
+          </View>
+        )}
+
+        <Pressable
+          onPress={() => setShowAddModal(true)}
+          style={[styles.addButton, { borderColor: theme.backgroundTertiary }]}
+        >
+          <Feather name="plus" size={18} color={isDark ? Colors.accent : Colors.primary} />
+          <ThemedText type="body" style={{ color: isDark ? Colors.accent : Colors.primary, fontWeight: "600" }}>
+            Agregar Vehículo
+          </ThemedText>
+        </Pressable>
+      </ScrollView>
+
+      <Modal
+        visible={showAddModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowAddModal(false)}
+      >
+        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
+          <View style={styles.modalHeader}>
+            <ThemedText type="h2">Registrar Vehículo</ThemedText>
+            <Pressable onPress={() => setShowAddModal(false)}>
+              <Feather name="x" size={24} color={theme.text} />
+            </Pressable>
+          </View>
+
+          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
+            <View style={styles.inputGroup}>
+              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Marca
+              </ThemedText>
+              <TextInput
+                value={newBrand}
+                onChangeText={setNewBrand}
+                placeholder="Honda, Toyota, BMW..."
+                placeholderTextColor={theme.textSecondary + "80"}
+                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+              />
             </View>
 
-            {showAddForm ? (
-              <Animated.View entering={FadeIn} style={styles.addForm}>
-                <View style={styles.inputGroup}>
-                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                    Nombre del Vehículo
-                  </ThemedText>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        backgroundColor: theme.backgroundDefault,
-                        color: theme.text,
-                        borderColor: theme.backgroundTertiary,
-                      },
-                    ]}
-                    value={newVehicleName}
-                    onChangeText={setNewVehicleName}
-                    placeholder="Mi Auto"
-                    placeholderTextColor={theme.textSecondary}
-                  />
-                </View>
-                <View style={styles.inputGroup}>
-                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                    Placa (opcional)
-                  </ThemedText>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        backgroundColor: theme.backgroundDefault,
-                        color: theme.text,
-                        borderColor: theme.backgroundTertiary,
-                      },
-                    ]}
-                    value={newVehiclePlate}
-                    onChangeText={setNewVehiclePlate}
-                    placeholder="ABC-123"
-                    placeholderTextColor={theme.textSecondary}
-                    autoCapitalize="characters"
-                  />
-                </View>
-                <View style={styles.inputGroup}>
-                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                    Tamaño del Vehículo
-                  </ThemedText>
-                  <View style={styles.sizeOptions}>
-                    {(["small", "suv", "large"] as VehicleSize[]).map((size) => (
-                      <Pressable
-                        key={size}
-                        onPress={() => {
-                          Haptics.selectionAsync();
-                          setNewVehicleSize(size);
-                        }}
-                        style={[
-                          styles.sizeOption,
-                          {
-                            backgroundColor:
-                              newVehicleSize === size
-                                ? isDark
-                                  ? Colors.accent
-                                  : Colors.primary
-                                : theme.backgroundSecondary,
-                            borderColor:
-                              newVehicleSize === size
-                                ? isDark
-                                  ? Colors.accent
-                                  : Colors.primary
-                                : theme.backgroundTertiary,
-                          },
-                        ]}
-                      >
-                        <ThemedText
-                          type="caption"
-                          style={{
-                            color: newVehicleSize === size ? "#FFFFFF" : theme.text,
-                            fontWeight: newVehicleSize === size ? "600" : "400",
-                          }}
-                        >
-                          {getVehicleName(size)}
-                        </ThemedText>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-                <Button onPress={handleAddVehicle} style={styles.addVehicleButton}>
-                  Agregar Vehículo
-                </Button>
-              </Animated.View>
-            ) : null}
+            <View style={styles.inputGroup}>
+              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Modelo
+              </ThemedText>
+              <TextInput
+                value={newModel}
+                onChangeText={setNewModel}
+                placeholder="Civic 2023, Corolla 2024..."
+                placeholderTextColor={theme.textSecondary + "80"}
+                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+              />
+            </View>
 
-            {vehicles.length > 0 ? (
-              <Animated.View layout={Layout} style={styles.vehiclesList}>
-                {vehicles.map((vehicle, index) => (
-                  <Animated.View
-                    key={vehicle.id}
-                    entering={FadeInDown.delay(index * 50)}
-                    layout={Layout}
-                    style={[
-                      styles.vehicleItem,
-                      { backgroundColor: theme.backgroundSecondary },
-                    ]}
-                  >
-                    <View style={styles.vehicleInfo}>
-                      <View
-                        style={[
-                          styles.vehicleIcon,
-                          { backgroundColor: isDark ? Colors.accent + "20" : Colors.primary + "15" },
-                        ]}
-                      >
-                        <Feather
-                          name={getVehicleIcon(vehicle.size)}
-                          size={20}
-                          color={isDark ? Colors.accent : Colors.primary}
-                        />
-                      </View>
-                      <View style={styles.vehicleText}>
-                        <ThemedText type="body" style={{ fontWeight: "600" }}>
-                          {vehicle.name}
-                        </ThemedText>
-                        <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                          {getVehicleName(vehicle.size)}
-                          {vehicle.plate ? ` - ${vehicle.plate}` : ""}
-                        </ThemedText>
-                      </View>
-                    </View>
+            <View style={styles.inputGroup}>
+              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Color
+              </ThemedText>
+              <TextInput
+                value={newColor}
+                onChangeText={setNewColor}
+                placeholder="Blanco, Negro, Rojo..."
+                placeholderTextColor={theme.textSecondary + "80"}
+                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Placa (opcional)
+              </ThemedText>
+              <TextInput
+                value={newPlate}
+                onChangeText={setNewPlate}
+                placeholder="ABC-1234"
+                placeholderTextColor={theme.textSecondary + "80"}
+                autoCapitalize="characters"
+                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.sm }}>
+                Tamaño del Vehículo
+              </ThemedText>
+              <View style={styles.sizeCardsContainer}>
+                {VEHICLE_OPTIONS.map((opt) => {
+                  const isActive = newSize === opt.size;
+                  return (
                     <Pressable
-                      onPress={() => handleRemoveVehicle(vehicle.id, vehicle.name)}
-                      style={styles.removeButton}
+                      key={opt.size}
+                      onPress={() => setNewSize(opt.size)}
+                      style={[
+                        styles.sizeCard,
+                        {
+                          backgroundColor: isActive
+                            ? isDark
+                              ? "rgba(6, 182, 212, 0.15)"
+                              : "rgba(30, 64, 175, 0.08)"
+                            : theme.backgroundDefault,
+                          borderColor: isActive
+                            ? isDark
+                              ? Colors.accent
+                              : Colors.primary
+                            : theme.backgroundTertiary,
+                        },
+                      ]}
                     >
-                      <Feather name="trash-2" size={18} color={Colors.error} />
+                      <Image
+                        source={opt.image}
+                        style={styles.sizeCardImage}
+                        contentFit="contain"
+                      />
+                      <View style={styles.sizeCardInfo}>
+                        <ThemedText type="h3" style={{ fontSize: 15 }}>{opt.name}</ThemedText>
+                        <ThemedText type="small" style={{ color: theme.textSecondary, fontSize: 11 }}>
+                          {opt.description}
+                        </ThemedText>
+                      </View>
+                      <Feather
+                        name={isActive ? "check-circle" : "circle"}
+                        size={20}
+                        color={isActive ? (isDark ? Colors.accent : Colors.primary) : theme.backgroundTertiary}
+                      />
                     </Pressable>
-                  </Animated.View>
-                ))}
-              </Animated.View>
-            ) : !showAddForm ? (
-              <View style={styles.emptyState}>
-                <Feather
-                  name="truck"
-                  size={48}
-                  color={theme.textSecondary}
-                  style={{ opacity: 0.5 }}
-                />
-                <ThemedText
-                  type="body"
-                  style={[styles.emptyText, { color: theme.textSecondary }]}
-                >
-                  No tienes vehículos guardados
-                </ThemedText>
-                <ThemedText
-                  type="caption"
-                  style={[styles.emptySubtext, { color: theme.textSecondary }]}
-                >
-                  Agrega un vehículo para reservar más rápido
-                </ThemedText>
+                  );
+                })}
               </View>
-            ) : null}
-          </Card>
-        </Animated.View>
-      </KeyboardAwareScrollViewCompat>
+            </View>
+          </ScrollView>
+
+          <View style={[styles.modalFooter, { paddingBottom: insets.bottom + Spacing.lg }]}>
+            <Button
+              onPress={handleAddVehicle}
+              disabled={!newBrand.trim() || !newModel.trim() || !newColor.trim()}
+              style={styles.saveButton}
+            >
+              Guardar Vehículo
+            </Button>
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -322,97 +357,114 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: Spacing.xl,
-    gap: Spacing.lg,
-  },
-  skeleton: {
-    margin: Spacing.xl,
-    height: 200,
-    borderRadius: BorderRadius.lg,
-  },
-  section: {
-    marginBottom: Spacing.sm,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.md,
-  },
-  addButton: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  addForm: {
-    marginBottom: Spacing.lg,
-    gap: Spacing.md,
-  },
-  inputGroup: {
-    gap: Spacing.xs,
-  },
-  input: {
-    height: Spacing.inputHeight,
-    borderRadius: BorderRadius.sm,
-    paddingHorizontal: Spacing.lg,
-    borderWidth: 1,
-    ...Typography.body,
-  },
-  sizeOptions: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-  },
-  sizeOption: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-    alignItems: "center",
-    borderWidth: 1,
-  },
-  addVehicleButton: {
-    backgroundColor: Colors.primary,
-    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
   },
   vehiclesList: {
-    gap: Spacing.sm,
+    gap: Spacing.md,
   },
-  vehicleItem: {
+  vehicleCard: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+  },
+  vehicleImage: {
+    width: 64,
+    height: 48,
+    marginRight: Spacing.lg,
   },
   vehicleInfo: {
+    flex: 1,
+  },
+  vehicleMeta: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.md,
-    flex: 1,
+    gap: Spacing.xs,
+    marginTop: 4,
   },
-  vehicleIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
-    alignItems: "center",
-    justifyContent: "center",
+  colorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.1)",
   },
-  vehicleText: {
-    flex: 1,
+  sizeBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: Spacing.xs,
   },
   removeButton: {
     padding: Spacing.sm,
   },
   emptyState: {
     alignItems: "center",
-    paddingVertical: Spacing.xl,
+    paddingVertical: Spacing.xl * 2,
+    borderRadius: BorderRadius.lg,
+  },
+  addButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderStyle: "dashed",
+  },
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.md,
+  },
+  modalScroll: {
+    flex: 1,
+  },
+  modalContent: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
+    gap: Spacing.lg,
+  },
+  inputGroup: {},
+  input: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    fontSize: 16,
+  },
+  sizeCardsContainer: {
     gap: Spacing.sm,
   },
-  emptyText: {
-    marginTop: Spacing.md,
+  sizeCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
   },
-  emptySubtext: {
-    textAlign: "center",
+  sizeCardImage: {
+    width: 52,
+    height: 38,
+    marginRight: Spacing.md,
+  },
+  sizeCardInfo: {
+    flex: 1,
+  },
+  modalFooter: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
+  },
+  saveButton: {
+    backgroundColor: Colors.primary,
   },
 });
