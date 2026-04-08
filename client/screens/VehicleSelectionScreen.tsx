@@ -113,14 +113,8 @@ export default function VehicleSelectionScreen() {
     setSelectedSize(vehicle.size);
   };
 
-  const handleSelectGeneric = (size: VehicleSize) => {
-    Haptics.selectionAsync();
-    setSelectedVehicleId(null);
-    setSelectedSize(size);
-  };
-
   const handleContinue = () => {
-    if (selectedSize) {
+    if (selectedSize && selectedVehicleId) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       navigation.navigate("ServiceCustomization", { vehicleSize: selectedSize });
     }
@@ -154,11 +148,12 @@ export default function VehicleSelectionScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {savedVehicles.length > 0 ? (
-          <Animated.View entering={FadeInDown.delay(50).springify()}>
-            <ThemedText type="h2" style={styles.sectionTitle}>
-              Mis Vehículos
-            </ThemedText>
+        <Animated.View entering={FadeInDown.delay(50).springify()}>
+          <ThemedText type="h2" style={styles.sectionTitle}>
+            Mis Vehículos
+          </ThemedText>
+
+          {savedVehicles.length > 0 ? (
             <View style={styles.optionsContainer}>
               {savedVehicles.map((vehicle, index) => {
                 const isSelected = selectedVehicleId === vehicle.id;
@@ -224,103 +219,34 @@ export default function VehicleSelectionScreen() {
                 );
               })}
             </View>
-
-            <Pressable
-              onPress={() => setShowAddModal(true)}
-              style={[styles.addButton, { borderColor: theme.backgroundTertiary }]}
-            >
-              <Feather name="plus" size={18} color={isDark ? Colors.accent : Colors.primary} />
-              <ThemedText type="body" style={{ color: isDark ? Colors.accent : Colors.primary, fontWeight: "600" }}>
-                Agregar Vehículo
+          ) : (
+            <View style={[styles.emptyState, { backgroundColor: theme.backgroundDefault }]}>
+              <Feather name="truck" size={40} color={theme.textSecondary + "60"} />
+              <ThemedText type="body" style={{ color: theme.textSecondary, textAlign: "center", marginTop: Spacing.md }}>
+                No tienes vehículos registrados
               </ThemedText>
-            </Pressable>
-
-            <View style={styles.divider}>
-              <View style={[styles.dividerLine, { backgroundColor: theme.backgroundTertiary }]} />
-              <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                o selecciona por tamaño
+              <ThemedText type="small" style={{ color: theme.textSecondary + "80", textAlign: "center" }}>
+                Registra tu vehículo para comenzar
               </ThemedText>
-              <View style={[styles.dividerLine, { backgroundColor: theme.backgroundTertiary }]} />
             </View>
-          </Animated.View>
-        ) : null}
+          )}
 
-        <Animated.View entering={FadeInDown.delay(savedVehicles.length > 0 ? 200 : 50).springify()}>
-          {savedVehicles.length === 0 ? (
-            <ThemedText type="body" style={[styles.subtitle, { color: theme.textSecondary }]}>
-              Elige el tamaño de tu vehículo
+          <Pressable
+            onPress={() => setShowAddModal(true)}
+            style={[styles.addButton, { borderColor: theme.backgroundTertiary }]}
+          >
+            <Feather name="plus" size={18} color={isDark ? Colors.accent : Colors.primary} />
+            <ThemedText type="body" style={{ color: isDark ? Colors.accent : Colors.primary, fontWeight: "600" }}>
+              Agregar Vehículo
             </ThemedText>
-          ) : null}
-
-          <View style={styles.optionsContainer}>
-            {VEHICLE_OPTIONS.map((option, index) => {
-              const isSelected = selectedVehicleId === null && selectedSize === option.size;
-              return (
-                <Animated.View
-                  key={option.size}
-                  entering={FadeInDown.delay((savedVehicles.length > 0 ? 250 : 100) + index * 50).springify()}
-                >
-                  <Pressable
-                    onPress={() => handleSelectGeneric(option.size)}
-                    style={[
-                      styles.optionCard,
-                      {
-                        backgroundColor: isSelected
-                          ? isDark
-                            ? "rgba(6, 182, 212, 0.15)"
-                            : "rgba(30, 64, 175, 0.08)"
-                          : theme.backgroundDefault,
-                        borderColor: isSelected
-                          ? isDark
-                            ? Colors.accent
-                            : Colors.primary
-                          : "transparent",
-                      },
-                    ]}
-                  >
-                    <Image
-                      source={option.image}
-                      style={styles.vehicleImage}
-                      contentFit="contain"
-                    />
-                    <View style={styles.optionInfo}>
-                      <ThemedText type="h3">{option.name}</ThemedText>
-                      <ThemedText
-                        type="caption"
-                        style={{ color: theme.textSecondary }}
-                      >
-                        {option.description}
-                      </ThemedText>
-                    </View>
-                    <Feather
-                      name={isSelected ? "check-circle" : "chevron-right"}
-                      size={20}
-                      color={isSelected ? (isDark ? Colors.accent : Colors.primary) : theme.textSecondary}
-                    />
-                  </Pressable>
-                </Animated.View>
-              );
-            })}
-          </View>
-
-          {savedVehicles.length === 0 ? (
-            <Pressable
-              onPress={() => setShowAddModal(true)}
-              style={[styles.addButton, { borderColor: theme.backgroundTertiary }]}
-            >
-              <Feather name="plus" size={18} color={isDark ? Colors.accent : Colors.primary} />
-              <ThemedText type="body" style={{ color: isDark ? Colors.accent : Colors.primary, fontWeight: "600" }}>
-                Registrar Mi Vehículo
-              </ThemedText>
-            </Pressable>
-          ) : null}
+          </Pressable>
         </Animated.View>
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.lg }]}>
         <Button
           onPress={handleContinue}
-          disabled={!selectedSize}
+          disabled={!selectedVehicleId}
           style={styles.continueButton}
         >
           Continuar
@@ -548,15 +474,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderStyle: "dashed",
   },
-  divider: {
-    flexDirection: "row",
+  emptyState: {
     alignItems: "center",
-    gap: Spacing.md,
-    marginVertical: Spacing.xl,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
+    paddingVertical: Spacing.xl * 2,
+    borderRadius: BorderRadius.lg,
   },
   footer: {
     paddingHorizontal: Spacing.xl,
