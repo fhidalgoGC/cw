@@ -170,10 +170,10 @@ export default function VehicleSelectionScreen() {
                         <ThemedText type="h3">{vehicle.brand} {vehicle.model} {vehicle.color}</ThemedText>
                         <View style={styles.vehicleMeta}>
                           <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                            Tamaño: {getVehicleName(vehicle.size)}
+                            <ThemedText type="small" style={{ fontWeight: "700", color: theme.textSecondary }}>Tamaño:</ThemedText> {getVehicleName(vehicle.size)}
                           </ThemedText>
                           <ThemedText type="small" style={{ color: theme.textSecondary, marginLeft: Spacing.md }}>
-                            Placa: {vehicle.plate || "—"}
+                            <ThemedText type="small" style={{ fontWeight: "700", color: theme.textSecondary }}>Placa:</ThemedText> {vehicle.plate || "—"}
                           </ThemedText>
                         </View>
                       </View>
