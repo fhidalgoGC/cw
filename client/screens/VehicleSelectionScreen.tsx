@@ -350,10 +350,10 @@ export default function VehicleSelectionScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
-                Tamaño
+              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.sm }}>
+                Tamaño del Vehículo
               </ThemedText>
-              <View style={styles.sizeSelector}>
+              <View style={styles.sizeCardsContainer}>
                 {VEHICLE_OPTIONS.map((opt) => {
                   const isActive = newSize === opt.size;
                   return (
@@ -361,12 +361,12 @@ export default function VehicleSelectionScreen() {
                       key={opt.size}
                       onPress={() => setNewSize(opt.size)}
                       style={[
-                        styles.sizeOption,
+                        styles.sizeCard,
                         {
                           backgroundColor: isActive
                             ? isDark
-                              ? Colors.accent
-                              : Colors.primary
+                              ? "rgba(6, 182, 212, 0.15)"
+                              : "rgba(30, 64, 175, 0.08)"
                             : theme.backgroundDefault,
                           borderColor: isActive
                             ? isDark
@@ -376,15 +376,25 @@ export default function VehicleSelectionScreen() {
                         },
                       ]}
                     >
-                      <ThemedText
-                        type="small"
-                        style={{
-                          color: isActive ? "#FFFFFF" : theme.text,
-                          fontWeight: "600",
-                        }}
-                      >
-                        {opt.name}
-                      </ThemedText>
+                      <Image
+                        source={opt.image}
+                        style={styles.sizeCardImage}
+                        contentFit="contain"
+                      />
+                      <View style={styles.sizeCardInfo}>
+                        <ThemedText type="h3" style={{ fontSize: 15 }}>{opt.name}</ThemedText>
+                        <ThemedText
+                          type="small"
+                          style={{ color: theme.textSecondary, fontSize: 11 }}
+                        >
+                          {opt.description}
+                        </ThemedText>
+                      </View>
+                      <Feather
+                        name={isActive ? "check-circle" : "circle"}
+                        size={20}
+                        color={isActive ? (isDark ? Colors.accent : Colors.primary) : theme.backgroundTertiary}
+                      />
                     </Pressable>
                   );
                 })}
@@ -513,16 +523,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     fontSize: 16,
   },
-  sizeSelector: {
-    flexDirection: "row",
+  sizeCardsContainer: {
     gap: Spacing.sm,
   },
-  sizeOption: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
+  sizeCard: {
+    flexDirection: "row",
     alignItems: "center",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+  },
+  sizeCardImage: {
+    width: 52,
+    height: 38,
+    marginRight: Spacing.md,
+  },
+  sizeCardInfo: {
+    flex: 1,
   },
   modalFooter: {
     paddingHorizontal: Spacing.xl,
