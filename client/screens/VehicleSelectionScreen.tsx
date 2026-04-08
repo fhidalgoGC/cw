@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { StyleSheet, View, Pressable } from "react-native";
+import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -117,22 +118,11 @@ export default function VehicleSelectionScreen() {
                       {option.description}
                     </ThemedText>
                   </View>
-                  <View style={styles.priceContainer}>
-                    <ThemedText
-                      type="h2"
-                      style={{
-                        color: isDark ? Colors.accent : Colors.primary,
-                      }}
-                    >
-                      {formatPrice(VEHICLE_PRICES[option.size])}
-                    </ThemedText>
-                    <ThemedText
-                      type="small"
-                      style={{ color: theme.textSecondary }}
-                    >
-                      desde
-                    </ThemedText>
-                  </View>
+                  <Feather
+                    name="chevron-right"
+                    size={20}
+                    color={theme.textSecondary}
+                  />
                 </Pressable>
               </Animated.View>
             );
