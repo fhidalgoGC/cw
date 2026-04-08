@@ -20,7 +20,8 @@ type RouteType = RouteProp<RootStackParamList, "ScheduleSelection">;
 
 const RESERVATION_SECONDS = 5 * 60;
 
-const TIME_SLOTS = [
+const WEEKDAY_SLOTS = [
+  "8:00 AM",
   "9:00 AM",
   "10:00 AM",
   "11:00 AM",
@@ -30,7 +31,34 @@ const TIME_SLOTS = [
   "3:00 PM",
   "4:00 PM",
   "5:00 PM",
+  "6:00 PM",
 ];
+
+const SATURDAY_SLOTS = [
+  "8:00 AM",
+  "9:00 AM",
+  "10:00 AM",
+  "11:00 AM",
+  "12:00 PM",
+  "1:00 PM",
+  "2:00 PM",
+  "3:00 PM",
+];
+
+const SUNDAY_SLOTS = [
+  "9:00 AM",
+  "10:00 AM",
+  "11:00 AM",
+  "12:00 PM",
+  "1:00 PM",
+];
+
+function getTimeSlotsForDate(date: Date): string[] {
+  const day = date.getDay();
+  if (day === 0) return SUNDAY_SLOTS;
+  if (day === 6) return SATURDAY_SLOTS;
+  return WEEKDAY_SLOTS;
+}
 
 function generateDates(): { date: Date; label: string; dayName: string }[] {
   const dates = [];
@@ -91,6 +119,10 @@ export default function ScheduleSelectionScreen() {
 
   const isReserved = selectedDate !== null && selectedTime !== null;
   const estimatedTime = useMemo(() => getEstimatedTime(washType, addOns), [washType, addOns]);
+  const availableTimeSlots = useMemo(() => {
+    if (!selectedDate) return [];
+    return getTimeSlotsForDate(selectedDate);
+  }, [selectedDate]);
 
   const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -169,10 +201,12 @@ export default function ScheduleSelectionScreen() {
 
   const handleDateSelect = (date: Date) => {
     Haptics.selectionAsync();
-    setSelectedDate(date);
-    if (selectedTime) {
-      startTimer();
+    const slots = getTimeSlotsForDate(date);
+    if (selectedTime && !slots.includes(selectedTime)) {
+      setSelectedTime(null);
+      stopTimer();
     }
+    setSelectedDate(date);
   };
 
   const handleTimeSelect = (time: string) => {
@@ -316,48 +350,50 @@ export default function ScheduleSelectionScreen() {
           </ScrollView>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <ThemedText type="h2" style={styles.sectionTitle}>
-            Selecciona la Hora
-          </ThemedText>
-          <View style={styles.timeSlotsContainer}>
-            {TIME_SLOTS.map((time) => {
-              const isSelected = selectedTime === time;
+        {selectedDate ? (
+          <Animated.View entering={FadeInDown.delay(100).springify()}>
+            <ThemedText type="h2" style={styles.sectionTitle}>
+              Selecciona la Hora
+            </ThemedText>
+            <View style={styles.timeSlotsContainer}>
+              {availableTimeSlots.map((time) => {
+                const isSelected = selectedTime === time;
 
-              return (
-                <Pressable
-                  key={time}
-                  onPress={() => handleTimeSelect(time)}
-                  style={[
-                    styles.timeSlot,
-                    {
-                      backgroundColor: isSelected
-                        ? isDark
-                          ? Colors.accent
-                          : Colors.primary
-                        : theme.backgroundDefault,
-                      borderColor: isSelected
-                        ? isDark
-                          ? Colors.accent
-                          : Colors.primary
-                        : theme.backgroundTertiary,
-                    },
-                  ]}
-                >
-                  <ThemedText
-                    type="body"
-                    style={{
-                      color: isSelected ? "#FFFFFF" : theme.text,
-                      fontWeight: isSelected ? "600" : "400",
-                    }}
+                return (
+                  <Pressable
+                    key={time}
+                    onPress={() => handleTimeSelect(time)}
+                    style={[
+                      styles.timeSlot,
+                      {
+                        backgroundColor: isSelected
+                          ? isDark
+                            ? Colors.accent
+                            : Colors.primary
+                          : theme.backgroundDefault,
+                        borderColor: isSelected
+                          ? isDark
+                            ? Colors.accent
+                            : Colors.primary
+                          : theme.backgroundTertiary,
+                      },
+                    ]}
                   >
-                    {time}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-        </Animated.View>
+                    <ThemedText
+                      type="body"
+                      style={{
+                        color: isSelected ? "#FFFFFF" : theme.text,
+                        fontWeight: isSelected ? "600" : "400",
+                      }}
+                    >
+                      {time}
+                    </ThemedText>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Animated.View>
+        ) : null}
 
         {selectedDate && selectedTime ? (
           <Animated.View
