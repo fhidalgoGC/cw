@@ -134,7 +134,11 @@ export default function VehicleSelectionScreen() {
       const addressLabel = addr
         ? `${addr.alias} - ${addr.street}, ${addr.colony}, ${addr.city}`
         : "";
-      navigation.navigate("ServiceCustomization", { vehicleSize: selectedSize, addressLabel });
+      const vehicle = savedVehicles.find((v) => v.id === selectedVehicleId);
+      const vehicleLabel = vehicle
+        ? `${vehicle.brand} ${vehicle.model} - ${vehicle.color}${vehicle.plate ? ` | ${vehicle.plate}` : ""}`
+        : "";
+      navigation.navigate("ServiceCustomization", { vehicleSize: selectedSize, addressLabel, vehicleLabel });
     }
   };
 

@@ -55,7 +55,7 @@ export default function PaymentScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const { vehicleSize, washType, addOns, date, time, totalPrice, reservationExpiry, addressLabel } = route.params;
+  const { vehicleSize, washType, addOns, date, time, totalPrice, reservationExpiry, addressLabel, vehicleLabel } = route.params;
 
   const [secondsLeft, setSecondsLeft] = useState(() => {
     if (!reservationExpiry) return 0;
@@ -253,8 +253,16 @@ export default function PaymentScreen() {
               <ThemedText type="body" style={{ color: theme.textSecondary }}>
                 Vehículo
               </ThemedText>
-              <ThemedText type="body">{getVehicleName(vehicleSize)}</ThemedText>
+              <View style={{ flex: 1, marginLeft: Spacing.lg, alignItems: "flex-end" }}>
+                <ThemedText type="body" style={{ textAlign: "right" }}>
+                  {vehicleLabel}
+                </ThemedText>
+                <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                  {getVehicleName(vehicleSize)}
+                </ThemedText>
+              </View>
             </View>
+            <View style={styles.summaryDivider} />
             <View style={styles.summaryRow}>
               <ThemedText type="body" style={{ color: theme.textSecondary }}>
                 Tipo de Lavado
