@@ -135,10 +135,14 @@ export default function VehicleSelectionScreen() {
         ? `${addr.alias} - ${addr.street}, ${addr.colony}, ${addr.city}`
         : "";
       const vehicle = savedVehicles.find((v) => v.id === selectedVehicleId);
-      const vehicleLabel = vehicle
-        ? `${vehicle.brand} ${vehicle.model} - ${vehicle.color}${vehicle.plate ? ` | ${vehicle.plate}` : ""}`
-        : "";
-      navigation.navigate("ServiceCustomization", { vehicleSize: selectedSize, addressLabel, vehicleLabel });
+      navigation.navigate("ServiceCustomization", {
+        vehicleSize: selectedSize,
+        addressLabel,
+        vehicleBrand: vehicle?.brand || "",
+        vehicleModel: vehicle?.model || "",
+        vehicleColor: vehicle?.color || "",
+        vehiclePlate: vehicle?.plate,
+      });
     }
   };
 

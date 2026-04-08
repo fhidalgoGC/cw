@@ -1,6 +1,11 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { StyleSheet, View, Pressable, ScrollView, Alert } from "react-native";
+import { Image } from "expo-image";
 import { Feather } from "@expo/vector-icons";
+
+import vehicleSmall from "../../assets/images/vehicle-small.png";
+import vehicleSuv from "../../assets/images/vehicle-suv.png";
+import vehicleLarge from "../../assets/images/vehicle-large.png";
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -55,7 +60,13 @@ export default function PaymentScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const { vehicleSize, washType, addOns, date, time, totalPrice, reservationExpiry, addressLabel, vehicleLabel } = route.params;
+  const { vehicleSize, washType, addOns, date, time, totalPrice, reservationExpiry, addressLabel, vehicleBrand, vehicleModel, vehicleColor, vehiclePlate } = route.params;
+
+  const VEHICLE_IMAGES: Record<string, any> = {
+    small: vehicleSmall,
+    suv: vehicleSuv,
+    large: vehicleLarge,
+  };
 
   const [secondsLeft, setSecondsLeft] = useState(() => {
     if (!reservationExpiry) return 0;
@@ -249,17 +260,44 @@ export default function PaymentScreen() {
             Resumen del Pedido
           </ThemedText>
           <Card elevation={1} style={styles.summaryCard}>
-            <View style={styles.summaryRow}>
-              <ThemedText type="body" style={{ color: theme.textSecondary }}>
-                Vehículo
-              </ThemedText>
-              <View style={{ flex: 1, marginLeft: Spacing.lg, alignItems: "flex-end" }}>
-                <ThemedText type="body" style={{ textAlign: "right" }}>
-                  {vehicleLabel}
+            <View style={styles.vehicleSummaryRow}>
+              <Image
+                source={VEHICLE_IMAGES[vehicleSize]}
+                style={styles.vehicleSummaryImage}
+                contentFit="contain"
+              />
+              <View style={styles.vehicleSummaryInfo}>
+                <ThemedText type="h3">
+                  {vehicleBrand} {vehicleModel}
                 </ThemedText>
-                <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                  {getVehicleName(vehicleSize)}
-                </ThemedText>
+                <View style={styles.vehicleSummaryMeta}>
+                  <View style={styles.vehicleMetaItem}>
+                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                      Color:
+                    </ThemedText>
+                    <ThemedText type="small" style={{ fontWeight: "600" }}>
+                      {vehicleColor}
+                    </ThemedText>
+                  </View>
+                  {vehiclePlate ? (
+                    <View style={styles.vehicleMetaItem}>
+                      <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                        Placa:
+                      </ThemedText>
+                      <ThemedText type="small" style={{ fontWeight: "600" }}>
+                        {vehiclePlate}
+                      </ThemedText>
+                    </View>
+                  ) : null}
+                  <View style={styles.vehicleMetaItem}>
+                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                      Tamaño:
+                    </ThemedText>
+                    <ThemedText type="small" style={{ fontWeight: "600" }}>
+                      {getVehicleName(vehicleSize)}
+                    </ThemedText>
+                  </View>
+                </View>
               </View>
             </View>
             <View style={styles.summaryDivider} />
@@ -717,6 +755,30 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     marginBottom: Spacing.xl,
+  },
+  vehicleSummaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+  },
+  vehicleSummaryImage: {
+    width: 56,
+    height: 56,
+    marginRight: Spacing.md,
+  },
+  vehicleSummaryInfo: {
+    flex: 1,
+  },
+  vehicleSummaryMeta: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.md,
+    marginTop: 4,
+  },
+  vehicleMetaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   summaryRow: {
     flexDirection: "row",
