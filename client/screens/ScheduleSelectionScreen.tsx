@@ -55,6 +55,24 @@ function formatCountdown(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes} minutos`;
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  if (remainder === 0) {
+    return hours === 1 ? "1 hora" : `${hours} horas`;
+  }
+  if (remainder === 30) {
+    return hours === 1 ? "1 hora y media" : `${hours} horas y media`;
+  }
+  const hourStr = hours === 1 ? "1 hora" : `${hours} horas`;
+  return `${hourStr} y ${remainder} min`;
+}
+
+function formatTimeRange(min: number, max: number): string {
+  return `${formatDuration(min)} a ${formatDuration(max)}`;
+}
+
 export default function ScheduleSelectionScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteType>();
@@ -368,7 +386,7 @@ export default function ScheduleSelectionScreen() {
             <View style={styles.estimatedTimeRow}>
               <Feather name="clock" size={14} color={theme.textSecondary} />
               <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                Tiempo estimado: {estimatedTime.min} a {estimatedTime.max} minutos
+                Tiempo estimado: {formatTimeRange(estimatedTime.min, estimatedTime.max)}
               </ThemedText>
             </View>
           </Animated.View>
