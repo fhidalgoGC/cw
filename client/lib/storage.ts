@@ -52,7 +52,9 @@ export interface Booking {
 
 export interface SavedVehicle {
   id: string;
-  name: string;
+  brand: string;
+  model: string;
+  color: string;
   size: VehicleSize;
   plate?: string;
 }
@@ -286,6 +288,25 @@ export async function saveUserData(userData: UserData): Promise<void> {
   } catch {
     console.error("Failed to save user data");
   }
+}
+
+export async function saveVehicle(vehicle: Omit<SavedVehicle, "id">): Promise<SavedVehicle> {
+  const userData = await getUserData();
+  const newVehicle: SavedVehicle = { ...vehicle, id: generateId() };
+  userData.vehicles.push(newVehicle);
+  await saveUserData(userData);
+  return newVehicle;
+}
+
+export async function getSavedVehicles(): Promise<SavedVehicle[]> {
+  const userData = await getUserData();
+  return userData.vehicles;
+}
+
+export async function deleteVehicle(vehicleId: string): Promise<void> {
+  const userData = await getUserData();
+  userData.vehicles = userData.vehicles.filter((v) => v.id !== vehicleId);
+  await saveUserData(userData);
 }
 
 export async function activateMembership(packageId: string): Promise<UserData> {
