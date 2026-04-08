@@ -36,6 +36,7 @@ export type RootStackParamList = {
     date: string;
     time: string;
     totalPrice: number;
+    reservationExpiry?: number;
   };
   Confirmation: { booking: Booking };
   AppointmentDetail: { booking: Booking };

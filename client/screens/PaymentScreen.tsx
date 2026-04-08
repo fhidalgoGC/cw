@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from "react";
-import { StyleSheet, View, Pressable, ScrollView } from "react-native";
+import React, { useState, useCallback, useEffect, useRef } from "react";
+import { StyleSheet, View, Pressable, ScrollView, Alert } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -51,7 +51,54 @@ export default function PaymentScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const { vehicleSize, washType, addOns, date, time, totalPrice } = route.params;
+  const { vehicleSize, washType, addOns, date, time, totalPrice, reservationExpiry } = route.params;
+
+  const [secondsLeft, setSecondsLeft] = useState(() => {
+    if (!reservationExpiry) return 0;
+    return Math.max(0, Math.ceil((reservationExpiry - Date.now()) / 1000));
+  });
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasExpiredRef = useRef(false);
+
+  useEffect(() => {
+    if (!reservationExpiry) return;
+    timerRef.current = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((reservationExpiry - Date.now()) / 1000));
+      setSecondsLeft(remaining);
+      if (remaining <= 0) {
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }, 1000);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [reservationExpiry]);
+
+  useEffect(() => {
+    if (secondsLeft === 0 && reservationExpiry && !hasExpiredRef.current) {
+      hasExpiredRef.current = true;
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert(
+        "Tiempo agotado",
+        "Tu reserva de horario ha expirado. Selecciona un nuevo horario.",
+        [{
+          text: "Volver",
+          onPress: () => navigation.goBack(),
+        }]
+      );
+    }
+  }, [secondsLeft, reservationExpiry, navigation]);
+
+  const isTimerActive = !!reservationExpiry && secondsLeft > 0;
+  const isTimeLow = secondsLeft <= 60;
+  const timerColor = isTimeLow ? Colors.error : Colors.warning;
+
+  const formatCountdown = (secs: number): string => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
 
   const [selectedMembershipId, setSelectedMembershipId] = useState<string | null>(null);
   const isUsingMembership = !!selectedMembershipId;
@@ -114,10 +161,31 @@ export default function PaymentScreen() {
   };
 
   const handlePay = async () => {
+    if (reservationExpiry && Date.now() >= reservationExpiry) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert(
+        "Tiempo agotado",
+        "Tu reserva de horario ha expirado. Selecciona un nuevo horario.",
+        [{ text: "Volver", onPress: () => navigation.goBack() }]
+      );
+      return;
+    }
+
     setIsProcessing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
     await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    if (reservationExpiry && Date.now() >= reservationExpiry) {
+      setIsProcessing(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert(
+        "Tiempo agotado",
+        "Tu reserva expiró durante el procesamiento. Selecciona un nuevo horario.",
+        [{ text: "Volver", onPress: () => navigation.goBack() }]
+      );
+      return;
+    }
 
     if (isUsingMembership && selectedMembershipId) {
       await useMembershipWash(selectedMembershipId);
@@ -146,6 +214,43 @@ export default function PaymentScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      {isTimerActive ? (
+        <Animated.View
+          entering={FadeInDown.duration(300)}
+          style={[
+            styles.timerBar,
+            { backgroundColor: timerColor + "15" },
+          ]}
+        >
+          <View style={styles.timerContent}>
+            <View style={styles.timerLeft}>
+              <View style={[styles.timerIconCircle, { backgroundColor: timerColor + "25" }]}>
+                <Feather name="clock" size={16} color={timerColor} />
+              </View>
+              <ThemedText type="small" style={{ color: timerColor, fontWeight: "700" }}>
+                Completa tu pago
+              </ThemedText>
+            </View>
+            <View style={[styles.timerBadge, { backgroundColor: timerColor }]}>
+              <Feather name="clock" size={12} color="#FFFFFF" />
+              <ThemedText type="body" style={styles.timerText}>
+                {formatCountdown(secondsLeft)}
+              </ThemedText>
+            </View>
+          </View>
+          <View style={[styles.timerProgressBg, { backgroundColor: timerColor + "20" }]}>
+            <View
+              style={[
+                styles.timerProgressFill,
+                {
+                  backgroundColor: timerColor,
+                  width: `${(secondsLeft / (5 * 60)) * 100}%`,
+                },
+              ]}
+            />
+          </View>
+        </Animated.View>
+      ) : null}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -491,6 +596,52 @@ export default function PaymentScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  timerBar: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+  timerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: Spacing.sm,
+  },
+  timerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    flex: 1,
+  },
+  timerIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  timerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.md,
+  },
+  timerText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
+  },
+  timerProgressBg: {
+    height: 4,
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  timerProgressFill: {
+    height: 4,
+    borderRadius: 2,
   },
   scrollView: {
     flex: 1,

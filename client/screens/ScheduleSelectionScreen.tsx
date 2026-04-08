@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from "react";
-import { StyleSheet, View, Pressable, ScrollView } from "react-native";
-import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { StyleSheet, View, Pressable, ScrollView, Alert } from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -15,6 +16,8 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteType = RouteProp<RootStackParamList, "ScheduleSelection">;
+
+const RESERVATION_SECONDS = 5 * 60;
 
 const TIME_SLOTS = [
   "9:00 AM",
@@ -45,6 +48,12 @@ function generateDates(): { date: Date; label: string; dayName: string }[] {
   return dates;
 }
 
+function formatCountdown(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 export default function ScheduleSelectionScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteType>();
@@ -56,19 +65,107 @@ export default function ScheduleSelectionScreen() {
   const dates = useMemo(() => generateDates(), []);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(RESERVATION_SECONDS);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasExpiredRef = useRef(false);
+  const expiryRef = useRef<number | null>(null);
+
+  const isReserved = selectedDate !== null && selectedTime !== null;
+
+  const startTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    hasExpiredRef.current = false;
+    const expiry = Date.now() + RESERVATION_SECONDS * 1000;
+    expiryRef.current = expiry;
+    setSecondsLeft(RESERVATION_SECONDS);
+    timerRef.current = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((expiry - Date.now()) / 1000));
+      setSecondsLeft(remaining);
+      if (remaining <= 0) {
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }, 1000);
+  }, []);
+
+  const stopTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (secondsLeft === 0 && isReserved && !hasExpiredRef.current) {
+      hasExpiredRef.current = true;
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert(
+        "Tiempo agotado",
+        "Tu reserva de horario ha expirado. Por favor selecciona un nuevo horario.",
+        [{ text: "Entendido" }]
+      );
+      setSelectedTime(null);
+      setSecondsLeft(RESERVATION_SECONDS);
+      expiryRef.current = null;
+    }
+  }, [secondsLeft, isReserved]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (expiryRef.current && Date.now() >= expiryRef.current) {
+        stopTimer();
+        expiryRef.current = null;
+        hasExpiredRef.current = true;
+        setSelectedTime(null);
+        setSecondsLeft(RESERVATION_SECONDS);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        Alert.alert(
+          "Tiempo agotado",
+          "Tu reserva de horario ha expirado. Por favor selecciona un nuevo horario.",
+          [{ text: "Entendido" }]
+        );
+      } else if (expiryRef.current && !timerRef.current) {
+        const remaining = Math.max(0, Math.ceil((expiryRef.current - Date.now()) / 1000));
+        if (remaining > 0) {
+          hasExpiredRef.current = false;
+          setSecondsLeft(remaining);
+          const expiry = expiryRef.current;
+          timerRef.current = setInterval(() => {
+            const r = Math.max(0, Math.ceil((expiry - Date.now()) / 1000));
+            setSecondsLeft(r);
+            if (r <= 0) {
+              if (timerRef.current) clearInterval(timerRef.current);
+              timerRef.current = null;
+            }
+          }, 1000);
+        }
+      }
+    }, [stopTimer])
+  );
+
+  useEffect(() => {
+    return () => stopTimer();
+  }, [stopTimer]);
 
   const handleDateSelect = (date: Date) => {
     Haptics.selectionAsync();
     setSelectedDate(date);
+    if (selectedTime) {
+      startTimer();
+    }
   };
 
   const handleTimeSelect = (time: string) => {
     Haptics.selectionAsync();
     setSelectedTime(time);
+    if (selectedDate) {
+      startTimer();
+    }
   };
 
   const handleContinue = () => {
-    if (selectedDate && selectedTime) {
+    if (selectedDate && selectedTime && expiryRef.current) {
+      stopTimer();
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       navigation.navigate("Payment", {
         vehicleSize,
@@ -77,6 +174,7 @@ export default function ScheduleSelectionScreen() {
         date: selectedDate.toISOString(),
         time: selectedTime,
         totalPrice,
+        reservationExpiry: expiryRef.current,
       });
     }
   };
@@ -86,8 +184,55 @@ export default function ScheduleSelectionScreen() {
     return date.toDateString() === selectedDate.toDateString();
   };
 
+  const isTimeLow = secondsLeft <= 60;
+  const timerColor = isTimeLow ? Colors.error : Colors.warning;
+  const timerProgress = secondsLeft / RESERVATION_SECONDS;
+
   return (
     <ThemedView style={styles.container}>
+      {isReserved ? (
+        <Animated.View
+          entering={FadeIn.duration(300)}
+          style={[
+            styles.timerBar,
+            { backgroundColor: timerColor + "15" },
+          ]}
+        >
+          <View style={styles.timerContent}>
+            <View style={styles.timerLeft}>
+              <View style={[styles.timerIconCircle, { backgroundColor: timerColor + "25" }]}>
+                <Feather name="clock" size={16} color={timerColor} />
+              </View>
+              <View>
+                <ThemedText type="small" style={{ color: timerColor, fontWeight: "700" }}>
+                  Horario reservado
+                </ThemedText>
+                <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                  Completa tu reserva antes de que expire
+                </ThemedText>
+              </View>
+            </View>
+            <View style={[styles.timerBadge, { backgroundColor: timerColor }]}>
+              <Feather name="clock" size={12} color="#FFFFFF" />
+              <ThemedText type="body" style={styles.timerText}>
+                {formatCountdown(secondsLeft)}
+              </ThemedText>
+            </View>
+          </View>
+          <View style={[styles.timerProgressBg, { backgroundColor: timerColor + "20" }]}>
+            <View
+              style={[
+                styles.timerProgressFill,
+                {
+                  backgroundColor: timerColor,
+                  width: `${timerProgress * 100}%`,
+                },
+              ]}
+            />
+          </View>
+        </Animated.View>
+      ) : null}
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -156,7 +301,7 @@ export default function ScheduleSelectionScreen() {
             Selecciona la Hora
           </ThemedText>
           <View style={styles.timeSlotsContainer}>
-            {TIME_SLOTS.map((time, index) => {
+            {TIME_SLOTS.map((time) => {
               const isSelected = selectedTime === time;
 
               return (
@@ -246,6 +391,52 @@ export default function ScheduleSelectionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  timerBar: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+  timerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: Spacing.sm,
+  },
+  timerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    flex: 1,
+  },
+  timerIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  timerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.md,
+  },
+  timerText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
+  },
+  timerProgressBg: {
+    height: 4,
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  timerProgressFill: {
+    height: 4,
+    borderRadius: 2,
   },
   scrollView: {
     flex: 1,
