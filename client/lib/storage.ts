@@ -65,11 +65,21 @@ export interface UserAddress {
   zipCode: string;
 }
 
+export interface SavedAddress {
+  id: string;
+  alias: string;
+  street: string;
+  colony: string;
+  city: string;
+  reference?: string;
+}
+
 export interface UserData {
   name: string;
   phone?: string;
   email?: string;
   address?: UserAddress;
+  addresses: SavedAddress[];
   vehicles: SavedVehicle[];
   memberships: Membership[];
   membership?: Membership;
@@ -268,6 +278,7 @@ export async function getUserData(): Promise<UserData> {
   const defaultData: UserData = {
     name: "Usuario",
     vehicles: [],
+    addresses: [],
     memberships: [],
     hasSubscription: false,
     subscriptionWashesLeft: 0,
@@ -323,6 +334,26 @@ export async function getSavedVehicles(): Promise<SavedVehicle[]> {
 export async function deleteVehicle(vehicleId: string): Promise<void> {
   const userData = await getUserData();
   userData.vehicles = userData.vehicles.filter((v) => v.id !== vehicleId);
+  await saveUserData(userData);
+}
+
+export async function saveAddress(address: Omit<SavedAddress, "id">): Promise<SavedAddress> {
+  const userData = await getUserData();
+  if (!userData.addresses) userData.addresses = [];
+  const newAddress: SavedAddress = { ...address, id: generateId() };
+  userData.addresses.push(newAddress);
+  await saveUserData(userData);
+  return newAddress;
+}
+
+export async function getSavedAddresses(): Promise<SavedAddress[]> {
+  const userData = await getUserData();
+  return userData.addresses || [];
+}
+
+export async function deleteAddress(addressId: string): Promise<void> {
+  const userData = await getUserData();
+  userData.addresses = (userData.addresses || []).filter((a) => a.id !== addressId);
   await saveUserData(userData);
 }
 

@@ -1,167 +1,247 @@
 import React, { useCallback, useState } from "react";
-import { StyleSheet, View, TextInput, Alert } from "react-native";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { StyleSheet, View, TextInput, Pressable, Alert, Modal, ScrollView } from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeInDown, Layout } from "react-native-reanimated";
 
-import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { useTheme } from "@/hooks/useTheme";
-import { Colors, Spacing, BorderRadius, Typography } from "@/constants/theme";
-import { getUserData, saveUserData, UserData } from "@/lib/storage";
+import { Colors, Spacing, BorderRadius } from "@/constants/theme";
+import {
+  SavedAddress,
+  getSavedAddresses,
+  saveAddress,
+  deleteAddress,
+} from "@/lib/storage";
 
 export default function AddressManagementScreen() {
-  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
 
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [street, setStreet] = useState("");
-  const [city, setCity] = useState("");
-  const [zipCode, setZipCode] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [addresses, setAddresses] = useState<SavedAddress[]>([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newAlias, setNewAlias] = useState("");
+  const [newStreet, setNewStreet] = useState("");
+  const [newColony, setNewColony] = useState("");
+  const [newCity, setNewCity] = useState("");
+  const [newReference, setNewReference] = useState("");
 
   useFocusEffect(
     useCallback(() => {
-      loadUserData();
+      const load = async () => {
+        const addrs = await getSavedAddresses();
+        setAddresses(addrs);
+      };
+      load();
     }, [])
   );
 
-  const loadUserData = async () => {
-    const data = await getUserData();
-    setUserData(data);
-    setStreet(data.address?.street || "");
-    setCity(data.address?.city || "");
-    setZipCode(data.address?.zipCode || "");
-    setIsLoading(false);
+  const handleAddAddress = async () => {
+    if (!newAlias.trim() || !newStreet.trim() || !newColony.trim() || !newCity.trim()) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const addr = await saveAddress({
+      alias: newAlias.trim(),
+      street: newStreet.trim(),
+      colony: newColony.trim(),
+      city: newCity.trim(),
+      reference: newReference.trim() || undefined,
+    });
+    setAddresses((prev) => [...prev, addr]);
+    setShowAddModal(false);
+    setNewAlias("");
+    setNewStreet("");
+    setNewColony("");
+    setNewCity("");
+    setNewReference("");
   };
 
-  const handleSave = async () => {
-    if (userData) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const updatedData: UserData = {
-        ...userData,
-        address:
-          street.trim() || city.trim() || zipCode.trim()
-            ? {
-                street: street.trim(),
-                city: city.trim(),
-                zipCode: zipCode.trim(),
-              }
-            : undefined,
-      };
-      await saveUserData(updatedData);
-      setUserData(updatedData);
-      Alert.alert("Guardado", "Tu dirección ha sido actualizada", [
-        { text: "OK", onPress: () => navigation.goBack() },
-      ]);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <ThemedView style={styles.container}>
-        <View style={[styles.skeleton, { backgroundColor: theme.backgroundSecondary }]} />
-      </ThemedView>
+  const handleRemoveAddress = (addressId: string, alias: string) => {
+    Alert.alert(
+      "Eliminar Dirección",
+      `¿Eliminar "${alias}"?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            await deleteAddress(addressId);
+            setAddresses((prev) => prev.filter((a) => a.id !== addressId));
+          },
+        },
+      ]
     );
-  }
+  };
 
   return (
     <ThemedView style={styles.container}>
-      <KeyboardAwareScrollViewCompat
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: insets.bottom + Spacing.xl },
         ]}
-        scrollIndicatorInsets={{ bottom: insets.bottom }}
+        showsVerticalScrollIndicator={false}
       >
-        <Animated.View entering={FadeInDown.delay(50).springify()}>
-          <Card elevation={1} style={styles.section}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Dirección de Servicio
-            </ThemedText>
-            <ThemedText
-              type="caption"
-              style={[styles.description, { color: theme.textSecondary }]}
-            >
-              Esta dirección se usará para el servicio de lavado a domicilio.
-            </ThemedText>
-
-            <View style={styles.form}>
-              <View style={styles.inputGroup}>
-                <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                  Calle y Número
-                </ThemedText>
-                <TextInput
+        {addresses.length > 0 ? (
+          <Animated.View layout={Layout} style={styles.addressList}>
+            {addresses.map((addr, index) => (
+              <Animated.View
+                key={addr.id}
+                entering={FadeInDown.delay(index * 50).springify()}
+                layout={Layout}
+              >
+                <View
                   style={[
-                    styles.input,
-                    {
-                      backgroundColor: theme.backgroundSecondary,
-                      color: theme.text,
-                      borderColor: theme.backgroundTertiary,
-                    },
+                    styles.addressCard,
+                    { backgroundColor: theme.backgroundDefault },
                   ]}
-                  value={street}
-                  onChangeText={setStreet}
-                  placeholder="Av. Principal #123"
-                  placeholderTextColor={theme.textSecondary}
-                />
-              </View>
+                >
+                  <View style={[styles.addressIconContainer, { backgroundColor: (isDark ? Colors.accent : Colors.primary) + "15" }]}>
+                    <Feather name="map-pin" size={20} color={isDark ? Colors.accent : Colors.primary} />
+                  </View>
+                  <View style={styles.addressInfo}>
+                    <ThemedText type="h3" style={{ fontSize: 16 }}>
+                      {addr.alias}
+                    </ThemedText>
+                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                      {addr.street}, {addr.colony}
+                    </ThemedText>
+                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                      {addr.city}
+                      {addr.reference ? ` - ${addr.reference}` : ""}
+                    </ThemedText>
+                  </View>
+                  <Pressable
+                    onPress={() => handleRemoveAddress(addr.id, addr.alias)}
+                    style={styles.removeButton}
+                  >
+                    <Feather name="trash-2" size={18} color={Colors.error} />
+                  </Pressable>
+                </View>
+              </Animated.View>
+            ))}
+          </Animated.View>
+        ) : (
+          <View style={[styles.emptyState, { backgroundColor: theme.backgroundDefault }]}>
+            <Feather name="map-pin" size={40} color={theme.textSecondary + "60"} />
+            <ThemedText type="body" style={{ color: theme.textSecondary, textAlign: "center", marginTop: Spacing.md }}>
+              No tienes direcciones guardadas
+            </ThemedText>
+            <ThemedText type="small" style={{ color: theme.textSecondary + "80", textAlign: "center" }}>
+              Agrega una dirección para el servicio a domicilio
+            </ThemedText>
+          </View>
+        )}
 
-              <View style={styles.rowInputs}>
-                <View style={[styles.inputGroup, { flex: 2 }]}>
-                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                    Ciudad
-                  </ThemedText>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        backgroundColor: theme.backgroundSecondary,
-                        color: theme.text,
-                        borderColor: theme.backgroundTertiary,
-                      },
-                    ]}
-                    value={city}
-                    onChangeText={setCity}
-                    placeholder="Ciudad"
-                    placeholderTextColor={theme.textSecondary}
-                  />
-                </View>
-                <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                    C.P.
-                  </ThemedText>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        backgroundColor: theme.backgroundSecondary,
-                        color: theme.text,
-                        borderColor: theme.backgroundTertiary,
-                      },
-                    ]}
-                    value={zipCode}
-                    onChangeText={setZipCode}
-                    placeholder="00000"
-                    placeholderTextColor={theme.textSecondary}
-                    keyboardType="number-pad"
-                  />
-                </View>
-              </View>
+        <Pressable
+          onPress={() => setShowAddModal(true)}
+          style={[styles.addButton, { borderColor: theme.backgroundTertiary }]}
+        >
+          <Feather name="plus" size={18} color={isDark ? Colors.accent : Colors.primary} />
+          <ThemedText type="body" style={{ color: isDark ? Colors.accent : Colors.primary, fontWeight: "600" }}>
+            Agregar Dirección
+          </ThemedText>
+        </Pressable>
+      </ScrollView>
+
+      <Modal
+        visible={showAddModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowAddModal(false)}
+      >
+        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
+          <View style={styles.modalHeader}>
+            <ThemedText type="h2">Registrar Dirección</ThemedText>
+            <Pressable onPress={() => setShowAddModal(false)}>
+              <Feather name="x" size={24} color={theme.text} />
+            </Pressable>
+          </View>
+
+          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
+            <View style={styles.inputGroup}>
+              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Nombre de la dirección
+              </ThemedText>
+              <TextInput
+                value={newAlias}
+                onChangeText={setNewAlias}
+                placeholder="Casa, Oficina, Trabajo..."
+                placeholderTextColor={theme.textSecondary + "80"}
+                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+              />
             </View>
-          </Card>
-        </Animated.View>
 
-        <Button onPress={handleSave} style={styles.saveButton}>
-          Guardar Dirección
-        </Button>
-      </KeyboardAwareScrollViewCompat>
+            <View style={styles.inputGroup}>
+              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Calle y número
+              </ThemedText>
+              <TextInput
+                value={newStreet}
+                onChangeText={setNewStreet}
+                placeholder="Av. Reforma 123"
+                placeholderTextColor={theme.textSecondary + "80"}
+                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Colonia
+              </ThemedText>
+              <TextInput
+                value={newColony}
+                onChangeText={setNewColony}
+                placeholder="Col. Centro"
+                placeholderTextColor={theme.textSecondary + "80"}
+                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Ciudad
+              </ThemedText>
+              <TextInput
+                value={newCity}
+                onChangeText={setNewCity}
+                placeholder="Ciudad de México"
+                placeholderTextColor={theme.textSecondary + "80"}
+                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Referencia (opcional)
+              </ThemedText>
+              <TextInput
+                value={newReference}
+                onChangeText={setNewReference}
+                placeholder="Portón azul, junto a la farmacia..."
+                placeholderTextColor={theme.textSecondary + "80"}
+                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+              />
+            </View>
+          </ScrollView>
+
+          <View style={[styles.modalFooter, { paddingBottom: insets.bottom + Spacing.lg }]}>
+            <Button
+              onPress={handleAddAddress}
+              disabled={!newAlias.trim() || !newStreet.trim() || !newColony.trim() || !newCity.trim()}
+              style={styles.saveButton}
+            >
+              Guardar Dirección
+            </Button>
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -174,42 +254,80 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: Spacing.xl,
-    gap: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
   },
-  skeleton: {
-    margin: Spacing.xl,
-    height: 200,
+  addressList: {
+    gap: Spacing.md,
+  },
+  addressCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.lg,
     borderRadius: BorderRadius.lg,
   },
-  section: {
-    marginBottom: Spacing.sm,
+  addressIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: Spacing.md,
   },
-  sectionTitle: {
-    marginBottom: Spacing.xs,
+  addressInfo: {
+    flex: 1,
   },
-  description: {
-    marginBottom: Spacing.lg,
+  removeButton: {
+    padding: Spacing.sm,
   },
-  form: {
-    gap: Spacing.md,
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: Spacing.xl * 2,
+    borderRadius: BorderRadius.lg,
   },
-  inputGroup: {
-    gap: Spacing.xs,
-  },
-  input: {
-    height: Spacing.inputHeight,
-    borderRadius: BorderRadius.sm,
-    paddingHorizontal: Spacing.lg,
-    borderWidth: 1,
-    ...Typography.body,
-  },
-  rowInputs: {
+  addButton: {
     flexDirection: "row",
-    gap: Spacing.md,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderStyle: "dashed",
+  },
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.md,
+  },
+  modalScroll: {
+    flex: 1,
+  },
+  modalContent: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
+    gap: Spacing.lg,
+  },
+  inputGroup: {},
+  input: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    fontSize: 16,
+  },
+  modalFooter: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
   },
   saveButton: {
-    marginTop: Spacing.lg,
     backgroundColor: Colors.primary,
   },
 });

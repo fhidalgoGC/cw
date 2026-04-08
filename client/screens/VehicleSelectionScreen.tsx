@@ -17,9 +17,12 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import {
   VehicleSize,
   SavedVehicle,
+  SavedAddress,
   getSavedVehicles,
   saveVehicle,
   getVehicleName,
+  getSavedAddresses,
+  saveAddress,
 } from "@/lib/storage";
 
 import vehicleSmall from "../../assets/images/vehicle-small.png";
@@ -78,11 +81,36 @@ export default function VehicleSelectionScreen() {
   const [newPlate, setNewPlate] = useState("");
   const [newSize, setNewSize] = useState<VehicleSize>("small");
 
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [showAddAddressModal, setShowAddAddressModal] = useState(false);
+  const [newAlias, setNewAlias] = useState("");
+  const [newStreet, setNewStreet] = useState("");
+  const [newColony, setNewColony] = useState("");
+  const [newCity, setNewCity] = useState("");
+  const [newReference, setNewReference] = useState("");
+
   useFocusEffect(
     useCallback(() => {
       const load = async () => {
-        const vehicles = await getSavedVehicles();
-        setSavedVehicles(vehicles);
+        try {
+          const [vehicles, addresses] = await Promise.all([
+            getSavedVehicles(),
+            getSavedAddresses(),
+          ]);
+          setSavedVehicles(vehicles);
+          setSavedAddresses(addresses);
+          setSelectedVehicleId((prev) =>
+            prev && vehicles.some((v) => v.id === prev) ? prev : null
+          );
+          setSelectedSize((prev) => {
+            const match = vehicles.find((v) => v.id === selectedVehicleId);
+            return match ? match.size : prev;
+          });
+          setSelectedAddressId((prev) =>
+            prev && addresses.some((a) => a.id === prev) ? prev : null
+          );
+        } catch {}
       };
       load();
     }, [])
@@ -94,11 +122,38 @@ export default function VehicleSelectionScreen() {
     setSelectedSize(vehicle.size);
   };
 
+  const handleSelectAddress = (address: SavedAddress) => {
+    Haptics.selectionAsync();
+    setSelectedAddressId(address.id);
+  };
+
   const handleContinue = () => {
-    if (selectedSize && selectedVehicleId) {
+    if (selectedSize && selectedVehicleId && selectedAddressId) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       navigation.navigate("ServiceCustomization", { vehicleSize: selectedSize });
     }
+  };
+
+  const handleAddAddress = async () => {
+    if (!newAlias.trim() || !newStreet.trim() || !newColony.trim() || !newCity.trim()) return;
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const addr = await saveAddress({
+        alias: newAlias.trim(),
+        street: newStreet.trim(),
+        colony: newColony.trim(),
+        city: newCity.trim(),
+        reference: newReference.trim() || undefined,
+      });
+      setSavedAddresses((prev) => [...prev, addr]);
+      setShowAddAddressModal(false);
+      setNewAlias("");
+      setNewStreet("");
+      setNewColony("");
+      setNewCity("");
+      setNewReference("");
+      setSelectedAddressId(addr.id);
+    } catch {}
   };
 
   const handleAddVehicle = async () => {
@@ -209,12 +264,90 @@ export default function VehicleSelectionScreen() {
             </ThemedText>
           </Pressable>
         </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(150).springify()} style={{ marginTop: Spacing.xl }}>
+          <ThemedText type="h2" style={styles.sectionTitle}>
+            Dirección del Servicio
+          </ThemedText>
+
+          {savedAddresses.length > 0 ? (
+            <View style={styles.optionsContainer}>
+              {savedAddresses.map((addr, index) => {
+                const isSelected = selectedAddressId === addr.id;
+                return (
+                  <Animated.View
+                    key={addr.id}
+                    entering={FadeInDown.delay(200 + index * 50).springify()}
+                  >
+                    <Pressable
+                      onPress={() => handleSelectAddress(addr)}
+                      style={[
+                        styles.optionCard,
+                        {
+                          backgroundColor: isSelected
+                            ? isDark
+                              ? "rgba(6, 182, 212, 0.15)"
+                              : "rgba(30, 64, 175, 0.08)"
+                            : theme.backgroundDefault,
+                          borderColor: isSelected
+                            ? isDark
+                              ? Colors.accent
+                              : Colors.primary
+                            : "transparent",
+                        },
+                      ]}
+                    >
+                      <View style={[styles.addressIcon, { backgroundColor: (isDark ? Colors.accent : Colors.primary) + "15" }]}>
+                        <Feather name="map-pin" size={20} color={isDark ? Colors.accent : Colors.primary} />
+                      </View>
+                      <View style={styles.optionInfo}>
+                        <ThemedText type="h3">{addr.alias}</ThemedText>
+                        <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                          {addr.street}, {addr.colony}
+                        </ThemedText>
+                        <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                          {addr.city}
+                          {addr.reference ? ` - ${addr.reference}` : ""}
+                        </ThemedText>
+                      </View>
+                      <Feather
+                        name={isSelected ? "check-circle" : "chevron-right"}
+                        size={20}
+                        color={isSelected ? (isDark ? Colors.accent : Colors.primary) : theme.textSecondary}
+                      />
+                    </Pressable>
+                  </Animated.View>
+                );
+              })}
+            </View>
+          ) : (
+            <View style={[styles.emptyState, { backgroundColor: theme.backgroundDefault }]}>
+              <Feather name="map-pin" size={40} color={theme.textSecondary + "60"} />
+              <ThemedText type="body" style={{ color: theme.textSecondary, textAlign: "center", marginTop: Spacing.md }}>
+                No tienes direcciones registradas
+              </ThemedText>
+              <ThemedText type="small" style={{ color: theme.textSecondary + "80", textAlign: "center" }}>
+                Agrega una dirección para el servicio
+              </ThemedText>
+            </View>
+          )}
+
+          <Pressable
+            onPress={() => setShowAddAddressModal(true)}
+            style={[styles.addButton, { borderColor: theme.backgroundTertiary }]}
+          >
+            <Feather name="plus" size={18} color={isDark ? Colors.accent : Colors.primary} />
+            <ThemedText type="body" style={{ color: isDark ? Colors.accent : Colors.primary, fontWeight: "600" }}>
+              Agregar Dirección
+            </ThemedText>
+          </Pressable>
+        </Animated.View>
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.lg }]}>
         <Button
           onPress={handleContinue}
-          disabled={!selectedVehicleId}
+          disabled={!selectedVehicleId || !selectedAddressId}
           style={styles.continueButton}
         >
           Continuar
@@ -381,6 +514,99 @@ export default function VehicleSelectionScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={showAddAddressModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowAddAddressModal(false)}
+      >
+        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
+          <View style={styles.modalHeader}>
+            <ThemedText type="h2">Registrar Dirección</ThemedText>
+            <Pressable onPress={() => setShowAddAddressModal(false)}>
+              <Feather name="x" size={24} color={theme.text} />
+            </Pressable>
+          </View>
+
+          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
+            <View style={styles.inputGroup}>
+              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Nombre de la dirección
+              </ThemedText>
+              <TextInput
+                value={newAlias}
+                onChangeText={setNewAlias}
+                placeholder="Casa, Oficina, Trabajo..."
+                placeholderTextColor={theme.textSecondary + "80"}
+                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Calle y número
+              </ThemedText>
+              <TextInput
+                value={newStreet}
+                onChangeText={setNewStreet}
+                placeholder="Av. Reforma 123"
+                placeholderTextColor={theme.textSecondary + "80"}
+                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Colonia
+              </ThemedText>
+              <TextInput
+                value={newColony}
+                onChangeText={setNewColony}
+                placeholder="Col. Centro"
+                placeholderTextColor={theme.textSecondary + "80"}
+                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Ciudad
+              </ThemedText>
+              <TextInput
+                value={newCity}
+                onChangeText={setNewCity}
+                placeholder="Ciudad de México"
+                placeholderTextColor={theme.textSecondary + "80"}
+                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Referencia (opcional)
+              </ThemedText>
+              <TextInput
+                value={newReference}
+                onChangeText={setNewReference}
+                placeholder="Portón azul, junto a la farmacia..."
+                placeholderTextColor={theme.textSecondary + "80"}
+                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+              />
+            </View>
+          </ScrollView>
+
+          <View style={[styles.modalFooter, { paddingBottom: insets.bottom + Spacing.lg }]}>
+            <Button
+              onPress={handleAddAddress}
+              disabled={!newAlias.trim() || !newStreet.trim() || !newColony.trim() || !newCity.trim()}
+              style={styles.continueButton}
+            >
+              Guardar Dirección
+            </Button>
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -427,6 +653,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.xs,
     marginTop: 4,
+  },
+  addressIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: Spacing.md,
   },
   addButton: {
     flexDirection: "row",

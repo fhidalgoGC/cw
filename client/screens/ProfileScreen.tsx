@@ -14,7 +14,7 @@ import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors, Spacing, BorderRadius, Typography } from "@/constants/theme";
-import { getUserData, saveUserData, UserData, PACKAGES } from "@/lib/storage";
+import { getUserData, saveUserData, UserData, PACKAGES, getSavedAddresses } from "@/lib/storage";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 type ProfileNavigationProp = NativeStackNavigationProp<RootStackParamList, "Profile">;
@@ -71,12 +71,19 @@ export default function ProfileScreen() {
   const [email, setEmail] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [addressCount, setAddressCount] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
       loadUserData();
+      loadAddressCount();
     }, [])
   );
+
+  const loadAddressCount = async () => {
+    const addrs = await getSavedAddresses();
+    setAddressCount(addrs.length);
+  };
 
   const loadUserData = async () => {
     const data = await getUserData();
@@ -103,12 +110,8 @@ export default function ProfileScreen() {
   };
 
   const getAddressSubtitle = () => {
-    if (!userData?.address) return "Agregar dirección";
-    const { street, city } = userData.address;
-    if (street && city) return `${street}, ${city}`;
-    if (street) return street;
-    if (city) return city;
-    return "Agregar dirección";
+    if (addressCount === 0) return "Agregar dirección";
+    return `${addressCount} dirección${addressCount > 1 ? "es" : ""} guardada${addressCount > 1 ? "s" : ""}`;
   };
 
   const getVehiclesSubtitle = () => {
