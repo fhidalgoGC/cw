@@ -235,7 +235,7 @@ export default function MembershipDetailScreen() {
           <Button
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              navigation.navigate("BookingPaymentSelection");
+              navigation.navigate("VehicleSelection");
             }}
             style={styles.bookButton}
           >

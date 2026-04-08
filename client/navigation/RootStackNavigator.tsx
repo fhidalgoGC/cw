@@ -21,14 +21,13 @@ import { VehicleSize, WashType, Booking } from "@/lib/storage";
 export type RootStackParamList = {
   Main: undefined;
   BookingPaymentSelection: undefined;
-  VehicleSelection: { membershipId?: string };
-  ServiceCustomization: { vehicleSize: VehicleSize; membershipId?: string };
+  VehicleSelection: undefined;
+  ServiceCustomization: { vehicleSize: VehicleSize };
   ScheduleSelection: {
     vehicleSize: VehicleSize;
     washType: WashType;
     addOns: string[];
     totalPrice: number;
-    membershipId?: string;
   };
   Payment: {
     vehicleSize: VehicleSize;
@@ -37,7 +36,6 @@ export type RootStackParamList = {
     date: string;
     time: string;
     totalPrice: number;
-    membershipId?: string;
   };
   Confirmation: { booking: Booking };
   AppointmentDetail: { booking: Booking };

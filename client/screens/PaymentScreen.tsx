@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { StyleSheet, View, Pressable, ScrollView, Alert } from "react-native";
+import React, { useState, useCallback } from "react";
+import { StyleSheet, View, Pressable, ScrollView } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -24,6 +24,9 @@ import {
   getWashTypeName,
   ADD_ONS,
   Booking,
+  getUserData,
+  UserData,
+  getActiveMemberships,
 } from "@/lib/storage";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -47,8 +50,29 @@ export default function PaymentScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const { vehicleSize, washType, addOns, date, time, totalPrice, membershipId } = route.params;
-  const isUsingMembership = !!membershipId;
+  const { vehicleSize, washType, addOns, date, time, totalPrice } = route.params;
+
+  const [selectedMembershipId, setSelectedMembershipId] = useState<string | null>(null);
+  const isUsingMembership = !!selectedMembershipId;
+
+  const [userData, setUserData] = useState<UserData | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadUserData = async () => {
+        const data = await getUserData();
+        setUserData(data);
+      };
+      loadUserData();
+    }, [])
+  );
+
+  const activeMemberships = userData ? getActiveMemberships(userData) : [];
+
+  const handleMembershipSelect = (membershipId: string | null) => {
+    Haptics.selectionAsync();
+    setSelectedMembershipId(membershipId);
+  };
 
   const [selectedPayment, setSelectedPayment] = useState<string>(
     MOCK_PAYMENT_METHODS.find((m) => m.isDefault)?.id || "1"
@@ -94,8 +118,8 @@ export default function PaymentScreen() {
 
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    if (isUsingMembership && membershipId) {
-      await useMembershipWash(membershipId);
+    if (isUsingMembership && selectedMembershipId) {
+      await useMembershipWash(selectedMembershipId);
     }
 
     const booking: Booking = {
@@ -153,7 +177,7 @@ export default function PaymentScreen() {
                 </ThemedText>
               </View>
             ) : null}
-            <View style={styles.divider} />
+            <View style={styles.summaryDivider} />
             <View style={styles.summaryRow}>
               <ThemedText type="body" style={{ color: theme.textSecondary }}>
                 Fecha
@@ -166,7 +190,7 @@ export default function PaymentScreen() {
               </ThemedText>
               <ThemedText type="body">{time}</ThemedText>
             </View>
-            <View style={styles.divider} />
+            <View style={styles.summaryDivider} />
             <View style={styles.summaryRow}>
               <ThemedText type="h3">Total</ThemedText>
               {isUsingMembership ? (
@@ -193,9 +217,235 @@ export default function PaymentScreen() {
           </Card>
         </Animated.View>
 
-        {isUsingMembership ? (
-          <Animated.View entering={FadeInDown.delay(100).springify()}>
-            <Card elevation={1} style={[styles.summaryCard, { backgroundColor: Colors.success + "15" }]}>
+        <Animated.View entering={FadeInDown.delay(100).springify()}>
+          <ThemedText type="h2" style={styles.sectionTitle}>
+            Método de Pago
+          </ThemedText>
+
+          {activeMemberships.length > 0 ? (
+            <View style={styles.paymentMethods}>
+              <Pressable
+                onPress={() => handleMembershipSelect(null)}
+                style={[
+                  styles.paymentMethod,
+                  {
+                    backgroundColor: !isUsingMembership
+                      ? isDark
+                        ? "rgba(6, 182, 212, 0.15)"
+                        : "rgba(30, 64, 175, 0.08)"
+                      : theme.backgroundDefault,
+                    borderColor: !isUsingMembership
+                      ? isDark
+                        ? Colors.accent
+                        : Colors.primary
+                      : theme.backgroundTertiary,
+                  },
+                ]}
+              >
+                <Feather
+                  name="credit-card"
+                  size={24}
+                  color={
+                    !isUsingMembership
+                      ? isDark
+                        ? Colors.accent
+                        : Colors.primary
+                      : theme.textSecondary
+                  }
+                />
+                <View style={styles.paymentInfo}>
+                  <ThemedText type="body">Pago Directo</ThemedText>
+                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                    Paga esta lavada individualmente
+                  </ThemedText>
+                </View>
+                <View
+                  style={[
+                    styles.radioOuter,
+                    {
+                      borderColor: !isUsingMembership
+                        ? isDark
+                          ? Colors.accent
+                          : Colors.primary
+                        : theme.textSecondary,
+                    },
+                  ]}
+                >
+                  {!isUsingMembership ? (
+                    <View
+                      style={[
+                        styles.radioInner,
+                        {
+                          backgroundColor: isDark
+                            ? Colors.accent
+                            : Colors.primary,
+                        },
+                      ]}
+                    />
+                  ) : null}
+                </View>
+              </Pressable>
+
+              {activeMemberships.map(({ package: pkg, membership, daysRemaining }) => {
+                const isSelected = selectedMembershipId === membership.id;
+                return (
+                  <Pressable
+                    key={membership.id}
+                    onPress={() => handleMembershipSelect(membership.id)}
+                    style={[
+                      styles.paymentMethod,
+                      {
+                        backgroundColor: isSelected
+                          ? pkg.color + "20"
+                          : theme.backgroundDefault,
+                        borderColor: isSelected
+                          ? pkg.color
+                          : theme.backgroundTertiary,
+                      },
+                    ]}
+                  >
+                    <View style={[styles.packageIcon, { backgroundColor: pkg.color }]}>
+                      <Feather
+                        name={pkg.id === "elite" ? "award" : pkg.id === "premium" ? "star" : "check-circle"}
+                        size={18}
+                        color="#FFFFFF"
+                      />
+                    </View>
+                    <View style={styles.paymentInfo}>
+                      <ThemedText type="body">{pkg.name}</ThemedText>
+                      <View style={styles.packageMeta}>
+                        <ThemedText type="small" style={{ color: pkg.color, fontWeight: "600" }}>
+                          {membership.washesRemaining} lavadas
+                        </ThemedText>
+                        <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                          {daysRemaining} días
+                        </ThemedText>
+                      </View>
+                    </View>
+                    <View
+                      style={[
+                        styles.radioOuter,
+                        { borderColor: isSelected ? pkg.color : theme.textSecondary },
+                      ]}
+                    >
+                      {isSelected ? (
+                        <View
+                          style={[styles.radioInner, { backgroundColor: pkg.color }]}
+                        />
+                      ) : null}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+
+          {!isUsingMembership ? (
+            <View style={styles.cardPaymentSection}>
+              {activeMemberships.length > 0 ? (
+                <View style={styles.divider}>
+                  <View style={[styles.dividerLine, { backgroundColor: theme.backgroundTertiary }]} />
+                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                    Tarjeta
+                  </ThemedText>
+                  <View style={[styles.dividerLine, { backgroundColor: theme.backgroundTertiary }]} />
+                </View>
+              ) : null}
+              <View style={styles.paymentMethods}>
+                {MOCK_PAYMENT_METHODS.map((method) => {
+                  const isSelected = selectedPayment === method.id;
+                  return (
+                    <Pressable
+                      key={method.id}
+                      onPress={() => handlePaymentSelect(method.id)}
+                      style={[
+                        styles.paymentMethod,
+                        {
+                          backgroundColor: isSelected
+                            ? isDark
+                              ? "rgba(6, 182, 212, 0.15)"
+                              : "rgba(30, 64, 175, 0.08)"
+                            : theme.backgroundDefault,
+                          borderColor: isSelected
+                            ? isDark
+                              ? Colors.accent
+                              : Colors.primary
+                            : theme.backgroundTertiary,
+                        },
+                      ]}
+                    >
+                      <Feather
+                        name={getCardIcon(method.type)}
+                        size={24}
+                        color={
+                          isSelected
+                            ? isDark
+                              ? Colors.accent
+                              : Colors.primary
+                            : theme.textSecondary
+                        }
+                      />
+                      <View style={styles.paymentInfo}>
+                        <ThemedText type="body">
+                          {getCardName(method.type)} ****{method.last4}
+                        </ThemedText>
+                        {method.isDefault ? (
+                          <ThemedText
+                            type="small"
+                            style={{ color: theme.textSecondary }}
+                          >
+                            Predeterminada
+                          </ThemedText>
+                        ) : null}
+                      </View>
+                      <View
+                        style={[
+                          styles.radioOuter,
+                          {
+                            borderColor: isSelected
+                              ? isDark
+                                ? Colors.accent
+                                : Colors.primary
+                              : theme.textSecondary,
+                          },
+                        ]}
+                      >
+                        {isSelected ? (
+                          <View
+                            style={[
+                              styles.radioInner,
+                              {
+                                backgroundColor: isDark
+                                  ? Colors.accent
+                                  : Colors.primary,
+                              },
+                            ]}
+                          />
+                        ) : null}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <Pressable
+                style={[styles.addPayment, { borderColor: theme.textSecondary }]}
+              >
+                <Feather name="plus" size={20} color={theme.textSecondary} />
+                <ThemedText type="body" style={{ color: theme.textSecondary }}>
+                  Agregar Método de Pago
+                </ThemedText>
+              </Pressable>
+
+              <View style={styles.secureNote}>
+                <Feather name="lock" size={16} color={theme.textSecondary} />
+                <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                  Pago seguro encriptado
+                </ThemedText>
+              </View>
+            </View>
+          ) : (
+            <Card elevation={1} style={[styles.membershipActiveCard, { backgroundColor: Colors.success + "15" }]}>
               <View style={styles.membershipBadge}>
                 <Feather name="award" size={24} color={Colors.success} />
                 <View style={{ flex: 1 }}>
@@ -208,108 +458,8 @@ export default function PaymentScreen() {
                 </View>
               </View>
             </Card>
-          </Animated.View>
-        ) : (
-          <Animated.View entering={FadeInDown.delay(100).springify()}>
-            <ThemedText type="h2" style={styles.sectionTitle}>
-              Método de Pago
-            </ThemedText>
-            <View style={styles.paymentMethods}>
-              {MOCK_PAYMENT_METHODS.map((method) => {
-                const isSelected = selectedPayment === method.id;
-                return (
-                  <Pressable
-                    key={method.id}
-                    onPress={() => handlePaymentSelect(method.id)}
-                    style={[
-                      styles.paymentMethod,
-                      {
-                        backgroundColor: isSelected
-                          ? isDark
-                            ? "rgba(6, 182, 212, 0.15)"
-                            : "rgba(30, 64, 175, 0.08)"
-                          : theme.backgroundDefault,
-                        borderColor: isSelected
-                          ? isDark
-                            ? Colors.accent
-                            : Colors.primary
-                          : theme.backgroundTertiary,
-                      },
-                    ]}
-                  >
-                    <Feather
-                      name={getCardIcon(method.type)}
-                      size={24}
-                      color={
-                        isSelected
-                          ? isDark
-                            ? Colors.accent
-                            : Colors.primary
-                          : theme.textSecondary
-                      }
-                    />
-                    <View style={styles.paymentInfo}>
-                      <ThemedText type="body">
-                        {getCardName(method.type)} ****{method.last4}
-                      </ThemedText>
-                      {method.isDefault ? (
-                        <ThemedText
-                          type="small"
-                          style={{ color: theme.textSecondary }}
-                        >
-                          Predeterminada
-                        </ThemedText>
-                      ) : null}
-                    </View>
-                    <View
-                      style={[
-                        styles.radioOuter,
-                        {
-                          borderColor: isSelected
-                            ? isDark
-                              ? Colors.accent
-                              : Colors.primary
-                            : theme.textSecondary,
-                        },
-                      ]}
-                    >
-                      {isSelected ? (
-                        <View
-                          style={[
-                            styles.radioInner,
-                            {
-                              backgroundColor: isDark
-                                ? Colors.accent
-                                : Colors.primary,
-                            },
-                          ]}
-                        />
-                      ) : null}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <Pressable
-              style={[styles.addPayment, { borderColor: theme.textSecondary }]}
-            >
-              <Feather name="plus" size={20} color={theme.textSecondary} />
-              <ThemedText type="body" style={{ color: theme.textSecondary }}>
-                Agregar Método de Pago
-              </ThemedText>
-            </Pressable>
-          </Animated.View>
-        )}
-
-        {!isUsingMembership ? (
-          <View style={styles.secureNote}>
-            <Feather name="lock" size={16} color={theme.textSecondary} />
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>
-              Pago seguro encriptado
-            </ThemedText>
-          </View>
-        ) : null}
+          )}
+        </Animated.View>
       </ScrollView>
 
       <View
@@ -367,9 +517,37 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.lg,
   },
   divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    marginVertical: Spacing.sm,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  summaryDivider: {
     height: 1,
     backgroundColor: "rgba(128, 128, 128, 0.2)",
     marginVertical: Spacing.md,
+  },
+  cardPaymentSection: {
+    marginTop: Spacing.sm,
+  },
+  packageIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.sm,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  packageMeta: {
+    flexDirection: "row",
+    gap: Spacing.md,
+    marginTop: 2,
+  },
+  membershipActiveCard: {
+    marginTop: Spacing.md,
   },
   paymentMethods: {
     gap: Spacing.sm,

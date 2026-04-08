@@ -28,9 +28,10 @@ Preferred communication style: Simple, everyday language.
 - React 19.1.0 with React Compiler enabled
 
 **Navigation:** React Navigation v7
-- Tab-based navigation with 3 tabs (Home, Book, Appointments)
+- Tab-based navigation with 5 tabs (Home, Appointments, Book, History, Packages)
 - Native stack navigator for booking flow screens
 - Modal presentation for booking wizard steps
+- Booking flow: Vehicle Selection → Service Customization → Schedule Selection → Payment (with integrated membership/package selection) → Confirmation
 
 **State Management:**
 - TanStack React Query for server state and caching

@@ -48,12 +48,12 @@ export default function BookingPaymentSelectionScreen() {
 
   const handlePayDirectly = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    navigation.navigate("VehicleSelection", { membershipId: undefined });
+    navigation.navigate("VehicleSelection");
   };
 
-  const handleUsePackage = (membershipId: string) => {
+  const handleUsePackage = (_membershipId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    navigation.navigate("VehicleSelection", { membershipId });
+    navigation.navigate("VehicleSelection");
   };
 
   const handleBuyPackage = () => {
