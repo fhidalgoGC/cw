@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { StyleSheet, View, ScrollView, Alert, Pressable } from "react-native";
+import { StyleSheet, View, ScrollView, Alert, Pressable, Modal } from "react-native";
 import { Image } from "expo-image";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
@@ -16,6 +16,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
+import { SchedulePicker } from "@/components/SchedulePicker";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors, Spacing, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -64,6 +65,7 @@ export default function AppointmentDetailScreen() {
   const [booking, setBooking] = useState<Booking>(route.params.booking);
   const [isCancelling, setIsCancelling] = useState(false);
   const [servicesExpanded, setServicesExpanded] = useState(false);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
 
   const allIncludedServices = useMemo(() => {
     const includedByWash = ALL_SERVICES.filter((s) => s.includedIn.includes(booking.washType));
@@ -120,9 +122,27 @@ export default function AppointmentDetailScreen() {
       );
       return;
     }
+    setShowRescheduleModal(true);
+  };
+
+  const handleRescheduleConfirm = async (selectedDate: Date, selectedTime: string, _reservationExpiry: number) => {
+    const updatedBooking: Booking = {
+      ...booking,
+      date: selectedDate.toISOString(),
+      time: selectedTime,
+    };
+    await updateBooking(updatedBooking);
+    setBooking(updatedBooking);
+    setShowRescheduleModal(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const displayDate = selectedDate.toLocaleDateString("es-MX", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    });
     Alert.alert(
-      "Reprogramar Cita",
-      "Para reprogramar tu cita, cancela esta y crea una nueva reservación.",
+      "Cita reprogramada",
+      `Tu cita ha sido reprogramada para el ${displayDate} a las ${selectedTime}.`,
       [{ text: "Entendido" }]
     );
   };
@@ -366,14 +386,14 @@ export default function AppointmentDetailScreen() {
             entering={FadeInDown.delay(150).springify()}
             style={styles.actionsContainer}
           >
-            {!canReschedule ? (
-              <View style={[styles.rescheduleNote, { backgroundColor: Colors.warning + "15" }]}>
-                <Feather name="alert-circle" size={16} color={Colors.warning} />
-                <ThemedText type="small" style={{ color: Colors.warning, flex: 1 }}>
-                  No puedes reprogramar a menos de 2 horas del servicio
-                </ThemedText>
-              </View>
-            ) : null}
+            <View style={[styles.rescheduleNote, { backgroundColor: (canReschedule ? Colors.accent : Colors.warning) + "15" }]}>
+              <Feather name="info" size={16} color={canReschedule ? Colors.accent : Colors.warning} />
+              <ThemedText type="small" style={{ color: canReschedule ? Colors.accent : Colors.warning, flex: 1 }}>
+                {canReschedule
+                  ? "Puedes reprogramar tu cita hasta 2 horas antes del servicio"
+                  : "No puedes reprogramar a menos de 2 horas del servicio"}
+              </ThemedText>
+            </View>
             <Button
               onPress={handleReschedule}
               style={[
@@ -399,9 +419,77 @@ export default function AppointmentDetailScreen() {
           </Animated.View>
         ) : null}
       </ScrollView>
+
+      <Modal
+        visible={showRescheduleModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowRescheduleModal(false)}
+      >
+        <ThemedView style={modalStyles.container}>
+          <View style={[modalStyles.header, { borderBottomColor: theme.backgroundTertiary }]}>
+            <ThemedText type="h2">Reprogramar Cita</ThemedText>
+            <Pressable
+              onPress={() => setShowRescheduleModal(false)}
+              style={[modalStyles.closeButton, { backgroundColor: theme.backgroundSecondary }]}
+            >
+              <Feather name="x" size={20} color={theme.text} />
+            </Pressable>
+          </View>
+          <View style={modalStyles.noteContainer}>
+            <View style={[modalStyles.note, { backgroundColor: Colors.warning + "15" }]}>
+              <Feather name="info" size={16} color={Colors.warning} />
+              <ThemedText type="small" style={{ color: Colors.warning, flex: 1 }}>
+                Solo puedes reprogramar hasta 2 horas antes del servicio
+              </ThemedText>
+            </View>
+          </View>
+          {showRescheduleModal ? (
+            <SchedulePicker
+              washType={booking.washType}
+              addOns={booking.addOns}
+              onConfirm={handleRescheduleConfirm}
+              showEstimatedTime={false}
+            />
+          ) : null}
+        </ThemedView>
+      </Modal>
     </ThemedView>
   );
 }
+
+const modalStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  noteContainer: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
+  },
+  note: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+});
 
 const styles = StyleSheet.create({
   container: {
