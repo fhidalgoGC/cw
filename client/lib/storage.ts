@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export type VehicleSize = "small" | "suv" | "large";
-export type WashType = "basic" | "complete";
+export type WashType = "basic" | "complete" | "premium" | "detail" | "full";
 
 export interface AddOn {
   id: string;
@@ -87,6 +87,9 @@ export const VEHICLE_PRICES: Record<VehicleSize, number> = {
 export const WASH_TYPE_PRICES: Record<WashType, number> = {
   basic: 0,
   complete: 80,
+  premium: 150,
+  detail: 250,
+  full: 380,
 };
 
 export interface ServiceOption {
@@ -97,14 +100,14 @@ export interface ServiceOption {
 }
 
 export const ALL_SERVICES: ServiceOption[] = [
-  { id: "exterior", name: "Lavado Exterior", price: 0, includedIn: ["basic", "complete"] },
-  { id: "aspirado", name: "Aspirado", price: 0, includedIn: ["basic", "complete"] },
-  { id: "interior", name: "Interior Completo", price: 100, includedIn: ["complete"] },
-  { id: "vidrios", name: "Limpieza de Vidrios", price: 0, includedIn: ["complete"] },
-  { id: "rines", name: "Detallado de Rines", price: 50, includedIn: [] },
-  { id: "motor", name: "Lavado de Motor", price: 70, includedIn: [] },
-  { id: "cera", name: "Encerado Premium", price: 80, includedIn: [] },
-  { id: "tapiceria", name: "Limpieza de Tapicería", price: 120, includedIn: [] },
+  { id: "exterior", name: "Lavado Exterior", price: 0, includedIn: ["basic", "complete", "premium", "detail", "full"] },
+  { id: "aspirado", name: "Aspirado", price: 0, includedIn: ["basic", "complete", "premium", "detail", "full"] },
+  { id: "interior", name: "Interior Completo", price: 100, includedIn: ["complete", "premium", "detail", "full"] },
+  { id: "vidrios", name: "Limpieza de Vidrios", price: 0, includedIn: ["complete", "premium", "detail", "full"] },
+  { id: "rines", name: "Detallado de Rines", price: 50, includedIn: ["premium", "detail", "full"] },
+  { id: "motor", name: "Lavado de Motor", price: 70, includedIn: ["detail", "full"] },
+  { id: "cera", name: "Encerado Premium", price: 80, includedIn: ["detail", "full"] },
+  { id: "tapiceria", name: "Limpieza de Tapicería", price: 120, includedIn: ["full"] },
 ];
 
 export const ADD_ONS: AddOn[] = [
@@ -470,7 +473,20 @@ export function getVehicleName(size: VehicleSize): string {
 }
 
 export function getWashTypeName(type: WashType): string {
-  return type === "basic" ? "Básico" : "Completo";
+  switch (type) {
+    case "basic":
+      return "Básico";
+    case "complete":
+      return "Completo";
+    case "premium":
+      return "Premium";
+    case "detail":
+      return "Detallado";
+    case "full":
+      return "Full";
+    default:
+      return type;
+  }
 }
 
 export function getAddOnName(addOnId: string): string {

@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from "react";
 import { StyleSheet, View, Pressable, ScrollView } from "react-native";
-import { Image } from "expo-image";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -10,7 +9,6 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors, Spacing, BorderRadius } from "@/constants/theme";
@@ -21,14 +19,51 @@ import {
   WASH_TYPE_PRICES,
   ALL_SERVICES,
   getIncludedServiceIds,
-  SUBSCRIPTION_PRICE,
   formatPrice,
 } from "@/lib/storage";
 
-const subscriptionBadge = require("../../assets/images/subscription-badge.png");
-
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteType = RouteProp<RootStackParamList, "ServiceCustomization">;
+
+interface WashOption {
+  type: WashType;
+  name: string;
+  description: string;
+  icon: keyof typeof Feather.glyphMap;
+}
+
+const WASH_OPTIONS: WashOption[] = [
+  {
+    type: "basic",
+    name: "Básico",
+    description: "Exterior + Aspirado",
+    icon: "droplet",
+  },
+  {
+    type: "complete",
+    name: "Completo",
+    description: "Exterior + Interior + Vidrios",
+    icon: "sun",
+  },
+  {
+    type: "premium",
+    name: "Premium",
+    description: "Completo + Rines",
+    icon: "star",
+  },
+  {
+    type: "detail",
+    name: "Detallado",
+    description: "Premium + Motor + Cera",
+    icon: "award",
+  },
+  {
+    type: "full",
+    name: "Full",
+    description: "Todo incluido",
+    icon: "shield",
+  },
+];
 
 export default function ServiceCustomizationScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -40,14 +75,10 @@ export default function ServiceCustomizationScreen() {
 
   const [washType, setWashType] = useState<WashType>("basic");
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
-  const [wantsSubscription, setWantsSubscription] = useState(false);
 
   const includedServiceIds = useMemo(() => getIncludedServiceIds(washType), [washType]);
 
   const totalPrice = useMemo(() => {
-    if (wantsSubscription) {
-      return SUBSCRIPTION_PRICE;
-    }
     const basePrice = VEHICLE_PRICES[vehicleSize];
     const washPrice = WASH_TYPE_PRICES[washType];
     const addOnsPrice = selectedAddOns.reduce((sum, id) => {
@@ -58,7 +89,7 @@ export default function ServiceCustomizationScreen() {
       return sum;
     }, 0);
     return basePrice + washPrice + addOnsPrice;
-  }, [vehicleSize, washType, selectedAddOns, wantsSubscription, includedServiceIds]);
+  }, [vehicleSize, washType, selectedAddOns, includedServiceIds]);
 
   const toggleAddOn = (id: string) => {
     if (includedServiceIds.includes(id)) return;
@@ -77,11 +108,6 @@ export default function ServiceCustomizationScreen() {
     });
   };
 
-  const handleSubscriptionToggle = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setWantsSubscription(!wantsSubscription);
-  };
-
   const handleContinue = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const allSelected = [...includedServiceIds, ...selectedAddOns];
@@ -93,8 +119,9 @@ export default function ServiceCustomizationScreen() {
     });
   };
 
-  const basicPrice = VEHICLE_PRICES[vehicleSize] + WASH_TYPE_PRICES.basic;
-  const completePrice = VEHICLE_PRICES[vehicleSize] + WASH_TYPE_PRICES.complete;
+  const getWashPrice = (type: WashType) => {
+    return VEHICLE_PRICES[vehicleSize] + WASH_TYPE_PRICES[type];
+  };
 
   return (
     <ThemedView style={styles.container}>
@@ -107,103 +134,95 @@ export default function ServiceCustomizationScreen() {
           <ThemedText type="h2" style={styles.sectionTitle}>
             Tipo de Lavado
           </ThemedText>
-          <View style={styles.washTypeContainer}>
-            <Pressable
-              onPress={() => handleWashTypeChange("basic")}
-              style={[
-                styles.washTypeOption,
-                {
-                  backgroundColor:
-                    washType === "basic"
-                      ? isDark
-                        ? "rgba(6, 182, 212, 0.15)"
-                        : "rgba(30, 64, 175, 0.08)"
-                      : theme.backgroundDefault,
-                  borderColor:
-                    washType === "basic"
-                      ? isDark
-                        ? Colors.accent
-                        : Colors.primary
-                      : theme.backgroundTertiary,
-                },
-              ]}
-            >
-              <ThemedText
-                type="h3"
-                style={{
-                  color:
-                    washType === "basic"
-                      ? isDark
-                        ? Colors.accent
-                        : Colors.primary
-                      : theme.text,
-                }}
-              >
-                Básico
-              </ThemedText>
-              <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                Exterior + Aspirado
-              </ThemedText>
-              <ThemedText
-                type="body"
-                style={{
-                  color: isDark ? Colors.accent : Colors.primary,
-                  marginTop: Spacing.xs,
-                  fontWeight: "700",
-                }}
-              >
-                {formatPrice(basicPrice)}
-              </ThemedText>
-            </Pressable>
-
-            <Pressable
-              onPress={() => handleWashTypeChange("complete")}
-              style={[
-                styles.washTypeOption,
-                {
-                  backgroundColor:
-                    washType === "complete"
-                      ? isDark
-                        ? "rgba(6, 182, 212, 0.15)"
-                        : "rgba(30, 64, 175, 0.08)"
-                      : theme.backgroundDefault,
-                  borderColor:
-                    washType === "complete"
-                      ? isDark
-                        ? Colors.accent
-                        : Colors.primary
-                      : theme.backgroundTertiary,
-                },
-              ]}
-            >
-              <ThemedText
-                type="h3"
-                style={{
-                  color:
-                    washType === "complete"
-                      ? isDark
-                        ? Colors.accent
-                        : Colors.primary
-                      : theme.text,
-                }}
-              >
-                Completo
-              </ThemedText>
-              <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                Exterior + Interior + Vidrios
-              </ThemedText>
-              <ThemedText
-                type="body"
-                style={{
-                  color: isDark ? Colors.accent : Colors.primary,
-                  marginTop: Spacing.xs,
-                  fontWeight: "700",
-                }}
-              >
-                {formatPrice(completePrice)}
-              </ThemedText>
-            </Pressable>
-          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.washTypeScroll}
+          >
+            {WASH_OPTIONS.map((option, index) => {
+              const isSelected = washType === option.type;
+              const price = getWashPrice(option.type);
+              return (
+                <Pressable
+                  key={option.type}
+                  onPress={() => handleWashTypeChange(option.type)}
+                  style={[
+                    styles.washTypeCard,
+                    {
+                      backgroundColor: isSelected
+                        ? isDark
+                          ? "rgba(6, 182, 212, 0.15)"
+                          : "rgba(30, 64, 175, 0.08)"
+                        : theme.backgroundDefault,
+                      borderColor: isSelected
+                        ? isDark
+                          ? Colors.accent
+                          : Colors.primary
+                        : theme.backgroundTertiary,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.washTypeIcon,
+                      {
+                        backgroundColor: isSelected
+                          ? isDark
+                            ? Colors.accent + "25"
+                            : Colors.primary + "15"
+                          : theme.backgroundTertiary,
+                      },
+                    ]}
+                  >
+                    <Feather
+                      name={option.icon}
+                      size={22}
+                      color={
+                        isSelected
+                          ? isDark
+                            ? Colors.accent
+                            : Colors.primary
+                          : theme.textSecondary
+                      }
+                    />
+                  </View>
+                  <ThemedText
+                    type="h3"
+                    style={{
+                      color: isSelected
+                        ? isDark
+                          ? Colors.accent
+                          : Colors.primary
+                        : theme.text,
+                      textAlign: "center",
+                    }}
+                  >
+                    {option.name}
+                  </ThemedText>
+                  <ThemedText
+                    type="small"
+                    style={{
+                      color: theme.textSecondary,
+                      textAlign: "center",
+                    }}
+                    numberOfLines={2}
+                  >
+                    {option.description}
+                  </ThemedText>
+                  <ThemedText
+                    type="body"
+                    style={{
+                      color: isDark ? Colors.accent : Colors.primary,
+                      marginTop: Spacing.xs,
+                      fontWeight: "700",
+                    }}
+                  >
+                    {formatPrice(price)}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(100).springify()}>
@@ -227,7 +246,6 @@ export default function ServiceCustomizationScreen() {
                           ? "rgba(6, 182, 212, 0.15)"
                           : "rgba(30, 64, 175, 0.08)"
                         : theme.backgroundDefault,
-                      opacity: isIncluded ? 1 : undefined,
                     },
                   ]}
                 >
@@ -278,107 +296,6 @@ export default function ServiceCustomizationScreen() {
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(150).springify()}>
-          <Pressable onPress={handleSubscriptionToggle}>
-            <Card
-              elevation={2}
-              style={StyleSheet.flatten([
-                styles.subscriptionCard,
-                {
-                  backgroundColor: wantsSubscription
-                    ? isDark
-                      ? Colors.primary
-                      : "#EEF2FF"
-                    : isDark
-                    ? "rgba(6, 182, 212, 0.15)"
-                    : "rgba(30, 64, 175, 0.08)",
-                  borderWidth: 2,
-                  borderColor: wantsSubscription
-                    ? isDark
-                      ? Colors.accent
-                      : Colors.primary
-                    : "transparent",
-                },
-              ])}
-            >
-              <View style={styles.subscriptionContent}>
-                <Image
-                  source={subscriptionBadge}
-                  style={styles.subscriptionBadge}
-                  contentFit="contain"
-                />
-                <View style={styles.subscriptionInfo}>
-                  <View style={styles.subscriptionHeader}>
-                    <ThemedText
-                      type="h3"
-                      style={{
-                        color: wantsSubscription
-                          ? isDark
-                            ? "#FFFFFF"
-                            : Colors.primary
-                          : isDark
-                          ? Colors.accent
-                          : Colors.primary,
-                      }}
-                    >
-                      Pase de 20 Lavadas
-                    </ThemedText>
-                    <View
-                      style={[
-                        styles.premiumBadge,
-                        { backgroundColor: Colors.success },
-                      ]}
-                    >
-                      <ThemedText
-                        type="small"
-                        style={{ color: "#FFFFFF", fontWeight: "600" }}
-                      >
-                        AHORRA 40%
-                      </ThemedText>
-                    </View>
-                  </View>
-                  <ThemedText
-                    type="caption"
-                    style={{
-                      color: wantsSubscription
-                        ? isDark
-                          ? "#E0E7FF"
-                          : "#4338CA"
-                        : theme.textSecondary,
-                    }}
-                  >
-                    20 lavados básicos al mes por solo {formatPrice(SUBSCRIPTION_PRICE)}
-                  </ThemedText>
-                </View>
-              </View>
-              <View
-                style={[
-                  styles.radioOuter,
-                  {
-                    borderColor: wantsSubscription
-                      ? isDark
-                        ? Colors.accent
-                        : Colors.primary
-                      : theme.textSecondary,
-                  },
-                ]}
-              >
-                {wantsSubscription ? (
-                  <View
-                    style={[
-                      styles.radioInner,
-                      {
-                        backgroundColor: isDark
-                          ? Colors.accent
-                          : Colors.primary,
-                      },
-                    ]}
-                  />
-                ) : null}
-              </View>
-            </Card>
-          </Pressable>
-        </Animated.View>
       </ScrollView>
 
       <View
@@ -417,28 +334,38 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.lg,
   },
   sectionTitle: {
     marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.xl,
   },
-  washTypeContainer: {
-    flexDirection: "row",
-    gap: Spacing.md,
+  washTypeScroll: {
+    paddingHorizontal: Spacing.xl,
+    gap: Spacing.sm,
     marginBottom: Spacing.xl,
   },
-  washTypeOption: {
-    flex: 1,
-    padding: Spacing.lg,
+  washTypeCard: {
+    width: 130,
+    padding: Spacing.md,
     borderRadius: BorderRadius.lg,
     borderWidth: 2,
     alignItems: "center",
+    gap: Spacing.xs,
+  },
+  washTypeIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.full,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.xs,
   },
   addOnsContainer: {
     gap: Spacing.sm,
     marginBottom: Spacing.xl,
+    paddingHorizontal: Spacing.xl,
   },
   addOnItem: {
     flexDirection: "row",
@@ -462,49 +389,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.xs,
-  },
-  subscriptionCard: {
-    marginBottom: Spacing.lg,
-  },
-  subscriptionContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  subscriptionBadge: {
-    width: 48,
-    height: 48,
-    marginRight: Spacing.md,
-  },
-  subscriptionInfo: {
-    flex: 1,
-  },
-  subscriptionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    flexWrap: "wrap",
-    marginBottom: Spacing.xs,
-  },
-  premiumBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.xs,
-  },
-  radioOuter: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "absolute",
-    right: Spacing.xl,
-    top: Spacing.xl,
-  },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
   },
   footer: {
     padding: Spacing.xl,
