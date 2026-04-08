@@ -48,6 +48,11 @@ export interface Booking {
   status: "upcoming" | "completed" | "cancelled";
   createdAt: string;
   usedMembership?: boolean;
+  vehicleBrand?: string;
+  vehicleModel?: string;
+  vehicleColor?: string;
+  vehiclePlate?: string;
+  addressLabel?: string;
 }
 
 export interface SavedVehicle {

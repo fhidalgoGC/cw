@@ -201,6 +201,11 @@ export default function PaymentScreen() {
       status: "upcoming",
       createdAt: new Date().toISOString(),
       usedMembership: isUsingMembership,
+      vehicleBrand,
+      vehicleModel,
+      vehicleColor,
+      vehiclePlate,
+      addressLabel,
     };
 
     await saveBooking(booking);

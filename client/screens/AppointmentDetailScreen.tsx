@@ -1,11 +1,16 @@
-import React, { useState } from "react";
-import { StyleSheet, View, ScrollView, Alert } from "react-native";
+import React, { useState, useMemo } from "react";
+import { StyleSheet, View, ScrollView, Alert, Pressable } from "react-native";
+import { Image } from "expo-image";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
+
+import vehicleSmall from "../../assets/images/vehicle-small.png";
+import vehicleSuv from "../../assets/images/vehicle-suv.png";
+import vehicleLarge from "../../assets/images/vehicle-large.png";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -20,12 +25,35 @@ import {
   formatPrice,
   getVehicleName,
   getWashTypeName,
-  ADD_ONS,
+  ALL_SERVICES,
+  VEHICLE_PRICES,
+  WASH_TYPE_PRICES,
   Booking,
+  VehicleSize,
 } from "@/lib/storage";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteType = RouteProp<RootStackParamList, "AppointmentDetail">;
+
+const VEHICLE_IMAGES: Record<VehicleSize, any> = {
+  small: vehicleSmall,
+  suv: vehicleSuv,
+  large: vehicleLarge,
+};
+
+function getServiceDateTime(booking: Booking): Date {
+  const dateObj = new Date(booking.date);
+  const match = booking.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (match) {
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const period = match[3].toUpperCase();
+    if (period === "PM" && hours !== 12) hours += 12;
+    if (period === "AM" && hours === 12) hours = 0;
+    dateObj.setHours(hours, minutes, 0, 0);
+  }
+  return dateObj;
+}
 
 export default function AppointmentDetailScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -35,8 +63,26 @@ export default function AppointmentDetailScreen() {
 
   const [booking, setBooking] = useState<Booking>(route.params.booking);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [servicesExpanded, setServicesExpanded] = useState(false);
 
-  const selectedAddOns = ADD_ONS.filter((a) => booking.addOns.includes(a.id));
+  const allIncludedServices = useMemo(() => {
+    const includedByWash = ALL_SERVICES.filter((s) => s.includedIn.includes(booking.washType));
+    const extras = ALL_SERVICES.filter(
+      (s) => booking.addOns.includes(s.id) && !s.includedIn.includes(booking.washType)
+    );
+    return [
+      ...includedByWash.map((s) => ({ ...s, isIncluded: true })),
+      ...extras.map((s) => ({ ...s, isIncluded: false })),
+    ];
+  }, [booking.washType, booking.addOns]);
+
+  const canReschedule = useMemo(() => {
+    if (booking.status !== "upcoming") return false;
+    const serviceTime = getServiceDateTime(booking);
+    const now = new Date();
+    const hoursUntilService = (serviceTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+    return hoursUntilService >= 2;
+  }, [booking]);
 
   const getStatusColor = () => {
     switch (booking.status) {
@@ -66,6 +112,14 @@ export default function AppointmentDetailScreen() {
 
   const handleReschedule = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (!canReschedule) {
+      Alert.alert(
+        "No se puede reprogramar",
+        "Solo puedes reprogramar tu cita hasta 2 horas antes del servicio.",
+        [{ text: "Entendido" }]
+      );
+      return;
+    }
     Alert.alert(
       "Reprogramar Cita",
       "Para reprogramar tu cita, cancela esta y crea una nueva reservación.",
@@ -127,131 +181,210 @@ export default function AppointmentDetailScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <Card elevation={1} style={styles.detailsCard}>
-            <ThemedText type="h2" style={styles.cardTitle}>
-              Detalles del Servicio
-            </ThemedText>
-
-            <View style={styles.detailRow}>
-              <View style={styles.detailIcon}>
-                <Feather
-                  name="truck"
-                  size={20}
-                  color={isDark ? Colors.accent : Colors.primary}
-                />
-              </View>
-              <View style={styles.detailContent}>
-                <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                  Vehículo
+          <Card elevation={1} style={styles.summaryCard}>
+            <View style={styles.vehicleSummaryRow}>
+              <Image
+                source={VEHICLE_IMAGES[booking.vehicleSize]}
+                style={styles.vehicleSummaryImage}
+                contentFit="contain"
+              />
+              <View style={styles.vehicleSummaryInfo}>
+                <ThemedText type="h3">
+                  {booking.vehicleBrand && booking.vehicleModel
+                    ? `${booking.vehicleBrand} ${booking.vehicleModel}`
+                    : getVehicleName(booking.vehicleSize)}
                 </ThemedText>
-                <ThemedText type="body">
-                  {getVehicleName(booking.vehicleSize)}
+                <View style={styles.vehicleSummaryMeta}>
+                  {booking.vehicleColor ? (
+                    <View style={styles.vehicleMetaItem}>
+                      <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                        Color:
+                      </ThemedText>
+                      <ThemedText type="small" style={{ fontWeight: "600" }}>
+                        {booking.vehicleColor}
+                      </ThemedText>
+                    </View>
+                  ) : null}
+                  {booking.vehiclePlate ? (
+                    <View style={styles.vehicleMetaItem}>
+                      <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                        Placa:
+                      </ThemedText>
+                      <ThemedText type="small" style={{ fontWeight: "600" }}>
+                        {booking.vehiclePlate}
+                      </ThemedText>
+                    </View>
+                  ) : null}
+                  <View style={styles.vehicleMetaItem}>
+                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                      Tamaño:
+                    </ThemedText>
+                    <ThemedText type="small" style={{ fontWeight: "600" }}>
+                      {getVehicleName(booking.vehicleSize)}
+                    </ThemedText>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.summaryDivider} />
+
+            <View style={styles.summaryRow}>
+              <ThemedText type="body" style={{ color: theme.textSecondary }}>
+                Tipo de Lavado
+              </ThemedText>
+              <View style={{ alignItems: "flex-end" }}>
+                <ThemedText type="body">{getWashTypeName(booking.washType)}</ThemedText>
+                <ThemedText type="small" style={{ color: Colors.success, fontWeight: "600" }}>
+                  {formatPrice(VEHICLE_PRICES[booking.vehicleSize] + WASH_TYPE_PRICES[booking.washType])}
                 </ThemedText>
               </View>
             </View>
 
-            <View style={styles.detailRow}>
-              <View style={styles.detailIcon}>
-                <Feather
-                  name="droplet"
-                  size={20}
-                  color={isDark ? Colors.accent : Colors.primary}
-                />
-              </View>
-              <View style={styles.detailContent}>
-                <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                  Tipo de Lavado
-                </ThemedText>
-                <ThemedText type="body">
-                  {getWashTypeName(booking.washType)}
-                </ThemedText>
-              </View>
-            </View>
-
-            {selectedAddOns.length > 0 ? (
-              <View style={styles.detailRow}>
-                <View style={styles.detailIcon}>
+            {allIncludedServices.length > 0 ? (
+              <View>
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setServicesExpanded(!servicesExpanded);
+                  }}
+                  style={styles.summaryRow}
+                >
+                  <View style={styles.servicesToggle}>
+                    <ThemedText type="body" style={{ color: theme.textSecondary }}>
+                      Servicios
+                    </ThemedText>
+                    <View style={[styles.servicesBadge, { backgroundColor: (isDark ? Colors.accent : Colors.primary) + "15" }]}>
+                      <ThemedText type="small" style={{ color: isDark ? Colors.accent : Colors.primary, fontWeight: "600" }}>
+                        {allIncludedServices.length}
+                      </ThemedText>
+                    </View>
+                  </View>
                   <Feather
-                    name="plus-circle"
-                    size={20}
+                    name={servicesExpanded ? "chevron-up" : "chevron-down"}
+                    size={18}
                     color={isDark ? Colors.accent : Colors.primary}
                   />
-                </View>
-                <View style={styles.detailContent}>
-                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                    Servicios Adicionales
-                  </ThemedText>
-                  <ThemedText type="body">
-                    {selectedAddOns.map((a) => a.name).join(", ")}
-                  </ThemedText>
-                </View>
+                </Pressable>
+                {servicesExpanded ? (
+                  <View style={styles.servicesExpandedList}>
+                    {allIncludedServices.map((service, index) => {
+                      const prevService = index > 0 ? allIncludedServices[index - 1] : null;
+                      const showDivider = prevService !== null && prevService.isIncluded && !service.isIncluded;
+                      return (
+                        <View key={service.id}>
+                          {showDivider ? (
+                            <View style={styles.servicesDivider} />
+                          ) : null}
+                          <View style={styles.serviceItem}>
+                            <View style={styles.serviceItemLeft}>
+                              <Feather
+                                name={service.isIncluded ? "check-circle" : "plus-circle"}
+                                size={14}
+                                color={service.isIncluded ? Colors.success : Colors.warning}
+                              />
+                              <ThemedText type="body" style={{ fontSize: 14 }}>
+                                {service.name}
+                              </ThemedText>
+                            </View>
+                            <ThemedText
+                              type="small"
+                              style={{
+                                color: service.isIncluded ? Colors.success : Colors.warning,
+                                fontWeight: "600",
+                              }}
+                            >
+                              {service.isIncluded ? "Incluido" : `+${formatPrice(service.price)}`}
+                            </ThemedText>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                ) : null}
               </View>
             ) : null}
-          </Card>
-        </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(150).springify()}>
-          <Card elevation={1} style={styles.detailsCard}>
-            <ThemedText type="h2" style={styles.cardTitle}>
-              Fecha y Hora
-            </ThemedText>
+            <View style={styles.summaryDivider} />
 
-            <View style={styles.detailRow}>
-              <View style={styles.detailIcon}>
-                <Feather
-                  name="calendar"
-                  size={20}
-                  color={isDark ? Colors.accent : Colors.primary}
-                />
-              </View>
-              <View style={styles.detailContent}>
-                <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                  Fecha
-                </ThemedText>
-                <ThemedText type="body">{formatDate(booking.date)}</ThemedText>
-              </View>
-            </View>
+            {booking.addressLabel ? (
+              <>
+                <View style={styles.summaryRow}>
+                  <ThemedText type="body" style={{ color: theme.textSecondary }}>
+                    Dirección
+                  </ThemedText>
+                  <View style={{ flex: 1, marginLeft: Spacing.lg, alignItems: "flex-end" }}>
+                    <ThemedText type="body" style={{ textAlign: "right" }}>
+                      {booking.addressLabel}
+                    </ThemedText>
+                  </View>
+                </View>
+                <View style={styles.summaryDivider} />
+              </>
+            ) : null}
 
-            <View style={styles.detailRow}>
-              <View style={styles.detailIcon}>
-                <Feather
-                  name="clock"
-                  size={20}
-                  color={isDark ? Colors.accent : Colors.primary}
-                />
-              </View>
-              <View style={styles.detailContent}>
-                <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                  Hora
-                </ThemedText>
-                <ThemedText type="body">{booking.time}</ThemedText>
-              </View>
-            </View>
-          </Card>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(200).springify()}>
-          <Card elevation={2} style={styles.priceCard}>
-            <View style={styles.priceRow}>
-              <ThemedText type="body">Total Pagado</ThemedText>
-              <ThemedText
-                type="h1"
-                style={{ color: isDark ? Colors.accent : Colors.primary }}
-              >
-                {formatPrice(booking.totalPrice)}
+            <View style={styles.summaryRow}>
+              <ThemedText type="body" style={{ color: theme.textSecondary }}>
+                Fecha
               </ThemedText>
+              <ThemedText type="body">{formatDate(booking.date)}</ThemedText>
+            </View>
+            <View style={styles.summaryRow}>
+              <ThemedText type="body" style={{ color: theme.textSecondary }}>
+                Hora
+              </ThemedText>
+              <ThemedText type="body">{booking.time}</ThemedText>
+            </View>
+
+            <View style={styles.summaryDivider} />
+
+            <View style={styles.summaryRow}>
+              <ThemedText type="h3">Total Pagado</ThemedText>
+              {booking.usedMembership ? (
+                <View style={{ alignItems: "flex-end" }}>
+                  <ThemedText type="h2" style={{ color: Colors.success }}>
+                    Incluido
+                  </ThemedText>
+                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                    Con tu paquete
+                  </ThemedText>
+                </View>
+              ) : (
+                <ThemedText
+                  type="h2"
+                  style={{ color: isDark ? Colors.accent : Colors.primary }}
+                >
+                  {formatPrice(booking.totalPrice)}
+                </ThemedText>
+              )}
             </View>
           </Card>
         </Animated.View>
 
         {booking.status === "upcoming" ? (
           <Animated.View
-            entering={FadeInDown.delay(250).springify()}
+            entering={FadeInDown.delay(150).springify()}
             style={styles.actionsContainer}
           >
+            {!canReschedule ? (
+              <View style={[styles.rescheduleNote, { backgroundColor: Colors.warning + "15" }]}>
+                <Feather name="alert-circle" size={16} color={Colors.warning} />
+                <ThemedText type="small" style={{ color: Colors.warning, flex: 1 }}>
+                  No puedes reprogramar a menos de 2 horas del servicio
+                </ThemedText>
+              </View>
+            ) : null}
             <Button
               onPress={handleReschedule}
-              style={[styles.rescheduleButton, { backgroundColor: theme.backgroundSecondary }]}
+              style={[
+                styles.rescheduleButton,
+                {
+                  backgroundColor: canReschedule
+                    ? theme.backgroundSecondary
+                    : theme.backgroundTertiary,
+                  opacity: canReschedule ? 1 : 0.6,
+                },
+              ]}
             >
               Reprogramar Cita
             </Button>
@@ -293,38 +426,86 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginRight: Spacing.sm,
   },
-  detailsCard: {
-    marginBottom: Spacing.lg,
-  },
-  cardTitle: {
-    marginBottom: Spacing.lg,
-  },
-  detailRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: Spacing.md,
-  },
-  detailIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.sm,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: Spacing.md,
-  },
-  detailContent: {
-    flex: 1,
-  },
-  priceCard: {
+  summaryCard: {
     marginBottom: Spacing.xl,
   },
-  priceRow: {
+  vehicleSummaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+  },
+  vehicleSummaryImage: {
+    width: 56,
+    height: 56,
+    marginRight: Spacing.md,
+  },
+  vehicleSummaryInfo: {
+    flex: 1,
+  },
+  vehicleSummaryMeta: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.md,
+    marginTop: 4,
+  },
+  vehicleMetaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: Spacing.sm,
+  },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: "rgba(128, 128, 128, 0.15)",
+    marginVertical: Spacing.md,
+  },
+  servicesToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  servicesBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 24,
+    alignItems: "center",
+  },
+  servicesExpandedList: {
+    marginTop: Spacing.xs,
+    gap: Spacing.xs,
+  },
+  servicesDivider: {
+    height: 1,
+    backgroundColor: "rgba(128, 128, 128, 0.1)",
+    marginVertical: Spacing.xs,
+  },
+  serviceItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingVertical: 4,
+  },
+  serviceItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    flex: 1,
   },
   actionsContainer: {
     gap: Spacing.md,
+  },
+  rescheduleNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
   },
   rescheduleButton: {
     backgroundColor: "transparent",
