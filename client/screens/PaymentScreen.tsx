@@ -23,6 +23,7 @@ import {
   getVehicleName,
   getWashTypeName,
   ADD_ONS,
+  ALL_SERVICES,
   Booking,
   getUserData,
   UserData,
@@ -79,7 +80,7 @@ export default function PaymentScreen() {
   );
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const selectedAddOns = ADD_ONS.filter((a) => addOns.includes(a.id));
+  const selectedAddOns = ALL_SERVICES.filter((s) => addOns.includes(s.id));
 
   const getCardIcon = (type: PaymentMethod["type"]) => {
     switch (type) {

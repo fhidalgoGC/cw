@@ -19,7 +19,8 @@ import {
   WashType,
   VEHICLE_PRICES,
   WASH_TYPE_PRICES,
-  ADD_ONS,
+  ALL_SERVICES,
+  getIncludedServiceIds,
   SUBSCRIPTION_PRICE,
   formatPrice,
 } from "@/lib/storage";
@@ -41,6 +42,8 @@ export default function ServiceCustomizationScreen() {
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [wantsSubscription, setWantsSubscription] = useState(false);
 
+  const includedServiceIds = useMemo(() => getIncludedServiceIds(washType), [washType]);
+
   const totalPrice = useMemo(() => {
     if (wantsSubscription) {
       return SUBSCRIPTION_PRICE;
@@ -48,13 +51,17 @@ export default function ServiceCustomizationScreen() {
     const basePrice = VEHICLE_PRICES[vehicleSize];
     const washPrice = WASH_TYPE_PRICES[washType];
     const addOnsPrice = selectedAddOns.reduce((sum, id) => {
-      const addon = ADD_ONS.find((a) => a.id === id);
-      return sum + (addon?.price || 0);
+      const service = ALL_SERVICES.find((s) => s.id === id);
+      if (service && !includedServiceIds.includes(id)) {
+        return sum + service.price;
+      }
+      return sum;
     }, 0);
     return basePrice + washPrice + addOnsPrice;
-  }, [vehicleSize, washType, selectedAddOns, wantsSubscription]);
+  }, [vehicleSize, washType, selectedAddOns, wantsSubscription, includedServiceIds]);
 
   const toggleAddOn = (id: string) => {
+    if (includedServiceIds.includes(id)) return;
     Haptics.selectionAsync();
     setSelectedAddOns((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -64,6 +71,10 @@ export default function ServiceCustomizationScreen() {
   const handleWashTypeChange = (type: WashType) => {
     Haptics.selectionAsync();
     setWashType(type);
+    setSelectedAddOns((prev) => {
+      const newIncluded = getIncludedServiceIds(type);
+      return prev.filter((id) => !newIncluded.includes(id));
+    });
   };
 
   const handleSubscriptionToggle = () => {
@@ -73,13 +84,17 @@ export default function ServiceCustomizationScreen() {
 
   const handleContinue = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const allSelected = [...includedServiceIds, ...selectedAddOns];
     navigation.navigate("ScheduleSelection", {
       vehicleSize,
       washType,
-      addOns: selectedAddOns,
+      addOns: allSelected,
       totalPrice,
     });
   };
+
+  const basicPrice = VEHICLE_PRICES[vehicleSize] + WASH_TYPE_PRICES.basic;
+  const completePrice = VEHICLE_PRICES[vehicleSize] + WASH_TYPE_PRICES.complete;
 
   return (
     <ThemedView style={styles.container}>
@@ -134,9 +149,10 @@ export default function ServiceCustomizationScreen() {
                 style={{
                   color: isDark ? Colors.accent : Colors.primary,
                   marginTop: Spacing.xs,
+                  fontWeight: "700",
                 }}
               >
-                Incluido
+                {formatPrice(basicPrice)}
               </ThemedText>
             </Pressable>
 
@@ -181,9 +197,10 @@ export default function ServiceCustomizationScreen() {
                 style={{
                   color: isDark ? Colors.accent : Colors.primary,
                   marginTop: Spacing.xs,
+                  fontWeight: "700",
                 }}
               >
-                +{formatPrice(WASH_TYPE_PRICES.complete)}
+                {formatPrice(completePrice)}
               </ThemedText>
             </Pressable>
           </View>
@@ -191,15 +208,17 @@ export default function ServiceCustomizationScreen() {
 
         <Animated.View entering={FadeInDown.delay(100).springify()}>
           <ThemedText type="h2" style={styles.sectionTitle}>
-            Servicios Adicionales
+            Servicios
           </ThemedText>
           <View style={styles.addOnsContainer}>
-            {ADD_ONS.map((addon) => {
-              const isSelected = selectedAddOns.includes(addon.id);
+            {ALL_SERVICES.map((service) => {
+              const isIncluded = includedServiceIds.includes(service.id);
+              const isSelected = isIncluded || selectedAddOns.includes(service.id);
               return (
                 <Pressable
-                  key={addon.id}
-                  onPress={() => toggleAddOn(addon.id)}
+                  key={service.id}
+                  onPress={() => toggleAddOn(service.id)}
+                  disabled={isIncluded}
                   style={[
                     styles.addOnItem,
                     {
@@ -208,6 +227,7 @@ export default function ServiceCustomizationScreen() {
                           ? "rgba(6, 182, 212, 0.15)"
                           : "rgba(30, 64, 175, 0.08)"
                         : theme.backgroundDefault,
+                      opacity: isIncluded ? 1 : undefined,
                     },
                   ]}
                 >
@@ -233,14 +253,25 @@ export default function ServiceCustomizationScreen() {
                     ) : null}
                   </View>
                   <ThemedText type="body" style={styles.addOnName}>
-                    {addon.name}
+                    {service.name}
                   </ThemedText>
-                  <ThemedText
-                    type="body"
-                    style={{ color: isDark ? Colors.accent : Colors.primary }}
-                  >
-                    +{formatPrice(addon.price)}
-                  </ThemedText>
+                  {isIncluded ? (
+                    <View style={[styles.includedBadge, { backgroundColor: Colors.success + "20" }]}>
+                      <ThemedText
+                        type="small"
+                        style={{ color: Colors.success, fontWeight: "600" }}
+                      >
+                        $0
+                      </ThemedText>
+                    </View>
+                  ) : (
+                    <ThemedText
+                      type="body"
+                      style={{ color: isDark ? Colors.accent : Colors.primary }}
+                    >
+                      +{formatPrice(service.price)}
+                    </ThemedText>
+                  )}
                 </Pressable>
               );
             })}
@@ -426,6 +457,11 @@ const styles = StyleSheet.create({
   },
   addOnName: {
     flex: 1,
+  },
+  includedBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.xs,
   },
   subscriptionCard: {
     marginBottom: Spacing.lg,

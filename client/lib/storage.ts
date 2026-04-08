@@ -89,13 +89,40 @@ export const WASH_TYPE_PRICES: Record<WashType, number> = {
   complete: 80,
 };
 
+export interface ServiceOption {
+  id: string;
+  name: string;
+  price: number;
+  includedIn: WashType[];
+}
+
+export const ALL_SERVICES: ServiceOption[] = [
+  { id: "exterior", name: "Lavado Exterior", price: 0, includedIn: ["basic", "complete"] },
+  { id: "aspirado", name: "Aspirado", price: 0, includedIn: ["basic", "complete"] },
+  { id: "interior", name: "Interior Completo", price: 100, includedIn: ["complete"] },
+  { id: "vidrios", name: "Limpieza de Vidrios", price: 0, includedIn: ["complete"] },
+  { id: "rines", name: "Detallado de Rines", price: 50, includedIn: [] },
+  { id: "motor", name: "Lavado de Motor", price: 70, includedIn: [] },
+  { id: "cera", name: "Encerado Premium", price: 80, includedIn: [] },
+  { id: "tapiceria", name: "Limpieza de Tapicería", price: 120, includedIn: [] },
+];
+
 export const ADD_ONS: AddOn[] = [
   { id: "rines", name: "Detallado de Rines", price: 50 },
   { id: "motor", name: "Lavado de Motor", price: 70 },
   { id: "interior", name: "Interior Completo", price: 100 },
   { id: "cera", name: "Encerado Premium", price: 80 },
   { id: "tapiceria", name: "Limpieza de Tapicería", price: 120 },
+
 ];
+
+export function getIncludedServiceIds(washType: WashType): string[] {
+  return ALL_SERVICES.filter((s) => s.includedIn.includes(washType)).map((s) => s.id);
+}
+
+export function getExtraServices(): ServiceOption[] {
+  return ALL_SERVICES.filter((s) => s.includedIn.length === 0);
+}
 
 export const PACKAGES: Package[] = [
   {
