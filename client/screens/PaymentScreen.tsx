@@ -22,6 +22,7 @@ import {
   formatDate,
   getVehicleName,
   getWashTypeName,
+  WASH_TYPE_PRICES,
   ADD_ONS,
   ALL_SERVICES,
   Booking,
@@ -283,7 +284,12 @@ export default function PaymentScreen() {
               <ThemedText type="body" style={{ color: theme.textSecondary }}>
                 Tipo de Lavado
               </ThemedText>
-              <ThemedText type="body">{getWashTypeName(washType)}</ThemedText>
+              <View style={{ alignItems: "flex-end" }}>
+                <ThemedText type="body">{getWashTypeName(washType)}</ThemedText>
+                <ThemedText type="small" style={{ color: isDark ? Colors.accent : Colors.primary, fontWeight: "600" }}>
+                  {WASH_TYPE_PRICES[washType] > 0 ? formatPrice(WASH_TYPE_PRICES[washType]) : "Base"}
+                </ThemedText>
+              </View>
             </View>
             {allIncludedServices.length > 0 ? (
               <View>
