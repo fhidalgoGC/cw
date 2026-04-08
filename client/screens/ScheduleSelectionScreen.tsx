@@ -107,7 +107,7 @@ export default function ScheduleSelectionScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const { vehicleSize, washType, addOns, totalPrice } = route.params;
+  const { vehicleSize, washType, addOns, totalPrice, addressLabel } = route.params;
 
   const dates = useMemo(() => generateDates(), []);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -229,6 +229,7 @@ export default function ScheduleSelectionScreen() {
         time: selectedTime,
         totalPrice,
         reservationExpiry: expiryRef.current,
+        addressLabel,
       });
     }
   };

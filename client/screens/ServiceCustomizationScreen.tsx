@@ -71,7 +71,7 @@ export default function ServiceCustomizationScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const { vehicleSize } = route.params;
+  const { vehicleSize, addressLabel } = route.params;
 
   const [washType, setWashType] = useState<WashType>("basic");
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
@@ -116,6 +116,7 @@ export default function ServiceCustomizationScreen() {
       washType,
       addOns: allSelected,
       totalPrice,
+      addressLabel,
     });
   };
 

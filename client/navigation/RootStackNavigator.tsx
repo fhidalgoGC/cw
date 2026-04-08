@@ -22,12 +22,13 @@ export type RootStackParamList = {
   Main: undefined;
   BookingPaymentSelection: undefined;
   VehicleSelection: undefined;
-  ServiceCustomization: { vehicleSize: VehicleSize };
+  ServiceCustomization: { vehicleSize: VehicleSize; addressLabel: string };
   ScheduleSelection: {
     vehicleSize: VehicleSize;
     washType: WashType;
     addOns: string[];
     totalPrice: number;
+    addressLabel: string;
   };
   Payment: {
     vehicleSize: VehicleSize;
@@ -37,6 +38,7 @@ export type RootStackParamList = {
     time: string;
     totalPrice: number;
     reservationExpiry?: number;
+    addressLabel: string;
   };
   Confirmation: { booking: Booking };
   AppointmentDetail: { booking: Booking };

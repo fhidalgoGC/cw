@@ -55,7 +55,7 @@ export default function PaymentScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const { vehicleSize, washType, addOns, date, time, totalPrice, reservationExpiry } = route.params;
+  const { vehicleSize, washType, addOns, date, time, totalPrice, reservationExpiry, addressLabel } = route.params;
 
   const [secondsLeft, setSecondsLeft] = useState(() => {
     if (!reservationExpiry) return 0;
@@ -329,6 +329,17 @@ export default function PaymentScreen() {
                 ) : null}
               </View>
             ) : null}
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryRow}>
+              <ThemedText type="body" style={{ color: theme.textSecondary }}>
+                Dirección
+              </ThemedText>
+              <View style={{ flex: 1, marginLeft: Spacing.lg, alignItems: "flex-end" }}>
+                <ThemedText type="body" style={{ textAlign: "right" }}>
+                  {addressLabel}
+                </ThemedText>
+              </View>
+            </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryRow}>
               <ThemedText type="body" style={{ color: theme.textSecondary }}>

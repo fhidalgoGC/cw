@@ -130,7 +130,11 @@ export default function VehicleSelectionScreen() {
   const handleContinue = () => {
     if (selectedSize && selectedVehicleId && selectedAddressId) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      navigation.navigate("ServiceCustomization", { vehicleSize: selectedSize });
+      const addr = savedAddresses.find((a) => a.id === selectedAddressId);
+      const addressLabel = addr
+        ? `${addr.alias} - ${addr.street}, ${addr.colony}, ${addr.city}`
+        : "";
+      navigation.navigate("ServiceCustomization", { vehicleSize: selectedSize, addressLabel });
     }
   };
 
