@@ -212,7 +212,7 @@ export default function ServiceCustomizationScreen() {
                   <ThemedText
                     type="body"
                     style={{
-                      color: isDark ? Colors.accent : Colors.primary,
+                      color: Colors.success,
                       marginTop: Spacing.xs,
                       fontWeight: "700",
                     }}
@@ -249,27 +249,31 @@ export default function ServiceCustomizationScreen() {
                     },
                   ]}
                 >
-                  <View
-                    style={[
-                      styles.checkbox,
-                      {
-                        backgroundColor: isSelected
-                          ? isDark
-                            ? Colors.accent
-                            : Colors.primary
-                          : "transparent",
-                        borderColor: isSelected
-                          ? isDark
-                            ? Colors.accent
-                            : Colors.primary
-                          : theme.textSecondary,
-                      },
-                    ]}
-                  >
-                    {isSelected ? (
-                      <Feather name="check" size={14} color="#FFFFFF" />
-                    ) : null}
-                  </View>
+                  {isIncluded ? (
+                    <Feather name="check-circle" size={22} color={Colors.success} />
+                  ) : (
+                    <View
+                      style={[
+                        styles.checkbox,
+                        {
+                          backgroundColor: isSelected
+                            ? isDark
+                              ? Colors.accent
+                              : Colors.primary
+                            : "transparent",
+                          borderColor: isSelected
+                            ? isDark
+                              ? Colors.accent
+                              : Colors.primary
+                            : theme.textSecondary,
+                        },
+                      ]}
+                    >
+                      {isSelected ? (
+                        <Feather name="check" size={14} color="#FFFFFF" />
+                      ) : null}
+                    </View>
+                  )}
                   <ThemedText type="body" style={styles.addOnName}>
                     {service.name}
                   </ThemedText>
