@@ -99,18 +99,35 @@ export interface ServiceOption {
   name: string;
   price: number;
   includedIn: WashType[];
+  minMinutes: number;
+  maxMinutes: number;
 }
 
 export const ALL_SERVICES: ServiceOption[] = [
-  { id: "exterior", name: "Lavado Exterior", price: 0, includedIn: ["basic", "complete", "premium", "detail", "full"] },
-  { id: "aspirado", name: "Aspirado", price: 0, includedIn: ["basic", "complete", "premium", "detail", "full"] },
-  { id: "interior", name: "Interior Completo", price: 100, includedIn: ["complete", "premium", "detail", "full"] },
-  { id: "vidrios", name: "Limpieza de Vidrios", price: 0, includedIn: ["complete", "premium", "detail", "full"] },
-  { id: "rines", name: "Detallado de Rines", price: 50, includedIn: ["premium", "detail", "full"] },
-  { id: "motor", name: "Lavado de Motor", price: 70, includedIn: ["detail", "full"] },
-  { id: "cera", name: "Encerado Premium", price: 80, includedIn: ["detail", "full"] },
-  { id: "tapiceria", name: "Limpieza de Tapicería", price: 120, includedIn: ["full"] },
+  { id: "exterior", name: "Lavado Exterior", price: 0, includedIn: ["basic", "complete", "premium", "detail", "full"], minMinutes: 15, maxMinutes: 20 },
+  { id: "aspirado", name: "Aspirado", price: 0, includedIn: ["basic", "complete", "premium", "detail", "full"], minMinutes: 10, maxMinutes: 15 },
+  { id: "interior", name: "Interior Completo", price: 100, includedIn: ["complete", "premium", "detail", "full"], minMinutes: 15, maxMinutes: 25 },
+  { id: "vidrios", name: "Limpieza de Vidrios", price: 0, includedIn: ["complete", "premium", "detail", "full"], minMinutes: 5, maxMinutes: 10 },
+  { id: "rines", name: "Detallado de Rines", price: 50, includedIn: ["premium", "detail", "full"], minMinutes: 10, maxMinutes: 15 },
+  { id: "motor", name: "Lavado de Motor", price: 70, includedIn: ["detail", "full"], minMinutes: 15, maxMinutes: 20 },
+  { id: "cera", name: "Encerado Premium", price: 80, includedIn: ["detail", "full"], minMinutes: 15, maxMinutes: 25 },
+  { id: "tapiceria", name: "Limpieza de Tapicería", price: 120, includedIn: ["full"], minMinutes: 20, maxMinutes: 30 },
 ];
+
+export function getEstimatedTime(washType: WashType, addOnIds: string[]): { min: number; max: number } {
+  const includedIds = getIncludedServiceIds(washType);
+  const allServiceIds = [...new Set([...includedIds, ...addOnIds])];
+  let min = 0;
+  let max = 0;
+  for (const id of allServiceIds) {
+    const service = ALL_SERVICES.find((s) => s.id === id);
+    if (service) {
+      min += service.minMinutes;
+      max += service.maxMinutes;
+    }
+  }
+  return { min, max };
+}
 
 export const ADD_ONS: AddOn[] = [
   { id: "rines", name: "Detallado de Rines", price: 50 },

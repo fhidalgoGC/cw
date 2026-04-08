@@ -13,6 +13,7 @@ import { Button } from "@/components/Button";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors, Spacing, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
+import { getEstimatedTime } from "@/lib/storage";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteType = RouteProp<RootStackParamList, "ScheduleSelection">;
@@ -71,6 +72,7 @@ export default function ScheduleSelectionScreen() {
   const expiryRef = useRef<number | null>(null);
 
   const isReserved = selectedDate !== null && selectedTime !== null;
+  const estimatedTime = useMemo(() => getEstimatedTime(washType, addOns), [washType, addOns]);
 
   const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -363,6 +365,12 @@ export default function ScheduleSelectionScreen() {
             >
               {selectedTime}
             </ThemedText>
+            <View style={styles.estimatedTimeRow}>
+              <Feather name="clock" size={14} color={theme.textSecondary} />
+              <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                Tiempo estimado: {estimatedTime.min} a {estimatedTime.max} minutos
+              </ThemedText>
+            </View>
           </Animated.View>
         ) : null}
       </ScrollView>
@@ -479,6 +487,12 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xl,
     padding: Spacing.lg,
     borderRadius: BorderRadius.lg,
+  },
+  estimatedTimeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
   },
   footer: {
     padding: Spacing.xl,
