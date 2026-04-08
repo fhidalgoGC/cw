@@ -37,14 +37,16 @@ type RouteType = RouteProp<RootStackParamList, "Payment">;
 
 interface PaymentMethod {
   id: string;
-  type: "visa" | "mastercard" | "amex";
-  last4: string;
-  isDefault: boolean;
+  type: "card" | "transfer" | "cash";
+  name: string;
+  description: string;
+  icon: keyof typeof Feather.glyphMap;
 }
 
-const MOCK_PAYMENT_METHODS: PaymentMethod[] = [
-  { id: "1", type: "visa", last4: "4242", isDefault: true },
-  { id: "2", type: "mastercard", last4: "8888", isDefault: false },
+const PAYMENT_METHODS: PaymentMethod[] = [
+  { id: "card", type: "card", name: "Tarjeta de Crédito/Débito", description: "Visa, Mastercard, Amex", icon: "credit-card" },
+  { id: "transfer", type: "transfer", name: "Transferencia", description: "SPEI / Transferencia bancaria", icon: "repeat" },
+  { id: "cash", type: "cash", name: "Efectivo", description: "Pago al momento del servicio", icon: "dollar-sign" },
 ];
 
 export default function PaymentScreen() {
@@ -124,9 +126,7 @@ export default function PaymentScreen() {
     setSelectedMembershipId(membershipId);
   };
 
-  const [selectedPayment, setSelectedPayment] = useState<string>(
-    MOCK_PAYMENT_METHODS.find((m) => m.isDefault)?.id || "1"
-  );
+  const [selectedPayment, setSelectedPayment] = useState<string>("card");
   const [isProcessing, setIsProcessing] = useState(false);
   const [servicesExpanded, setServicesExpanded] = useState(false);
 
@@ -142,32 +142,6 @@ export default function PaymentScreen() {
       ...extras.map((s) => ({ ...s, isIncluded: false })),
     ];
   }, [washType, addOns]);
-
-  const getCardIcon = (type: PaymentMethod["type"]) => {
-    switch (type) {
-      case "visa":
-        return "credit-card";
-      case "mastercard":
-        return "credit-card";
-      case "amex":
-        return "credit-card";
-      default:
-        return "credit-card";
-    }
-  };
-
-  const getCardName = (type: PaymentMethod["type"]) => {
-    switch (type) {
-      case "visa":
-        return "Visa";
-      case "mastercard":
-        return "Mastercard";
-      case "amex":
-        return "American Express";
-      default:
-        return "Card";
-    }
-  };
 
   const handlePaymentSelect = (id: string) => {
     Haptics.selectionAsync();
@@ -520,17 +494,11 @@ export default function PaymentScreen() {
 
           {!isUsingMembership ? (
             <View style={styles.cardPaymentSection}>
-              {activeMemberships.length > 0 ? (
-                <View style={styles.divider}>
-                  <View style={[styles.dividerLine, { backgroundColor: theme.backgroundTertiary }]} />
-                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                    Tarjeta
-                  </ThemedText>
-                  <View style={[styles.dividerLine, { backgroundColor: theme.backgroundTertiary }]} />
-                </View>
-              ) : null}
+              <ThemedText type="h2" style={styles.sectionTitle}>
+                Método de Pago
+              </ThemedText>
               <View style={styles.paymentMethods}>
-                {MOCK_PAYMENT_METHODS.map((method) => {
+                {PAYMENT_METHODS.map((method) => {
                   const isSelected = selectedPayment === method.id;
                   return (
                     <Pressable
@@ -552,29 +520,40 @@ export default function PaymentScreen() {
                         },
                       ]}
                     >
-                      <Feather
-                        name={getCardIcon(method.type)}
-                        size={24}
-                        color={
-                          isSelected
-                            ? isDark
-                              ? Colors.accent
-                              : Colors.primary
-                            : theme.textSecondary
-                        }
-                      />
+                      <View
+                        style={[
+                          styles.paymentIconContainer,
+                          {
+                            backgroundColor: isSelected
+                              ? isDark
+                                ? Colors.accent + "25"
+                                : Colors.primary + "15"
+                              : theme.backgroundTertiary,
+                          },
+                        ]}
+                      >
+                        <Feather
+                          name={method.icon}
+                          size={22}
+                          color={
+                            isSelected
+                              ? isDark
+                                ? Colors.accent
+                                : Colors.primary
+                              : theme.textSecondary
+                          }
+                        />
+                      </View>
                       <View style={styles.paymentInfo}>
-                        <ThemedText type="body">
-                          {getCardName(method.type)} ****{method.last4}
+                        <ThemedText type="body" style={{ fontWeight: "600" }}>
+                          {method.name}
                         </ThemedText>
-                        {method.isDefault ? (
-                          <ThemedText
-                            type="small"
-                            style={{ color: theme.textSecondary }}
-                          >
-                            Predeterminada
-                          </ThemedText>
-                        ) : null}
+                        <ThemedText
+                          type="small"
+                          style={{ color: theme.textSecondary }}
+                        >
+                          {method.description}
+                        </ThemedText>
                       </View>
                       <View
                         style={[
@@ -605,15 +584,6 @@ export default function PaymentScreen() {
                   );
                 })}
               </View>
-
-              <Pressable
-                style={[styles.addPayment, { borderColor: theme.textSecondary }]}
-              >
-                <Feather name="plus" size={20} color={theme.textSecondary} />
-                <ThemedText type="body" style={{ color: theme.textSecondary }}>
-                  Agregar Método de Pago
-                </ThemedText>
-              </Pressable>
 
               <View style={styles.secureNote}>
                 <Feather name="lock" size={16} color={theme.textSecondary} />
@@ -814,6 +784,13 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     borderWidth: 2,
   },
+  paymentIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   paymentInfo: {
     flex: 1,
     marginLeft: Spacing.md,
@@ -830,16 +807,6 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-  },
-  addPayment: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    gap: Spacing.sm,
   },
   secureNote: {
     flexDirection: "row",
