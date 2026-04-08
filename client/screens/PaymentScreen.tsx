@@ -22,6 +22,7 @@ import {
   formatDate,
   getVehicleName,
   getWashTypeName,
+  VEHICLE_PRICES,
   WASH_TYPE_PRICES,
   ADD_ONS,
   ALL_SERVICES,
@@ -278,7 +279,12 @@ export default function PaymentScreen() {
               <ThemedText type="body" style={{ color: theme.textSecondary }}>
                 Vehículo
               </ThemedText>
-              <ThemedText type="body">{getVehicleName(vehicleSize)}</ThemedText>
+              <View style={{ alignItems: "flex-end" }}>
+                <ThemedText type="body">{getVehicleName(vehicleSize)}</ThemedText>
+                <ThemedText type="small" style={{ color: isDark ? Colors.accent : Colors.primary, fontWeight: "600" }}>
+                  {formatPrice(VEHICLE_PRICES[vehicleSize])}
+                </ThemedText>
+              </View>
             </View>
             <View style={styles.summaryRow}>
               <ThemedText type="body" style={{ color: theme.textSecondary }}>
@@ -287,7 +293,7 @@ export default function PaymentScreen() {
               <View style={{ alignItems: "flex-end" }}>
                 <ThemedText type="body">{getWashTypeName(washType)}</ThemedText>
                 <ThemedText type="small" style={{ color: isDark ? Colors.accent : Colors.primary, fontWeight: "600" }}>
-                  {formatPrice(WASH_TYPE_PRICES[washType])}
+                  {WASH_TYPE_PRICES[washType] > 0 ? `+${formatPrice(WASH_TYPE_PRICES[washType])}` : formatPrice(0)}
                 </ThemedText>
               </View>
             </View>
