@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { StyleSheet, View, Pressable, ScrollView, Alert } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from "@react-navigation/native";
@@ -126,8 +126,20 @@ export default function PaymentScreen() {
     MOCK_PAYMENT_METHODS.find((m) => m.isDefault)?.id || "1"
   );
   const [isProcessing, setIsProcessing] = useState(false);
+  const [servicesExpanded, setServicesExpanded] = useState(false);
 
   const selectedAddOns = ALL_SERVICES.filter((s) => addOns.includes(s.id));
+
+  const allIncludedServices = useMemo(() => {
+    const includedByWash = ALL_SERVICES.filter((s) => s.includedIn.includes(washType));
+    const extras = ALL_SERVICES.filter(
+      (s) => addOns.includes(s.id) && !s.includedIn.includes(washType)
+    );
+    return [
+      ...includedByWash.map((s) => ({ ...s, isIncluded: true })),
+      ...extras.map((s) => ({ ...s, isIncluded: false })),
+    ];
+  }, [washType, addOns]);
 
   const getCardIcon = (type: PaymentMethod["type"]) => {
     switch (type) {
@@ -273,14 +285,58 @@ export default function PaymentScreen() {
               </ThemedText>
               <ThemedText type="body">{getWashTypeName(washType)}</ThemedText>
             </View>
-            {selectedAddOns.length > 0 ? (
-              <View style={styles.summaryRow}>
-                <ThemedText type="body" style={{ color: theme.textSecondary }}>
-                  Servicios Extra
-                </ThemedText>
-                <ThemedText type="body" style={styles.addOnsList}>
-                  {selectedAddOns.map((a) => a.name).join(", ")}
-                </ThemedText>
+            {allIncludedServices.length > 0 ? (
+              <View>
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setServicesExpanded(!servicesExpanded);
+                  }}
+                  style={styles.summaryRow}
+                >
+                  <View style={styles.servicesToggle}>
+                    <ThemedText type="body" style={{ color: theme.textSecondary }}>
+                      Servicios Incluidos
+                    </ThemedText>
+                    <View style={[styles.servicesBadge, { backgroundColor: (isDark ? Colors.accent : Colors.primary) + "15" }]}>
+                      <ThemedText type="small" style={{ color: isDark ? Colors.accent : Colors.primary, fontWeight: "600" }}>
+                        {allIncludedServices.length}
+                      </ThemedText>
+                    </View>
+                  </View>
+                  <Feather
+                    name={servicesExpanded ? "chevron-up" : "chevron-down"}
+                    size={18}
+                    color={isDark ? Colors.accent : Colors.primary}
+                  />
+                </Pressable>
+                {servicesExpanded ? (
+                  <View style={styles.servicesExpandedList}>
+                    {allIncludedServices.map((service) => (
+                      <View key={service.id} style={styles.serviceItem}>
+                        <View style={styles.serviceItemLeft}>
+                          <Feather
+                            name="check-circle"
+                            size={14}
+                            color={service.isIncluded ? Colors.success : (isDark ? Colors.accent : Colors.primary)}
+                          />
+                          <ThemedText type="body" style={{ fontSize: 14 }}>
+                            {service.name}
+                          </ThemedText>
+                        </View>
+                        <ThemedText
+                          type="small"
+                          style={{
+                            color: service.isIncluded ? Colors.success : theme.textSecondary,
+                            fontWeight: "600",
+                          }}
+                        >
+                          {service.isIncluded ? "Incluido" : `+$${service.price}`}
+                        </ThemedText>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
               </View>
             ) : null}
             <View style={styles.summaryDivider} />
@@ -663,11 +719,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: Spacing.sm,
   },
-  addOnsList: {
-    flex: 1,
-    textAlign: "right",
-    marginLeft: Spacing.lg,
-  },
   divider: {
     flexDirection: "row",
     alignItems: "center",
@@ -682,6 +733,36 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "rgba(128, 128, 128, 0.2)",
     marginVertical: Spacing.md,
+  },
+  servicesToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  servicesBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 22,
+    alignItems: "center",
+  },
+  servicesExpandedList: {
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  serviceItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 4,
+    paddingLeft: Spacing.xs,
+  },
+  serviceItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    flex: 1,
   },
   cardPaymentSection: {
     marginTop: Spacing.sm,
