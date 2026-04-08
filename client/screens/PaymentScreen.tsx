@@ -287,7 +287,7 @@ export default function PaymentScreen() {
               </ThemedText>
               <View style={{ alignItems: "flex-end" }}>
                 <ThemedText type="body">{getWashTypeName(washType)}</ThemedText>
-                <ThemedText type="small" style={{ color: isDark ? Colors.accent : Colors.primary, fontWeight: "600" }}>
+                <ThemedText type="small" style={{ color: Colors.success, fontWeight: "600" }}>
                   {formatPrice(VEHICLE_PRICES[vehicleSize] + WASH_TYPE_PRICES[washType])}
                 </ThemedText>
               </View>
