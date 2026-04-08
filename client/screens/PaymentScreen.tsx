@@ -335,9 +335,9 @@ export default function PaymentScreen() {
                           <View style={styles.serviceItem}>
                             <View style={styles.serviceItemLeft}>
                               <Feather
-                                name="check-circle"
+                                name={service.isIncluded ? "check-circle" : "plus-circle"}
                                 size={14}
-                                color={service.isIncluded ? Colors.success : (isDark ? Colors.accent : Colors.primary)}
+                                color={service.isIncluded ? Colors.success : Colors.warning}
                               />
                               <ThemedText type="body" style={{ fontSize: 14 }}>
                                 {service.name}
@@ -346,7 +346,7 @@ export default function PaymentScreen() {
                             <ThemedText
                               type="small"
                               style={{
-                                color: service.isIncluded ? Colors.success : theme.textSecondary,
+                                color: service.isIncluded ? Colors.success : Colors.warning,
                                 fontWeight: "600",
                               }}
                             >
