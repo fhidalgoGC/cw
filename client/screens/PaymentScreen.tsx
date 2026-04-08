@@ -556,9 +556,6 @@ export default function PaymentScreen() {
 
           {!isUsingMembership ? (
             <View style={styles.cardPaymentSection}>
-              <ThemedText type="h2" style={styles.sectionTitle}>
-                Método de Pago
-              </ThemedText>
               <View style={styles.paymentMethods}>
                 {PAYMENT_METHODS.map((method) => {
                   const isSelected = selectedPayment === method.id;
