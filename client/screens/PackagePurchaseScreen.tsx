@@ -16,6 +16,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
+import { PaymentMethodSelector } from "@/components/PaymentMethodSelector";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors, Spacing, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -36,26 +37,13 @@ const VEHICLE_IMAGES: Record<VehicleSize, any> = {
   large: vehicleLarge,
 };
 
-interface PaymentMethod {
-  id: string;
-  name: string;
-  icon: keyof typeof Feather.glyphMap;
-  last4?: string;
-}
-
-const PAYMENT_METHODS: PaymentMethod[] = [
-  { id: "card1", name: "Visa", icon: "credit-card", last4: "4242" },
-  { id: "card2", name: "Mastercard", icon: "credit-card", last4: "8888" },
-  { id: "apple", name: "Apple Pay", icon: "smartphone" },
-];
-
 export default function PackagePurchaseScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteType>();
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const [selectedPayment, setSelectedPayment] = useState<string>("card1");
+  const [selectedPayment, setSelectedPayment] = useState<string>("card");
   const [isProcessing, setIsProcessing] = useState(false);
 
   const { packageId, durationId, vehicleSize } = route.params;
@@ -144,64 +132,13 @@ export default function PackagePurchaseScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <Card elevation={1} style={styles.section}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Método de Pago
-            </ThemedText>
-            <View style={styles.paymentMethods}>
-              {PAYMENT_METHODS.map((method) => (
-                <Pressable
-                  key={method.id}
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    setSelectedPayment(method.id);
-                  }}
-                  style={[
-                    styles.paymentMethod,
-                    {
-                      backgroundColor: theme.backgroundSecondary,
-                      borderColor:
-                        selectedPayment === method.id
-                          ? isDark
-                            ? Colors.accent
-                            : Colors.primary
-                          : theme.backgroundTertiary,
-                      borderWidth: selectedPayment === method.id ? 2 : 1,
-                    },
-                  ]}
-                >
-                  <Feather
-                    name={method.icon}
-                    size={24}
-                    color={
-                      selectedPayment === method.id
-                        ? isDark
-                          ? Colors.accent
-                          : Colors.primary
-                        : theme.textSecondary
-                    }
-                  />
-                  <View style={styles.paymentInfo}>
-                    <ThemedText type="body" style={{ fontWeight: "500" }}>
-                      {method.name}
-                    </ThemedText>
-                    {method.last4 ? (
-                      <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                        **** {method.last4}
-                      </ThemedText>
-                    ) : null}
-                  </View>
-                  {selectedPayment === method.id ? (
-                    <Feather
-                      name="check-circle"
-                      size={20}
-                      color={isDark ? Colors.accent : Colors.primary}
-                    />
-                  ) : null}
-                </Pressable>
-              ))}
-            </View>
-          </Card>
+          <ThemedText type="h3" style={styles.sectionTitle}>
+            Método de Pago
+          </ThemedText>
+          <PaymentMethodSelector
+            selectedId={selectedPayment}
+            onSelect={setSelectedPayment}
+          />
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(150).springify()}>
@@ -315,19 +252,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: Spacing.md,
-  },
-  paymentMethods: {
-    gap: Spacing.sm,
-  },
-  paymentMethod: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    gap: Spacing.md,
-  },
-  paymentInfo: {
-    flex: 1,
   },
   summaryRow: {
     flexDirection: "row",

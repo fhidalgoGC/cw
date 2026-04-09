@@ -16,6 +16,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
+import { PaymentMethodSelector } from "@/components/PaymentMethodSelector";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors, Spacing, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -40,19 +41,6 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteType = RouteProp<RootStackParamList, "Payment">;
 
-interface PaymentMethod {
-  id: string;
-  type: "card" | "transfer" | "cash";
-  name: string;
-  description: string;
-  icon: keyof typeof Feather.glyphMap;
-}
-
-const PAYMENT_METHODS: PaymentMethod[] = [
-  { id: "card", type: "card", name: "Tarjeta de Crédito/Débito", description: "Visa, Mastercard, Amex", icon: "credit-card" },
-  { id: "transfer", type: "transfer", name: "Transferencia", description: "SPEI / Transferencia bancaria", icon: "repeat" },
-  { id: "cash", type: "cash", name: "Efectivo", description: "Pago al momento del servicio", icon: "dollar-sign" },
-];
 
 export default function PaymentScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -570,93 +558,10 @@ export default function PaymentScreen() {
 
           {!isUsingMembership ? (
             <View style={styles.cardPaymentSection}>
-              <View style={styles.paymentMethods}>
-                {PAYMENT_METHODS.map((method) => {
-                  const isSelected = selectedPayment === method.id;
-                  return (
-                    <Pressable
-                      key={method.id}
-                      onPress={() => handlePaymentSelect(method.id)}
-                      style={[
-                        styles.paymentMethod,
-                        {
-                          backgroundColor: isSelected
-                            ? isDark
-                              ? "rgba(6, 182, 212, 0.15)"
-                              : "rgba(30, 64, 175, 0.08)"
-                            : theme.backgroundDefault,
-                          borderColor: isSelected
-                            ? isDark
-                              ? Colors.accent
-                              : Colors.primary
-                            : theme.backgroundTertiary,
-                        },
-                      ]}
-                    >
-                      <View
-                        style={[
-                          styles.paymentIconContainer,
-                          {
-                            backgroundColor: isSelected
-                              ? isDark
-                                ? Colors.accent + "25"
-                                : Colors.primary + "15"
-                              : theme.backgroundTertiary,
-                          },
-                        ]}
-                      >
-                        <Feather
-                          name={method.icon}
-                          size={22}
-                          color={
-                            isSelected
-                              ? isDark
-                                ? Colors.accent
-                                : Colors.primary
-                              : theme.textSecondary
-                          }
-                        />
-                      </View>
-                      <View style={styles.paymentInfo}>
-                        <ThemedText type="body" style={{ fontWeight: "600" }}>
-                          {method.name}
-                        </ThemedText>
-                        <ThemedText
-                          type="small"
-                          style={{ color: theme.textSecondary }}
-                        >
-                          {method.description}
-                        </ThemedText>
-                      </View>
-                      <View
-                        style={[
-                          styles.radioOuter,
-                          {
-                            borderColor: isSelected
-                              ? isDark
-                                ? Colors.accent
-                                : Colors.primary
-                              : theme.textSecondary,
-                          },
-                        ]}
-                      >
-                        {isSelected ? (
-                          <View
-                            style={[
-                              styles.radioInner,
-                              {
-                                backgroundColor: isDark
-                                  ? Colors.accent
-                                  : Colors.primary,
-                              },
-                            ]}
-                          />
-                        ) : null}
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              <PaymentMethodSelector
+                selectedId={selectedPayment}
+                onSelect={handlePaymentSelect}
+              />
 
               <View style={styles.secureNote}>
                 <Feather name="lock" size={16} color={theme.textSecondary} />
@@ -880,13 +785,6 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     borderRadius: BorderRadius.md,
     borderWidth: 2,
-  },
-  paymentIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.md,
-    alignItems: "center",
-    justifyContent: "center",
   },
   paymentInfo: {
     flex: 1,
