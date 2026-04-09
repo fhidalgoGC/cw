@@ -534,7 +534,7 @@ export default function PaymentScreen() {
                   >
                     <View style={[styles.packageIcon, { backgroundColor: pkg.color }]}>
                       <Feather
-                        name={pkg.id === "elite" ? "award" : pkg.id === "premium" ? "star" : "check-circle"}
+                        name={pkg.id === "premium" ? "award" : pkg.id === "completo" ? "star" : "check-circle"}
                         size={18}
                         color="#FFFFFF"
                       />

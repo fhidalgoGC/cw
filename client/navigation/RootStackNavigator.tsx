@@ -64,7 +64,7 @@ export type RootStackParamList = {
   AddressManagement: undefined;
   VehicleManagement: undefined;
   MembershipDetail: undefined;
-  PackagePurchase: { packageId: string };
+  PackagePurchase: { packageId: string; durationId: string; vehicleSize: VehicleSize };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

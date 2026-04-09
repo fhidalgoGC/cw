@@ -138,7 +138,8 @@ export default function HomeScreen() {
             const activeMembership = getActiveMembership(userData);
             if (!activeMembership) return null;
             const { package: pkg, membership } = activeMembership;
-            const totalWashes = pkg.washesIncluded;
+            const duration = pkg.durations.find((d) => d.id === membership.durationId);
+            const totalWashes = duration ? duration.washesIncluded : membership.washesRemaining;
             const washesUsed = totalWashes - membership.washesRemaining;
             const progressPercent = (membership.washesRemaining / totalWashes) * 100;
             
@@ -155,7 +156,7 @@ export default function HomeScreen() {
                   <View style={styles.membershipHeader}>
                     <View style={[styles.membershipIconContainer, { backgroundColor: `${pkg.color}30` }]}>
                       <Feather
-                        name={pkg.id === "elite" ? "award" : pkg.id === "premium" ? "star" : "check-circle"}
+                        name={pkg.id === "premium" ? "award" : pkg.id === "completo" ? "star" : "check-circle"}
                         size={28}
                         color={pkg.color}
                       />

@@ -14,14 +14,20 @@ export interface PackageAddOn {
   includedUses: number;
 }
 
+export interface PackageDuration {
+  id: string;
+  label: string;
+  days: number;
+  washesIncluded: number;
+  prices: Record<VehicleSize, number>;
+}
+
 export interface Package {
   id: string;
   name: string;
+  washType: WashType;
   description: string;
-  price: number;
-  monthlyPrice?: number;
-  washesIncluded: number;
-  durationDays: number;
+  durations: PackageDuration[];
   addOnsIncluded: PackageAddOn[];
   perks: string[];
   popular?: boolean;
@@ -31,6 +37,8 @@ export interface Package {
 export interface Membership {
   id: string;
   packageId: string;
+  durationId: string;
+  vehicleSize: VehicleSize;
   activatedAt: string;
   expirationDate: string;
   washesRemaining: number;
@@ -174,84 +182,68 @@ export function getExtraServices(): ServiceOption[] {
 
 export const PACKAGES: Package[] = [
   {
-    id: "esencial",
-    name: "Esencial",
-    description: "Perfecto para mantener tu auto impecable cada semana",
-    price: 599,
-    washesIncluded: 4,
-    durationDays: 30,
-    addOnsIncluded: [
-      { addOnId: "interior", includedUses: 1 },
+    id: "basico",
+    name: "Básico",
+    washType: "basic",
+    description: "Lavado exterior y aspirado para mantener tu auto limpio",
+    durations: [
+      { id: "1semana", label: "1 Semana", days: 7, washesIncluded: 2, prices: { small: 269, suv: 359, large: 449 } },
+      { id: "1mes", label: "1 Mes", days: 30, washesIncluded: 4, prices: { small: 479, suv: 639, large: 799 } },
+      { id: "3meses", label: "3 Meses", days: 90, washesIncluded: 12, prices: { small: 1249, suv: 1679, large: 2099 } },
     ],
+    addOnsIncluded: [],
     perks: [
-      "4 lavadas",
-      "1 interior completo",
+      "Lavado exterior",
+      "Aspirado interior",
       "Prioridad en citas",
-      "Vigencia: 30 días",
     ],
     color: "#3B82F6",
   },
   {
+    id: "completo",
+    name: "Completo",
+    washType: "complete",
+    description: "Lavado completo con interior y vidrios impecables",
+    durations: [
+      { id: "1semana", label: "1 Semana", days: 7, washesIncluded: 2, prices: { small: 409, suv: 499, large: 589 } },
+      { id: "1mes", label: "1 Mes", days: 30, washesIncluded: 4, prices: { small: 729, suv: 899, large: 1049 } },
+      { id: "3meses", label: "3 Meses", days: 90, washesIncluded: 12, prices: { small: 1929, suv: 2349, large: 2769 } },
+    ],
+    addOnsIncluded: [
+      { addOnId: "interior", includedUses: 2 },
+    ],
+    perks: [
+      "Lavado exterior",
+      "Interior completo",
+      "Limpieza de vidrios",
+      "Aspirado interior",
+    ],
+    popular: true,
+    color: "#8B5CF6",
+  },
+  {
     id: "premium",
     name: "Premium",
-    description: "El más popular para quienes cuidan cada detalle",
-    price: 1299,
-    washesIncluded: 12,
-    durationDays: 30,
+    washType: "premium",
+    description: "El cuidado más completo para los más exigentes",
+    durations: [
+      { id: "1semana", label: "1 Semana", days: 7, washesIncluded: 2, prices: { small: 539, suv: 629, large: 719 } },
+      { id: "1mes", label: "1 Mes", days: 30, washesIncluded: 4, prices: { small: 959, suv: 1119, large: 1279 } },
+      { id: "3meses", label: "3 Meses", days: 90, washesIncluded: 12, prices: { small: 2499, suv: 2929, large: 3359 } },
+    ],
     addOnsIncluded: [
       { addOnId: "interior", includedUses: 4 },
       { addOnId: "rines", includedUses: 4 },
       { addOnId: "cera", includedUses: 2 },
     ],
     perks: [
-      "12 lavadas",
-      "4 interiores completos",
-      "4 detallados de rines",
-      "2 encerados premium",
-      "Vigencia: 30 días",
-    ],
-    popular: true,
-    color: "#8B5CF6",
-  },
-  {
-    id: "elite",
-    name: "Elite",
-    description: "Cuidado ilimitado para los más exigentes",
-    price: 2499,
-    washesIncluded: 30,
-    durationDays: 30,
-    addOnsIncluded: [
-      { addOnId: "interior", includedUses: 8 },
-      { addOnId: "rines", includedUses: 8 },
-      { addOnId: "cera", includedUses: 4 },
-      { addOnId: "motor", includedUses: 2 },
-      { addOnId: "tapiceria", includedUses: 2 },
-    ],
-    perks: [
-      "30 lavadas",
-      "8 interiores completos",
-      "8 detallados de rines",
-      "4 encerados premium",
-      "2 lavados de motor",
-      "2 limpiezas de tapicería",
-      "Vigencia: 30 días",
+      "Lavado exterior",
+      "Interior completo",
+      "Detallado de rines",
+      "Encerado premium",
+      "Limpieza de vidrios",
     ],
     color: "#F59E0B",
-  },
-  {
-    id: "express15",
-    name: "Express 15",
-    description: "Paquete rápido para 15 días",
-    price: 349,
-    washesIncluded: 2,
-    durationDays: 15,
-    addOnsIncluded: [],
-    perks: [
-      "2 lavadas",
-      "Vigencia: 15 días",
-      "Ideal para probar",
-    ],
-    color: "#10B981",
   },
 ];
 
@@ -373,12 +365,17 @@ export async function deleteAddress(addressId: string): Promise<void> {
   await saveUserData(userData);
 }
 
-export async function activateMembership(packageId: string): Promise<UserData> {
+export async function activateMembership(packageId: string, durationId: string, vehicleSize: VehicleSize): Promise<UserData> {
   const userData = await getUserData();
   const pkg = PACKAGES.find((p) => p.id === packageId);
   
   if (!pkg) {
     throw new Error("Package not found");
+  }
+
+  const duration = pkg.durations.find((d) => d.id === durationId);
+  if (!duration) {
+    throw new Error("Duration not found");
   }
 
   const addOnUsage: Record<string, number> = {};
@@ -387,14 +384,16 @@ export async function activateMembership(packageId: string): Promise<UserData> {
   });
 
   const expirationDate = new Date();
-  expirationDate.setDate(expirationDate.getDate() + pkg.durationDays);
+  expirationDate.setDate(expirationDate.getDate() + duration.days);
 
   const membership: Membership = {
     id: generateId(),
     packageId,
+    durationId,
+    vehicleSize,
     activatedAt: new Date().toISOString(),
     expirationDate: expirationDate.toISOString(),
-    washesRemaining: pkg.washesIncluded,
+    washesRemaining: duration.washesIncluded,
     addOnUsage,
   };
 

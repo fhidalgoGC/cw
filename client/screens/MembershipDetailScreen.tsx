@@ -128,7 +128,9 @@ export default function MembershipDetailScreen() {
         </ThemedText>
 
         {activeMemberships.map(({ package: pkg, membership, daysRemaining }, index) => {
-          const progressPercent = (membership.washesRemaining / pkg.washesIncluded) * 100;
+          const duration = pkg.durations.find((d) => d.id === membership.durationId);
+          const totalWashes = duration ? duration.washesIncluded : membership.washesRemaining;
+          const progressPercent = (membership.washesRemaining / totalWashes) * 100;
 
           return (
             <Animated.View
@@ -142,7 +144,7 @@ export default function MembershipDetailScreen() {
                 <View style={styles.packageHeader}>
                   <View style={styles.packageBadge}>
                     <Feather
-                      name={pkg.id === "elite" ? "award" : pkg.id === "premium" ? "star" : "check-circle"}
+                      name={pkg.id === "premium" ? "award" : pkg.id === "completo" ? "star" : "check-circle"}
                       size={24}
                       color="#FFFFFF"
                     />
@@ -165,7 +167,7 @@ export default function MembershipDetailScreen() {
                     {membership.washesRemaining}
                   </ThemedText>
                   <ThemedText type="body" style={styles.washesLabel}>
-                    de {pkg.washesIncluded} lavadas restantes
+                    de {totalWashes} lavadas restantes
                   </ThemedText>
                   <View style={styles.progressBar}>
                     <View

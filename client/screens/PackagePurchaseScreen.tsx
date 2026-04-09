@@ -1,11 +1,16 @@
 import React, { useState } from "react";
 import { StyleSheet, View, Pressable, Alert } from "react-native";
+import { Image } from "expo-image";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
+
+import vehicleSmall from "../../assets/images/vehicle-small.png";
+import vehicleSuv from "../../assets/images/vehicle-suv.png";
+import vehicleLarge from "../../assets/images/vehicle-large.png";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -14,10 +19,22 @@ import { Button } from "@/components/Button";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors, Spacing, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
-import { PACKAGES, activateMembership, formatPrice } from "@/lib/storage";
+import {
+  PACKAGES,
+  activateMembership,
+  formatPrice,
+  getVehicleName,
+  VehicleSize,
+} from "@/lib/storage";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "PackagePurchase">;
 type RouteType = RouteProp<RootStackParamList, "PackagePurchase">;
+
+const VEHICLE_IMAGES: Record<VehicleSize, any> = {
+  small: vehicleSmall,
+  suv: vehicleSuv,
+  large: vehicleLarge,
+};
 
 interface PaymentMethod {
   id: string;
@@ -41,16 +58,19 @@ export default function PackagePurchaseScreen() {
   const [selectedPayment, setSelectedPayment] = useState<string>("card1");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const { packageId } = route.params;
+  const { packageId, durationId, vehicleSize } = route.params;
   const pkg = PACKAGES.find((p) => p.id === packageId);
+  const duration = pkg?.durations.find((d) => d.id === durationId);
 
-  if (!pkg) {
+  if (!pkg || !duration) {
     return (
       <ThemedView style={styles.container}>
         <ThemedText type="body">Paquete no encontrado</ThemedText>
       </ThemedView>
     );
   }
+
+  const price = duration.prices[vehicleSize];
 
   const handlePurchase = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -59,12 +79,12 @@ export default function PackagePurchaseScreen() {
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     try {
-      await activateMembership(pkg.id);
+      await activateMembership(pkg.id, durationId, vehicleSize);
       setIsProcessing(false);
       
       Alert.alert(
         "¡Compra Exitosa!",
-        `Tu paquete ${pkg.name} ha sido activado. Ahora tienes ${pkg.washesIncluded} lavadas disponibles.`,
+        `Tu paquete ${pkg.name} (${duration.label}) ha sido activado. Tienes ${duration.washesIncluded} lavadas disponibles.`,
         [
           {
             text: "Continuar",
@@ -96,7 +116,7 @@ export default function PackagePurchaseScreen() {
             <View style={styles.packageHeader}>
               <View style={[styles.packageIcon, { backgroundColor: pkg.color + "20" }]}>
                 <Feather
-                  name={pkg.id === "elite" ? "award" : pkg.id === "premium" ? "star" : "check-circle"}
+                  name={pkg.id === "premium" ? "award" : pkg.id === "completo" ? "star" : "check-circle"}
                   size={28}
                   color={pkg.color}
                 />
@@ -104,9 +124,19 @@ export default function PackagePurchaseScreen() {
               <View style={styles.packageInfo}>
                 <ThemedText type="h2">{pkg.name}</ThemedText>
                 <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                  {pkg.washesIncluded} lavadas al mes
+                  {duration.washesIncluded} lavadas - {duration.label}
                 </ThemedText>
               </View>
+            </View>
+            <View style={styles.vehicleRow}>
+              <Image
+                source={VEHICLE_IMAGES[vehicleSize]}
+                style={styles.vehicleImageSmall}
+                contentFit="contain"
+              />
+              <ThemedText type="body" style={{ color: theme.textSecondary }}>
+                {getVehicleName(vehicleSize)}
+              </ThemedText>
             </View>
           </Card>
         </Animated.View>
@@ -179,7 +209,23 @@ export default function PackagePurchaseScreen() {
             </ThemedText>
             <View style={styles.summaryRow}>
               <ThemedText type="body">Paquete {pkg.name}</ThemedText>
-              <ThemedText type="body">{formatPrice(pkg.price)}</ThemedText>
+              <ThemedText type="body">{duration.label}</ThemedText>
+            </View>
+            <View style={styles.summaryRow}>
+              <ThemedText type="body" style={{ color: theme.textSecondary }}>
+                Vehículo
+              </ThemedText>
+              <ThemedText type="body" style={{ color: theme.textSecondary }}>
+                {getVehicleName(vehicleSize)}
+              </ThemedText>
+            </View>
+            <View style={styles.summaryRow}>
+              <ThemedText type="body" style={{ color: theme.textSecondary }}>
+                Lavadas incluidas
+              </ThemedText>
+              <ThemedText type="body" style={{ color: theme.textSecondary }}>
+                {duration.washesIncluded}
+              </ThemedText>
             </View>
             <View style={styles.summaryRow}>
               <ThemedText type="body" style={{ color: theme.textSecondary }}>
@@ -192,7 +238,7 @@ export default function PackagePurchaseScreen() {
             <View style={[styles.summaryRow, styles.totalRow]}>
               <ThemedText type="h3">Total</ThemedText>
               <ThemedText type="h2" style={{ color: pkg.color }}>
-                {formatPrice(pkg.price)}/mes
+                {formatPrice(price)}
               </ThemedText>
             </View>
           </Card>
@@ -203,15 +249,15 @@ export default function PackagePurchaseScreen() {
             type="caption"
             style={[styles.disclaimer, { color: theme.textSecondary }]}
           >
-            Al continuar, aceptas los términos de suscripción. Tu membresía se
-            renovará automáticamente cada mes.
+            Al continuar, aceptas los términos de compra. Tu paquete estará
+            activo durante {duration.days} días a partir de la compra.
           </ThemedText>
           <Button
             onPress={handlePurchase}
             disabled={isProcessing}
             style={[styles.purchaseButton, { backgroundColor: pkg.color }]}
           >
-            {isProcessing ? "Procesando..." : `Pagar ${formatPrice(pkg.price)}`}
+            {isProcessing ? "Procesando..." : `Pagar ${formatPrice(price)}`}
           </Button>
         </View>
       </View>
@@ -235,6 +281,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
   packageIcon: {
     width: 56,
@@ -245,6 +292,18 @@ const styles = StyleSheet.create({
   },
   packageInfo: {
     flex: 1,
+  },
+  vehicleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.05)",
+  },
+  vehicleImageSmall: {
+    width: 40,
+    height: 28,
   },
   section: {
     marginBottom: Spacing.sm,
