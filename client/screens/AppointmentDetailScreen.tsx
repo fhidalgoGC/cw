@@ -80,6 +80,12 @@ export default function AppointmentDetailScreen() {
 
   const canReschedule = useMemo(() => {
     if (booking.status !== "upcoming") return false;
+    if (booking.pendingReschedule) {
+      if (booking.rescheduleDeadline) {
+        return new Date() < new Date(booking.rescheduleDeadline);
+      }
+      return true;
+    }
     const serviceTime = getServiceDateTime(booking);
     const now = new Date();
     const hoursUntilService = (serviceTime.getTime() - now.getTime()) / (1000 * 60 * 60);
@@ -122,11 +128,33 @@ export default function AppointmentDetailScreen() {
       );
       return;
     }
+    if (booking.pendingReschedule) {
+      setShowRescheduleModal(true);
+      return;
+    }
     Alert.alert(
       "Reprogramar Cita",
       "¿Qué deseas hacer?",
       [
-        { text: "Agendar después", style: "cancel" },
+        {
+          text: "Agendar después",
+          onPress: async () => {
+            const deadline = new Date();
+            deadline.setDate(deadline.getDate() + 7);
+            const updatedBooking: Booking = {
+              ...booking,
+              pendingReschedule: true,
+              rescheduleDeadline: deadline.toISOString(),
+            };
+            await updateBooking(updatedBooking);
+            setBooking(updatedBooking);
+            Alert.alert(
+              "Cita pendiente",
+              "Podrás agendar tu cita desde hoy y hasta 7 días. Recuerda reprogramar antes de que venza el plazo.",
+              [{ text: "Entendido" }]
+            );
+          },
+        },
         {
           text: "Agendar nuevamente",
           onPress: () => setShowRescheduleModal(true),
@@ -140,6 +168,8 @@ export default function AppointmentDetailScreen() {
       ...booking,
       date: selectedDate.toISOString(),
       time: selectedTime,
+      pendingReschedule: undefined,
+      rescheduleDeadline: undefined,
     };
     await updateBooking(updatedBooking);
     setBooking(updatedBooking);
@@ -410,36 +440,52 @@ export default function AppointmentDetailScreen() {
             entering={FadeInDown.delay(150).springify()}
             style={styles.actionsContainer}
           >
-            <View style={[styles.rescheduleNote, { backgroundColor: (canReschedule ? Colors.accent : Colors.warning) + "15" }]}>
-              <Feather name="info" size={16} color={canReschedule ? Colors.accent : Colors.warning} />
-              <ThemedText type="small" style={{ color: canReschedule ? Colors.accent : Colors.warning, flex: 1 }}>
-                {canReschedule
-                  ? "Puedes reprogramar tu cita hasta 2 horas antes del servicio"
-                  : "No puedes reprogramar a menos de 2 horas del servicio"}
-              </ThemedText>
-            </View>
+            {booking.pendingReschedule ? (
+              <View style={[styles.rescheduleNote, { backgroundColor: Colors.warning + "15" }]}>
+                <Feather name="clock" size={16} color={Colors.warning} />
+                <ThemedText type="small" style={{ color: Colors.warning, flex: 1 }}>
+                  {booking.rescheduleDeadline
+                    ? `Tienes hasta el ${formatDate(booking.rescheduleDeadline)} para agendar tu cita`
+                    : "Tienes 7 días para agendar tu cita"}
+                </ThemedText>
+              </View>
+            ) : (
+              <View style={[styles.rescheduleNote, { backgroundColor: (canReschedule ? Colors.accent : Colors.warning) + "15" }]}>
+                <Feather name="info" size={16} color={canReschedule ? Colors.accent : Colors.warning} />
+                <ThemedText type="small" style={{ color: canReschedule ? Colors.accent : Colors.warning, flex: 1 }}>
+                  {canReschedule
+                    ? "Puedes reprogramar tu cita hasta 2 horas antes del servicio"
+                    : "No puedes reprogramar a menos de 2 horas del servicio"}
+                </ThemedText>
+              </View>
+            )}
             <Button
               onPress={handleReschedule}
               style={[
                 styles.rescheduleButton,
                 {
-                  backgroundColor: canReschedule
-                    ? theme.backgroundSecondary
-                    : theme.backgroundTertiary,
+                  backgroundColor: booking.pendingReschedule
+                    ? (isDark ? Colors.accent : Colors.primary)
+                    : canReschedule
+                      ? theme.backgroundSecondary
+                      : theme.backgroundTertiary,
                   opacity: canReschedule ? 1 : 0.6,
                 },
               ]}
+              textColor={booking.pendingReschedule ? "#FFFFFF" : undefined}
             >
               Reprogramar Cita
             </Button>
-            <Button
-              onPress={handleCancel}
-              disabled={isCancelling}
-              style={[styles.cancelButton, { backgroundColor: `${Colors.error}15` }]}
-              textColor={Colors.error}
-            >
-              {isCancelling ? "Cancelando..." : "Cancelar Cita"}
-            </Button>
+            {!booking.pendingReschedule ? (
+              <Button
+                onPress={handleCancel}
+                disabled={isCancelling}
+                style={[styles.cancelButton, { backgroundColor: `${Colors.error}15` }]}
+                textColor={Colors.error}
+              >
+                {isCancelling ? "Cancelando..." : "Cancelar Cita"}
+              </Button>
+            ) : null}
           </Animated.View>
         ) : null}
       </ScrollView>

@@ -48,6 +48,8 @@ export interface Booking {
   status: "upcoming" | "completed" | "cancelled";
   createdAt: string;
   usedMembership?: boolean;
+  pendingReschedule?: boolean;
+  rescheduleDeadline?: string;
   vehicleBrand?: string;
   vehicleModel?: string;
   vehicleColor?: string;
