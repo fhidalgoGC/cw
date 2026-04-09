@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Pressable, Alert } from "react-native";
+import { StyleSheet, View, ScrollView, Pressable, Alert } from "react-native";
 import { Image } from "expo-image";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
@@ -102,11 +102,13 @@ export default function PackagePurchaseScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <View
-        style={[
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + Spacing.xl },
         ]}
+        showsVerticalScrollIndicator={false}
       >
         <Animated.View entering={FadeInDown.delay(50).springify()}>
           <Card
@@ -260,7 +262,7 @@ export default function PackagePurchaseScreen() {
             {isProcessing ? "Procesando..." : `Pagar ${formatPrice(price)}`}
           </Button>
         </View>
-      </View>
+      </ScrollView>
     </ThemedView>
   );
 }
@@ -269,10 +271,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  content: {
     padding: Spacing.xl,
     gap: Spacing.lg,
+    flexGrow: 1,
   },
   packageSummary: {
     borderLeftWidth: 4,
