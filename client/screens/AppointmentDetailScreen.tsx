@@ -401,13 +401,25 @@ export default function AppointmentDetailScreen() {
               <ThemedText type="body" style={{ color: theme.textSecondary }}>
                 Fecha
               </ThemedText>
-              <ThemedText type="body">{formatDate(booking.date)}</ThemedText>
+              {booking.pendingReschedule ? (
+                <ThemedText type="body" style={{ color: Colors.error, fontWeight: "600" }}>
+                  Por asignar
+                </ThemedText>
+              ) : (
+                <ThemedText type="body">{formatDate(booking.date)}</ThemedText>
+              )}
             </View>
             <View style={styles.summaryRow}>
               <ThemedText type="body" style={{ color: theme.textSecondary }}>
                 Hora
               </ThemedText>
-              <ThemedText type="body">{booking.time}</ThemedText>
+              {booking.pendingReschedule ? (
+                <ThemedText type="body" style={{ color: Colors.error, fontWeight: "600" }}>
+                  Por asignar
+                </ThemedText>
+              ) : (
+                <ThemedText type="body">{booking.time}</ThemedText>
+              )}
             </View>
 
             <View style={styles.summaryDivider} />
@@ -441,12 +453,12 @@ export default function AppointmentDetailScreen() {
             style={styles.actionsContainer}
           >
             {booking.pendingReschedule ? (
-              <View style={[styles.rescheduleNote, { backgroundColor: Colors.warning + "15" }]}>
-                <Feather name="clock" size={16} color={Colors.warning} />
-                <ThemedText type="small" style={{ color: Colors.warning, flex: 1 }}>
+              <View style={[styles.rescheduleNote, { backgroundColor: Colors.error + "15" }]}>
+                <Feather name="alert-triangle" size={16} color={Colors.error} />
+                <ThemedText type="small" style={{ color: Colors.error, flex: 1, fontWeight: "600" }}>
                   {booking.rescheduleDeadline
-                    ? `Tienes hasta el ${formatDate(booking.rescheduleDeadline)} para agendar tu cita`
-                    : "Tienes 7 días para agendar tu cita"}
+                    ? `Agenda antes del ${formatDate(booking.rescheduleDeadline)} o perderás tu cita completamente`
+                    : "Debes agendar tu cita o la perderás completamente"}
                 </ThemedText>
               </View>
             ) : (
