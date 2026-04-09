@@ -333,38 +333,46 @@ export default function PaymentScreen() {
                 </Pressable>
                 {servicesExpanded ? (
                   <View style={styles.servicesExpandedList}>
-                    {allIncludedServices.map((service, index) => {
-                      const prevService = index > 0 ? allIncludedServices[index - 1] : null;
-                      const showDivider = prevService !== null && prevService.isIncluded && !service.isIncluded;
-                      return (
-                        <View key={service.id}>
-                          {showDivider ? (
-                            <View style={styles.servicesDivider} />
-                          ) : null}
-                          <View style={styles.serviceItem}>
+                    {allIncludedServices.filter(s => s.isIncluded).map((service) => (
+                      <View key={service.id} style={styles.serviceItem}>
+                        <View style={styles.serviceItemLeft}>
+                          <Feather name="check-circle" size={14} color={Colors.success} />
+                          <ThemedText type="body" style={{ fontSize: 14 }}>
+                            {service.name}
+                          </ThemedText>
+                        </View>
+                        <ThemedText
+                          type="small"
+                          style={{ color: Colors.success, fontWeight: "600" }}
+                        >
+                          Incluido
+                        </ThemedText>
+                      </View>
+                    ))}
+                    {allIncludedServices.filter(s => !s.isIncluded).length > 0 ? (
+                      <>
+                        <View style={styles.servicesDivider} />
+                        <ThemedText type="caption" style={{ color: theme.textSecondary, fontWeight: "600", marginBottom: Spacing.xs }}>
+                          Servicios Adicionales
+                        </ThemedText>
+                        {allIncludedServices.filter(s => !s.isIncluded).map((service) => (
+                          <View key={service.id} style={styles.serviceItem}>
                             <View style={styles.serviceItemLeft}>
-                              <Feather
-                                name={service.isIncluded ? "check-circle" : "plus-circle"}
-                                size={14}
-                                color={service.isIncluded ? Colors.success : Colors.warning}
-                              />
+                              <Feather name="plus-circle" size={14} color={Colors.warning} />
                               <ThemedText type="body" style={{ fontSize: 14 }}>
                                 {service.name}
                               </ThemedText>
                             </View>
                             <ThemedText
                               type="small"
-                              style={{
-                                color: service.isIncluded ? Colors.success : Colors.warning,
-                                fontWeight: "600",
-                              }}
+                              style={{ color: Colors.warning, fontWeight: "600" }}
                             >
-                              {service.isIncluded ? "Incluido" : `+${formatPrice(service.price)}`}
+                              +{formatPrice(service.price)}
                             </ThemedText>
                           </View>
-                        </View>
-                      );
-                    })}
+                        ))}
+                      </>
+                    ) : null}
                   </View>
                 ) : null}
               </View>
