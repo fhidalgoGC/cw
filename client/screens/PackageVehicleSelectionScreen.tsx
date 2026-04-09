@@ -110,21 +110,19 @@ export default function PackageVehicleSelectionScreen() {
                 key={option.size}
                 entering={FadeInDown.delay(100 + index * 80).springify()}
               >
-                <Pressable
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    setSelectedSize(option.size);
-                  }}
-                >
-                  <Card
+                <Card
                     elevation={isSelected ? 2 : 1}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setSelectedSize(option.size);
+                    }}
                     style={StyleSheet.flatten([
                       styles.vehicleCard,
                       {
                         borderColor: isSelected
                           ? (isDark ? Colors.accent : Colors.primary)
                           : "transparent",
-                        borderWidth: isSelected ? 2 : 0,
+                        borderWidth: 2,
                       },
                     ])}
                   >
@@ -149,7 +147,6 @@ export default function PackageVehicleSelectionScreen() {
                       <View style={[styles.radioOuter, { borderColor: theme.textSecondary }]} />
                     )}
                   </Card>
-                </Pressable>
               </Animated.View>
             );
           })}
