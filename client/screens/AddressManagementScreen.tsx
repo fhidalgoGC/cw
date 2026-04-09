@@ -32,6 +32,7 @@ export default function AddressManagementScreen() {
   const [newState, setNewState] = useState(AVAILABLE_STATES[0]);
   const [newCity, setNewCity] = useState(AVAILABLE_CITIES[0]);
   const [newColony, setNewColony] = useState("");
+  const [newCoto, setNewCoto] = useState("");
   const [newStreet, setNewStreet] = useState("");
   const [newExteriorNumber, setNewExteriorNumber] = useState("");
   const [newInteriorNumber, setNewInteriorNumber] = useState("");
@@ -52,6 +53,7 @@ export default function AddressManagementScreen() {
     setNewState(AVAILABLE_STATES[0]);
     setNewCity(AVAILABLE_CITIES[0]);
     setNewColony("");
+    setNewCoto("");
     setNewStreet("");
     setNewExteriorNumber("");
     setNewInteriorNumber("");
@@ -68,6 +70,7 @@ export default function AddressManagementScreen() {
       state: newState,
       city: newCity,
       colony: newColony,
+      coto: newCoto.trim() || undefined,
       street: newStreet.trim(),
       exteriorNumber: newExteriorNumber.trim(),
       interiorNumber: newInteriorNumber.trim() || undefined,
@@ -98,7 +101,9 @@ export default function AddressManagementScreen() {
   };
 
   const formatAddressLine = (addr: SavedAddress) => {
-    let line = `${addr.street} #${addr.exteriorNumber}`;
+    let line = "";
+    if (addr.coto) line += `${addr.coto}, `;
+    line += `${addr.street} #${addr.exteriorNumber}`;
     if (addr.interiorNumber) line += ` Int. ${addr.interiorNumber}`;
     return line;
   };
@@ -234,6 +239,19 @@ export default function AddressManagementScreen() {
               onChange={setNewColony}
               placeholder="Selecciona una colonia"
             />
+
+            <View style={styles.inputGroup}>
+              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Coto (opcional)
+              </ThemedText>
+              <TextInput
+                value={newCoto}
+                onChangeText={setNewCoto}
+                placeholder="Ej: Coto 5"
+                placeholderTextColor={theme.textSecondary + "80"}
+                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+              />
+            </View>
 
             <View style={styles.inputGroup}>
               <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>

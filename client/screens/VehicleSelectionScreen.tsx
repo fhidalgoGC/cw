@@ -92,6 +92,7 @@ export default function VehicleSelectionScreen() {
   const [newState, setNewState] = useState(AVAILABLE_STATES[0]);
   const [newCity, setNewCity] = useState(AVAILABLE_CITIES[0]);
   const [newColony, setNewColony] = useState("");
+  const [newCoto, setNewCoto] = useState("");
   const [newStreet, setNewStreet] = useState("");
   const [newExteriorNumber, setNewExteriorNumber] = useState("");
   const [newInteriorNumber, setNewInteriorNumber] = useState("");
@@ -139,7 +140,7 @@ export default function VehicleSelectionScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const addr = savedAddresses.find((a) => a.id === selectedAddressId);
       const addressLabel = addr
-        ? `${addr.alias} - ${addr.street} #${addr.exteriorNumber}${addr.interiorNumber ? ` Int. ${addr.interiorNumber}` : ""}, ${addr.colony}, ${addr.city}`
+        ? `${addr.alias} - ${addr.coto ? `${addr.coto}, ` : ""}${addr.street} #${addr.exteriorNumber}${addr.interiorNumber ? ` Int. ${addr.interiorNumber}` : ""}, ${addr.colony}, ${addr.city}`
         : "";
       const vehicle = savedVehicles.find((v) => v.id === selectedVehicleId);
       navigation.navigate("ServiceCustomization", {
@@ -160,6 +161,7 @@ export default function VehicleSelectionScreen() {
     setNewState(AVAILABLE_STATES[0]);
     setNewCity(AVAILABLE_CITIES[0]);
     setNewColony("");
+    setNewCoto("");
     setNewStreet("");
     setNewExteriorNumber("");
     setNewInteriorNumber("");
@@ -175,6 +177,7 @@ export default function VehicleSelectionScreen() {
         state: newState,
         city: newCity,
         colony: newColony,
+        coto: newCoto.trim() || undefined,
         street: newStreet.trim(),
         exteriorNumber: newExteriorNumber.trim(),
         interiorNumber: newInteriorNumber.trim() || undefined,
@@ -334,7 +337,7 @@ export default function VehicleSelectionScreen() {
                       <View style={styles.optionInfo}>
                         <ThemedText type="h3">{addr.alias}</ThemedText>
                         <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                          {addr.street} #{addr.exteriorNumber}{addr.interiorNumber ? ` Int. ${addr.interiorNumber}` : ""}
+                          {addr.coto ? `${addr.coto}, ` : ""}{addr.street} #{addr.exteriorNumber}{addr.interiorNumber ? ` Int. ${addr.interiorNumber}` : ""}
                         </ThemedText>
                         <ThemedText type="small" style={{ color: theme.textSecondary }}>
                           {addr.colony}, {addr.city}
@@ -597,6 +600,19 @@ export default function VehicleSelectionScreen() {
               onChange={setNewColony}
               placeholder="Selecciona una colonia"
             />
+
+            <View style={styles.inputGroup}>
+              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Coto (opcional)
+              </ThemedText>
+              <TextInput
+                value={newCoto}
+                onChangeText={setNewCoto}
+                placeholder="Ej: Coto 5"
+                placeholderTextColor={theme.textSecondary + "80"}
+                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+              />
+            </View>
 
             <View style={styles.inputGroup}>
               <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>

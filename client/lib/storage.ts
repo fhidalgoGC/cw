@@ -77,6 +77,7 @@ export interface SavedAddress {
   state: string;
   city: string;
   colony: string;
+  coto?: string;
   street: string;
   exteriorNumber: string;
   interiorNumber?: string;
