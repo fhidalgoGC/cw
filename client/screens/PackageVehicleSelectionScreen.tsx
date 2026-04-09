@@ -14,6 +14,7 @@ import vehicleLarge from "../../assets/images/vehicle-large.png";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { Card } from "@/components/Card";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors, Spacing, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -27,10 +28,10 @@ import {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const VEHICLE_OPTIONS: { size: VehicleSize; image: any }[] = [
-  { size: "small", image: vehicleSmall },
-  { size: "suv", image: vehicleSuv },
-  { size: "large", image: vehicleLarge },
+const VEHICLE_OPTIONS: { size: VehicleSize; image: any; description: string }[] = [
+  { size: "small", image: vehicleSmall, description: "Sedán, Hatchback, Coupé" },
+  { size: "suv", image: vehicleSuv, description: "SUV, Crossover, Minivan" },
+  { size: "large", image: vehicleLarge, description: "Camioneta, Pick-up, Van" },
 ];
 
 export default function PackageVehicleSelectionScreen() {
@@ -98,32 +99,37 @@ export default function PackageVehicleSelectionScreen() {
           </ThemedText>
         </Animated.View>
 
-        <Animated.View
-          entering={FadeInDown.delay(150).springify()}
-          style={styles.vehicleRow}
-        >
-          {VEHICLE_OPTIONS.map((option) => (
-            <Pressable
+        <View style={styles.vehicleList}>
+          {VEHICLE_OPTIONS.map((option, index) => (
+            <Animated.View
               key={option.size}
-              onPress={() => handleSelectVehicle(option.size)}
-              style={[
-                styles.vehicleCard,
-                { backgroundColor: theme.backgroundSecondary },
-              ]}
+              entering={FadeInDown.delay(100 + index * 80).springify()}
             >
-              <View style={[styles.vehicleImageContainer, { backgroundColor: theme.backgroundDefault }]}>
+              <Card
+                elevation={1}
+                onPress={() => handleSelectVehicle(option.size)}
+                style={styles.vehicleCard}
+              >
                 <Image
                   source={option.image}
                   style={styles.vehicleImage}
                   contentFit="contain"
                 />
-              </View>
-              <ThemedText type="body" style={styles.vehicleName}>
-                {getVehicleName(option.size)}
-              </ThemedText>
-            </Pressable>
+                <View style={styles.vehicleInfo}>
+                  <ThemedText type="h3">{getVehicleName(option.size)}</ThemedText>
+                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                    {option.description}
+                  </ThemedText>
+                </View>
+                <Feather
+                  name="chevron-right"
+                  size={22}
+                  color={theme.textSecondary}
+                />
+              </Card>
+            </Animated.View>
           ))}
-        </Animated.View>
+        </View>
       </ScrollView>
     </ThemedView>
   );
@@ -154,30 +160,22 @@ const styles = StyleSheet.create({
   subtitle: {
     marginBottom: Spacing.xl,
   },
-  vehicleRow: {
-    flexDirection: "row",
+  vehicleList: {
     gap: Spacing.md,
   },
   vehicleCard: {
-    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
-    borderRadius: BorderRadius.xl,
-    paddingBottom: Spacing.md,
-    overflow: "hidden",
-  },
-  vehicleImageContainer: {
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
+    gap: Spacing.lg,
     paddingVertical: Spacing.lg,
-    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
   },
   vehicleImage: {
     width: 80,
-    height: 50,
+    height: 55,
   },
-  vehicleName: {
-    fontWeight: "600",
-    textAlign: "center",
+  vehicleInfo: {
+    flex: 1,
+    gap: Spacing.xs,
   },
 });

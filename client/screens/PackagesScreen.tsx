@@ -5,17 +5,12 @@ import {
   ScrollView,
   Pressable,
 } from "react-native";
-import { Image } from "expo-image";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useNavigation, useFocusEffect, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
-
-import vehicleSmall from "../../assets/images/vehicle-small.png";
-import vehicleSuv from "../../assets/images/vehicle-suv.png";
-import vehicleLarge from "../../assets/images/vehicle-large.png";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -29,28 +24,22 @@ import {
   Package,
   PackageDuration,
   UserData,
-  VehicleSize,
   getUserData,
   getActiveMemberships,
-  getVehicleName,
   formatPrice,
 } from "@/lib/storage";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
-const VEHICLE_OPTIONS: { size: VehicleSize; image: any }[] = [
-  { size: "small", image: vehicleSmall },
-  { size: "suv", image: vehicleSuv },
-  { size: "large", image: vehicleLarge },
-];
+type RouteType = RouteProp<RootStackParamList, "Packages">;
 
 export default function PackagesScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<RouteType>();
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
+  const { vehicleSize } = route.params;
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [selectedVehicleSize, setSelectedVehicleSize] = useState<VehicleSize | null>(null);
   const [selectedDurations, setSelectedDurations] = useState<Record<string, string>>({});
 
   useFocusEffect(
@@ -64,24 +53,18 @@ export default function PackagesScreen() {
     setUserData(data);
   };
 
-  const handleSelectVehicle = (size: VehicleSize) => {
-    Haptics.selectionAsync();
-    setSelectedVehicleSize(size);
-  };
-
   const handleSelectDuration = (pkgId: string, durationId: string) => {
     Haptics.selectionAsync();
     setSelectedDurations((prev) => ({ ...prev, [pkgId]: durationId }));
   };
 
   const handleBuyPackage = (pkg: Package) => {
-    if (!selectedVehicleSize) return;
     const durationId = selectedDurations[pkg.id] || pkg.durations[0].id;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     navigation.navigate("PackagePurchase", {
       packageId: pkg.id,
       durationId,
-      vehicleSize: selectedVehicleSize,
+      vehicleSize,
     });
   };
 
@@ -93,9 +76,8 @@ export default function PackagesScreen() {
   };
 
   const getPrice = (pkg: Package): number => {
-    if (!selectedVehicleSize) return 0;
     const duration = getSelectedDuration(pkg);
-    return duration.prices[selectedVehicleSize];
+    return duration.prices[vehicleSize];
   };
 
   const renderPackageCard = (pkg: Package, index: number) => {
@@ -105,7 +87,7 @@ export default function PackagesScreen() {
     return (
       <Animated.View
         key={pkg.id}
-        entering={FadeInDown.delay(index * 100 + 200).springify()}
+        entering={FadeInDown.delay(index * 100).springify()}
       >
         <Card
           elevation={pkg.popular ? 2 : 1}
@@ -180,7 +162,7 @@ export default function PackagesScreen() {
 
           <View style={styles.priceContainer}>
             <ThemedText type="display" style={{ color: pkg.color }}>
-              {selectedVehicleSize ? formatPrice(price) : "---"}
+              {formatPrice(price)}
             </ThemedText>
             <ThemedText type="caption" style={{ color: theme.textSecondary }}>
               / {selectedDuration.label.toLowerCase()}
@@ -206,16 +188,9 @@ export default function PackagesScreen() {
 
           <Button
             onPress={() => handleBuyPackage(pkg)}
-            disabled={!selectedVehicleSize}
-            style={[
-              styles.activateButton,
-              {
-                backgroundColor: selectedVehicleSize ? pkg.color : theme.backgroundTertiary,
-                opacity: selectedVehicleSize ? 1 : 0.5,
-              },
-            ]}
+            style={[styles.activateButton, { backgroundColor: pkg.color }]}
           >
-            {selectedVehicleSize ? "Comprar Paquete" : "Selecciona un vehículo"}
+            Comprar Paquete
           </Button>
         </Card>
       </Animated.View>
@@ -253,57 +228,6 @@ export default function PackagesScreen() {
           </Pressable>
         ) : null}
 
-        <Animated.View entering={FadeInDown.delay(50).springify()}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            Tipo de Vehículo
-          </ThemedText>
-          <View style={styles.vehicleSelector}>
-            {VEHICLE_OPTIONS.map((option) => {
-              const isSelected = selectedVehicleSize === option.size;
-              return (
-                <Pressable
-                  key={option.size}
-                  onPress={() => handleSelectVehicle(option.size)}
-                  style={[
-                    styles.vehicleOption,
-                    {
-                      backgroundColor: isSelected
-                        ? (isDark ? Colors.accent + "20" : Colors.primary + "15")
-                        : theme.backgroundSecondary,
-                      borderColor: isSelected
-                        ? (isDark ? Colors.accent : Colors.primary)
-                        : theme.backgroundTertiary,
-                      borderWidth: isSelected ? 2 : 1,
-                    },
-                  ]}
-                >
-                  <Image
-                    source={option.image}
-                    style={styles.vehicleImage}
-                    contentFit="contain"
-                  />
-                  <ThemedText
-                    type="caption"
-                    style={{
-                      fontWeight: isSelected ? "700" : "500",
-                      color: isSelected
-                        ? (isDark ? Colors.accent : Colors.primary)
-                        : theme.text,
-                      textAlign: "center",
-                    }}
-                  >
-                    {getVehicleName(option.size)}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-        </Animated.View>
-
-        <ThemedText type="h3" style={[styles.sectionTitle, { marginTop: Spacing.xl }]}>
-          Paquetes Disponibles
-        </ThemedText>
-
         <View style={styles.packagesContainer}>
           {PACKAGES.map((pkg, index) => renderPackageCard(pkg, index))}
         </View>
@@ -330,24 +254,6 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.lg,
-  },
-  sectionTitle: {
-    marginBottom: Spacing.md,
-  },
-  vehicleSelector: {
-    flexDirection: "row",
-    gap: Spacing.md,
-  },
-  vehicleOption: {
-    flex: 1,
-    alignItems: "center",
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    gap: Spacing.xs,
-  },
-  vehicleImage: {
-    width: 60,
-    height: 40,
   },
   packagesContainer: {
     gap: Spacing.lg,
