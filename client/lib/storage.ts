@@ -53,6 +53,7 @@ export interface Booking {
   vehicleColor?: string;
   vehiclePlate?: string;
   addressLabel?: string;
+  comments?: string;
 }
 
 export interface SavedVehicle {

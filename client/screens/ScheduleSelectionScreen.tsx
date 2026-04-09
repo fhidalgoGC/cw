@@ -13,7 +13,7 @@ export default function ScheduleSelectionScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteType>();
 
-  const { vehicleSize, washType, addOns, totalPrice, addressLabel, vehicleBrand, vehicleModel, vehicleColor, vehiclePlate } = route.params;
+  const { vehicleSize, washType, addOns, totalPrice, addressLabel, vehicleBrand, vehicleModel, vehicleColor, vehiclePlate, comments } = route.params;
 
   const handleConfirm = (selectedDate: Date, selectedTime: string, reservationExpiry: number) => {
     navigation.navigate("Payment", {
@@ -29,6 +29,7 @@ export default function ScheduleSelectionScreen() {
       vehicleModel,
       vehicleColor,
       vehiclePlate,
+      comments,
     });
   };
 

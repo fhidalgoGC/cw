@@ -343,6 +343,20 @@ export default function AppointmentDetailScreen() {
               </>
             ) : null}
 
+            {booking.comments ? (
+              <>
+                <View>
+                  <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                    Indicaciones
+                  </ThemedText>
+                  <ThemedText type="small" style={{ color: theme.text }}>
+                    {booking.comments}
+                  </ThemedText>
+                </View>
+                <View style={styles.summaryDivider} />
+              </>
+            ) : null}
+
             <View style={styles.summaryRow}>
               <ThemedText type="body" style={{ color: theme.textSecondary }}>
                 Fecha

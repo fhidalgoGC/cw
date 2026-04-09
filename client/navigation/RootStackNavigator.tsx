@@ -40,6 +40,7 @@ export type RootStackParamList = {
     vehicleModel: string;
     vehicleColor: string;
     vehiclePlate?: string;
+    comments?: string;
   };
   Payment: {
     vehicleSize: VehicleSize;
@@ -54,6 +55,7 @@ export type RootStackParamList = {
     vehicleModel: string;
     vehicleColor: string;
     vehiclePlate?: string;
+    comments?: string;
   };
   Confirmation: { booking: Booking };
   AppointmentDetail: { booking: Booking };

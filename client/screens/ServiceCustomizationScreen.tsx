@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { StyleSheet, View, Pressable, ScrollView } from "react-native";
+import { StyleSheet, View, Pressable, ScrollView, TextInput } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -75,6 +75,7 @@ export default function ServiceCustomizationScreen() {
 
   const [washType, setWashType] = useState<WashType>("basic");
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+  const [comments, setComments] = useState("");
 
   const includedServiceIds = useMemo(() => getIncludedServiceIds(washType), [washType]);
 
@@ -121,6 +122,7 @@ export default function ServiceCustomizationScreen() {
       vehicleModel,
       vehicleColor,
       vehiclePlate,
+      comments: comments.trim() || undefined,
     });
   };
 
@@ -305,6 +307,34 @@ export default function ServiceCustomizationScreen() {
           </View>
         </Animated.View>
 
+        <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.commentsSection}>
+          <ThemedText type="h2" style={styles.sectionTitle}>
+            Indicaciones o Comentarios
+          </ThemedText>
+          <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.sm, paddingHorizontal: Spacing.xl }}>
+            Agrega cualquier instrucción especial para el servicio
+          </ThemedText>
+          <View style={{ paddingHorizontal: Spacing.xl }}>
+            <TextInput
+              value={comments}
+              onChangeText={setComments}
+              placeholder="Ej: El carro tiene una abolladura en la puerta derecha, favor de tener cuidado..."
+              placeholderTextColor={theme.textSecondary + "60"}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+              style={[
+                styles.commentsInput,
+                {
+                  backgroundColor: theme.backgroundDefault,
+                  color: theme.text,
+                  borderColor: theme.backgroundTertiary,
+                },
+              ]}
+            />
+          </View>
+        </Animated.View>
+
       </ScrollView>
 
       <View
@@ -398,6 +428,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.xs,
+  },
+  commentsSection: {
+    marginBottom: Spacing.md,
+  },
+  commentsInput: {
+    minHeight: 100,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    fontSize: 15,
+    lineHeight: 22,
   },
   footer: {
     padding: Spacing.xl,

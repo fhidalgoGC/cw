@@ -60,7 +60,7 @@ export default function PaymentScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const { vehicleSize, washType, addOns, date, time, totalPrice, reservationExpiry, addressLabel, vehicleBrand, vehicleModel, vehicleColor, vehiclePlate } = route.params;
+  const { vehicleSize, washType, addOns, date, time, totalPrice, reservationExpiry, addressLabel, vehicleBrand, vehicleModel, vehicleColor, vehiclePlate, comments } = route.params;
 
   const VEHICLE_IMAGES: Record<string, any> = {
     small: vehicleSmall,
@@ -206,6 +206,7 @@ export default function PaymentScreen() {
       vehicleColor,
       vehiclePlate,
       addressLabel,
+      comments,
     };
 
     await saveBooking(booking);
@@ -391,6 +392,19 @@ export default function PaymentScreen() {
                 </ThemedText>
               </View>
             </View>
+            {comments ? (
+              <>
+                <View style={styles.summaryDivider} />
+                <View>
+                  <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                    Indicaciones
+                  </ThemedText>
+                  <ThemedText type="small" style={{ color: theme.text }}>
+                    {comments}
+                  </ThemedText>
+                </View>
+              </>
+            ) : null}
             <View style={styles.summaryDivider} />
             <View style={styles.summaryRow}>
               <ThemedText type="body" style={{ color: theme.textSecondary }}>
