@@ -14,8 +14,6 @@ import vehicleLarge from "../../assets/images/vehicle-large.png";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { Card } from "@/components/Card";
-import { Button } from "@/components/Button";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors, Spacing, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -29,10 +27,10 @@ import {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const VEHICLE_OPTIONS: { size: VehicleSize; image: any; description: string }[] = [
-  { size: "small", image: vehicleSmall, description: "Sedán, Hatchback, Coupé" },
-  { size: "suv", image: vehicleSuv, description: "SUV, Crossover, Minivan" },
-  { size: "large", image: vehicleLarge, description: "Camioneta, Pick-up, Van" },
+const VEHICLE_OPTIONS: { size: VehicleSize; image: any }[] = [
+  { size: "small", image: vehicleSmall },
+  { size: "suv", image: vehicleSuv },
+  { size: "large", image: vehicleLarge },
 ];
 
 export default function PackageVehicleSelectionScreen() {
@@ -41,7 +39,6 @@ export default function PackageVehicleSelectionScreen() {
   const insets = useSafeAreaInsets();
 
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [selectedSize, setSelectedSize] = useState<VehicleSize | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -56,10 +53,9 @@ export default function PackageVehicleSelectionScreen() {
 
   const activeMemberships = userData ? getActiveMemberships(userData) : [];
 
-  const handleContinue = () => {
-    if (!selectedSize) return;
+  const handleSelectVehicle = (size: VehicleSize) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    navigation.navigate("Packages", { vehicleSize: selectedSize });
+    navigation.navigate("Packages", { vehicleSize: size });
   };
 
   return (
@@ -95,82 +91,38 @@ export default function PackageVehicleSelectionScreen() {
 
         <Animated.View entering={FadeInDown.delay(50).springify()}>
           <ThemedText type="h2" style={styles.title}>
-            Selecciona tu vehículo
+            Tipo de Vehículo
           </ThemedText>
           <ThemedText type="body" style={[styles.subtitle, { color: theme.textSecondary }]}>
             El precio del paquete depende del tipo de vehículo
           </ThemedText>
         </Animated.View>
 
-        <View style={styles.vehicleList}>
-          {VEHICLE_OPTIONS.map((option, index) => {
-            const isSelected = selectedSize === option.size;
-            return (
-              <Animated.View
-                key={option.size}
-                entering={FadeInDown.delay(100 + index * 80).springify()}
-              >
-                <Card
-                    elevation={isSelected ? 2 : 1}
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      setSelectedSize(option.size);
-                    }}
-                    style={StyleSheet.flatten([
-                      styles.vehicleCard,
-                      {
-                        borderColor: isSelected
-                          ? (isDark ? Colors.accent : Colors.primary)
-                          : "transparent",
-                        borderWidth: 2,
-                      },
-                    ])}
-                  >
-                    <Image
-                      source={option.image}
-                      style={styles.vehicleImage}
-                      contentFit="contain"
-                    />
-                    <View style={styles.vehicleInfo}>
-                      <ThemedText type="h3">{getVehicleName(option.size)}</ThemedText>
-                      <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                        {option.description}
-                      </ThemedText>
-                    </View>
-                    {isSelected ? (
-                      <Feather
-                        name="check-circle"
-                        size={24}
-                        color={isDark ? Colors.accent : Colors.primary}
-                      />
-                    ) : (
-                      <View style={[styles.radioOuter, { borderColor: theme.textSecondary }]} />
-                    )}
-                  </Card>
-              </Animated.View>
-            );
-          })}
-        </View>
-
         <Animated.View
-          entering={FadeInDown.delay(400).springify()}
-          style={styles.buttonContainer}
+          entering={FadeInDown.delay(150).springify()}
+          style={styles.vehicleRow}
         >
-          <Button
-            onPress={handleContinue}
-            disabled={!selectedSize}
-            style={[
-              styles.continueButton,
-              {
-                backgroundColor: selectedSize
-                  ? (isDark ? Colors.accent : Colors.primary)
-                  : theme.backgroundTertiary,
-                opacity: selectedSize ? 1 : 0.5,
-              },
-            ]}
-          >
-            Ver Paquetes
-          </Button>
+          {VEHICLE_OPTIONS.map((option) => (
+            <Pressable
+              key={option.size}
+              onPress={() => handleSelectVehicle(option.size)}
+              style={[
+                styles.vehicleCard,
+                { backgroundColor: theme.backgroundSecondary },
+              ]}
+            >
+              <View style={[styles.vehicleImageContainer, { backgroundColor: theme.backgroundDefault }]}>
+                <Image
+                  source={option.image}
+                  style={styles.vehicleImage}
+                  contentFit="contain"
+                />
+              </View>
+              <ThemedText type="body" style={styles.vehicleName}>
+                {getVehicleName(option.size)}
+              </ThemedText>
+            </Pressable>
+          ))}
         </Animated.View>
       </ScrollView>
     </ThemedView>
@@ -202,34 +154,30 @@ const styles = StyleSheet.create({
   subtitle: {
     marginBottom: Spacing.xl,
   },
-  vehicleList: {
+  vehicleRow: {
+    flexDirection: "row",
     gap: Spacing.md,
   },
   vehicleCard: {
-    flexDirection: "row",
+    flex: 1,
     alignItems: "center",
-    gap: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    paddingBottom: Spacing.md,
+    overflow: "hidden",
+  },
+  vehicleImageContainer: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
   vehicleImage: {
     width: 80,
-    height: 55,
+    height: 50,
   },
-  vehicleInfo: {
-    flex: 1,
-    gap: Spacing.xs,
-  },
-  radioOuter: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-  },
-  buttonContainer: {
-    marginTop: Spacing.xl,
-  },
-  continueButton: {
-    width: "100%",
+  vehicleName: {
+    fontWeight: "600",
+    textAlign: "center",
   },
 });
