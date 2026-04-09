@@ -151,35 +151,28 @@ export default function PackageVehicleSelectionScreen() {
             );
           })}
         </View>
-      </ScrollView>
 
-      <Animated.View
-        entering={FadeInDown.delay(400).springify()}
-        style={[
-          styles.footer,
-          {
-            paddingBottom: insets.bottom + Spacing.md,
-            backgroundColor: theme.backgroundDefault,
-            borderTopColor: theme.backgroundTertiary,
-          },
-        ]}
-      >
-        <Button
-          onPress={handleContinue}
-          disabled={!selectedSize}
-          style={[
-            styles.continueButton,
-            {
-              backgroundColor: selectedSize
-                ? (isDark ? Colors.accent : Colors.primary)
-                : theme.backgroundTertiary,
-              opacity: selectedSize ? 1 : 0.5,
-            },
-          ]}
+        <Animated.View
+          entering={FadeInDown.delay(400).springify()}
+          style={styles.buttonContainer}
         >
-          Ver Paquetes
-        </Button>
-      </Animated.View>
+          <Button
+            onPress={handleContinue}
+            disabled={!selectedSize}
+            style={[
+              styles.continueButton,
+              {
+                backgroundColor: selectedSize
+                  ? (isDark ? Colors.accent : Colors.primary)
+                  : theme.backgroundTertiary,
+                opacity: selectedSize ? 1 : 0.5,
+              },
+            ]}
+          >
+            Ver Paquetes
+          </Button>
+        </Animated.View>
+      </ScrollView>
     </ThemedView>
   );
 }
@@ -233,10 +226,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
   },
-  footer: {
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
+  buttonContainer: {
+    marginTop: Spacing.xl,
   },
   continueButton: {
     width: "100%",
