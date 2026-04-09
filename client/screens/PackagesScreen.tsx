@@ -190,14 +190,14 @@ export default function PackagesScreen() {
           <View style={styles.perksContainer}>
             {pkg.perks.map((perk, perkIndex) => (
               <View key={perkIndex} style={styles.perkRow}>
-                <Feather name="check" size={16} color={pkg.color} />
+                <Feather name="check-circle" size={16} color={Colors.success} />
                 <ThemedText type="body" style={styles.perkText}>
                   {perk}
                 </ThemedText>
               </View>
             ))}
             <View style={styles.perkRow}>
-              <Feather name="check" size={16} color={pkg.color} />
+              <Feather name="check-circle" size={16} color={Colors.success} />
               <ThemedText type="body" style={styles.perkText}>
                 {selectedDuration.washesIncluded} lavadas en {selectedDuration.label.toLowerCase()}
               </ThemedText>

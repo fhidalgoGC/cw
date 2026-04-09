@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import HomeScreen from "@/screens/HomeScreen";
 import AppointmentsScreen from "@/screens/AppointmentsScreen";
 import HistoryScreen from "@/screens/HistoryScreen";
-import PackagesScreen from "@/screens/PackagesScreen";
+import PackageVehicleSelectionScreen from "@/screens/PackageVehicleSelectionScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors, Spacing, BorderRadius } from "@/constants/theme";
 
@@ -117,7 +117,7 @@ export default function MainTabNavigator() {
       />
       <Tab.Screen
         name="PackagesTab"
-        component={PackagesScreen}
+        component={PackageVehicleSelectionScreen}
         options={{
           title: "Paquetes",
           tabBarIcon: ({ color, size }) => (

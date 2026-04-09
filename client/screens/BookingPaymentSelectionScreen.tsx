@@ -58,7 +58,7 @@ export default function BookingPaymentSelectionScreen() {
 
   const handleBuyPackage = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    navigation.navigate("Packages");
+    navigation.navigate("PackageVehicleSelection");
   };
 
   const activeMemberships = userData ? getActiveMemberships(userData) : [];

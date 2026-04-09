@@ -10,6 +10,7 @@ import ConfirmationScreen from "@/screens/ConfirmationScreen";
 import AppointmentDetailScreen from "@/screens/AppointmentDetailScreen";
 import ProfileScreen from "@/screens/ProfileScreen";
 import PackagesScreen from "@/screens/PackagesScreen";
+import PackageVehicleSelectionScreen from "@/screens/PackageVehicleSelectionScreen";
 import AddressManagementScreen from "@/screens/AddressManagementScreen";
 import VehicleManagementScreen from "@/screens/VehicleManagementScreen";
 import MembershipDetailScreen from "@/screens/MembershipDetailScreen";
@@ -60,7 +61,8 @@ export type RootStackParamList = {
   Confirmation: { booking: Booking };
   AppointmentDetail: { booking: Booking };
   Profile: undefined;
-  Packages: undefined;
+  PackageVehicleSelection: undefined;
+  Packages: { vehicleSize: VehicleSize };
   AddressManagement: undefined;
   VehicleManagement: undefined;
   MembershipDetail: undefined;
@@ -144,10 +146,17 @@ export default function RootStackNavigator() {
         }}
       />
       <Stack.Screen
+        name="PackageVehicleSelection"
+        component={PackageVehicleSelectionScreen}
+        options={{
+          headerTitle: "Paquetes",
+        }}
+      />
+      <Stack.Screen
         name="Packages"
         component={PackagesScreen}
         options={{
-          headerTitle: "Paquetes y Membresías",
+          headerTitle: "Paquetes Disponibles",
         }}
       />
       <Stack.Screen

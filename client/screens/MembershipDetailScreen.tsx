@@ -105,7 +105,7 @@ export default function MembershipDetailScreen() {
               lavadas y beneficios exclusivos.
             </ThemedText>
             <Button
-              onPress={() => navigation.navigate("Packages")}
+              onPress={() => navigation.navigate("PackageVehicleSelection")}
               style={styles.activateButton}
             >
               Ver Paquetes Disponibles

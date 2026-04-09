@@ -1,0 +1,247 @@
+import React, { useState, useCallback } from "react";
+import { StyleSheet, View, ScrollView, Pressable } from "react-native";
+import { Image } from "expo-image";
+import { Feather } from "@expo/vector-icons";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
+import Animated, { FadeInDown } from "react-native-reanimated";
+
+import vehicleSmall from "../../assets/images/vehicle-small.png";
+import vehicleSuv from "../../assets/images/vehicle-suv.png";
+import vehicleLarge from "../../assets/images/vehicle-large.png";
+
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { Card } from "@/components/Card";
+import { Button } from "@/components/Button";
+import { useTheme } from "@/hooks/useTheme";
+import { Colors, Spacing, BorderRadius } from "@/constants/theme";
+import { RootStackParamList } from "@/navigation/RootStackNavigator";
+import {
+  VehicleSize,
+  UserData,
+  getUserData,
+  getActiveMemberships,
+  getVehicleName,
+} from "@/lib/storage";
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+const VEHICLE_OPTIONS: { size: VehicleSize; image: any; description: string }[] = [
+  { size: "small", image: vehicleSmall, description: "Sedán, Hatchback, Coupé" },
+  { size: "suv", image: vehicleSuv, description: "SUV, Crossover, Minivan" },
+  { size: "large", image: vehicleLarge, description: "Camioneta, Pick-up, Van" },
+];
+
+export default function PackageVehicleSelectionScreen() {
+  const navigation = useNavigation<NavigationProp>();
+  const { theme, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [selectedSize, setSelectedSize] = useState<VehicleSize | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadUserData();
+    }, [])
+  );
+
+  const loadUserData = async () => {
+    const data = await getUserData();
+    setUserData(data);
+  };
+
+  const activeMemberships = userData ? getActiveMemberships(userData) : [];
+
+  const handleContinue = () => {
+    if (!selectedSize) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    navigation.navigate("Packages", { vehicleSize: selectedSize });
+  };
+
+  return (
+    <ThemedView style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: insets.bottom + Spacing.xl },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {activeMemberships.length > 0 ? (
+          <Pressable
+            style={[styles.activeMembershipBanner, { backgroundColor: isDark ? Colors.accent + "20" : Colors.primary + "15" }]}
+            onPress={() => navigation.navigate("MembershipDetail")}
+          >
+            <Feather
+              name="package"
+              size={20}
+              color={isDark ? Colors.accent : Colors.primary}
+            />
+            <ThemedText type="body" style={{ flex: 1, fontWeight: "500" }}>
+              Tienes {activeMemberships.length} {activeMemberships.length === 1 ? "paquete activo" : "paquetes activos"}
+            </ThemedText>
+            <Feather
+              name="chevron-right"
+              size={20}
+              color={isDark ? Colors.accent : Colors.primary}
+            />
+          </Pressable>
+        ) : null}
+
+        <Animated.View entering={FadeInDown.delay(50).springify()}>
+          <ThemedText type="h2" style={styles.title}>
+            Selecciona tu vehículo
+          </ThemedText>
+          <ThemedText type="body" style={[styles.subtitle, { color: theme.textSecondary }]}>
+            El precio del paquete depende del tipo de vehículo
+          </ThemedText>
+        </Animated.View>
+
+        <View style={styles.vehicleList}>
+          {VEHICLE_OPTIONS.map((option, index) => {
+            const isSelected = selectedSize === option.size;
+            return (
+              <Animated.View
+                key={option.size}
+                entering={FadeInDown.delay(100 + index * 80).springify()}
+              >
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setSelectedSize(option.size);
+                  }}
+                >
+                  <Card
+                    elevation={isSelected ? 2 : 1}
+                    style={StyleSheet.flatten([
+                      styles.vehicleCard,
+                      {
+                        borderColor: isSelected
+                          ? (isDark ? Colors.accent : Colors.primary)
+                          : "transparent",
+                        borderWidth: isSelected ? 2 : 0,
+                      },
+                    ])}
+                  >
+                    <Image
+                      source={option.image}
+                      style={styles.vehicleImage}
+                      contentFit="contain"
+                    />
+                    <View style={styles.vehicleInfo}>
+                      <ThemedText type="h3">{getVehicleName(option.size)}</ThemedText>
+                      <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                        {option.description}
+                      </ThemedText>
+                    </View>
+                    {isSelected ? (
+                      <Feather
+                        name="check-circle"
+                        size={24}
+                        color={isDark ? Colors.accent : Colors.primary}
+                      />
+                    ) : (
+                      <View style={[styles.radioOuter, { borderColor: theme.textSecondary }]} />
+                    )}
+                  </Card>
+                </Pressable>
+              </Animated.View>
+            );
+          })}
+        </View>
+      </ScrollView>
+
+      <Animated.View
+        entering={FadeInDown.delay(400).springify()}
+        style={[
+          styles.footer,
+          {
+            paddingBottom: insets.bottom + Spacing.md,
+            backgroundColor: theme.backgroundDefault,
+            borderTopColor: theme.backgroundTertiary,
+          },
+        ]}
+      >
+        <Button
+          onPress={handleContinue}
+          disabled={!selectedSize}
+          style={[
+            styles.continueButton,
+            {
+              backgroundColor: selectedSize
+                ? (isDark ? Colors.accent : Colors.primary)
+                : theme.backgroundTertiary,
+              opacity: selectedSize ? 1 : 0.5,
+            },
+          ]}
+        >
+          Ver Paquetes
+        </Button>
+      </Animated.View>
+    </ThemedView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
+  },
+  activeMembershipBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+  },
+  title: {
+    marginBottom: Spacing.xs,
+  },
+  subtitle: {
+    marginBottom: Spacing.xl,
+  },
+  vehicleList: {
+    gap: Spacing.md,
+  },
+  vehicleCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.lg,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+  },
+  vehicleImage: {
+    width: 80,
+    height: 55,
+  },
+  vehicleInfo: {
+    flex: 1,
+    gap: Spacing.xs,
+  },
+  radioOuter: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+  },
+  footer: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+  },
+  continueButton: {
+    width: "100%",
+  },
+});
