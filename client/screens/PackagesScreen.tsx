@@ -32,6 +32,55 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteType = RouteProp<RootStackParamList, "Packages">;
 
+const MAX_VISIBLE_PERKS = 3;
+
+function PerksSection({
+  pkg,
+  selectedDuration,
+  expanded,
+  onToggle,
+  theme,
+}: {
+  pkg: Package;
+  selectedDuration: PackageDuration;
+  expanded: boolean;
+  onToggle: () => void;
+  theme: any;
+}) {
+  const allPerks = [
+    ...pkg.perks,
+    `${selectedDuration.washesIncluded} lavadas en ${selectedDuration.label.toLowerCase()}`,
+  ];
+  const hasMore = allPerks.length > MAX_VISIBLE_PERKS;
+  const visiblePerks = expanded ? allPerks : allPerks.slice(0, MAX_VISIBLE_PERKS);
+  const hiddenCount = allPerks.length - MAX_VISIBLE_PERKS;
+
+  return (
+    <View style={styles.perksContainer}>
+      {visiblePerks.map((perk, perkIndex) => (
+        <View key={perkIndex} style={styles.perkRow}>
+          <Feather name="check-circle" size={16} color={Colors.success} />
+          <ThemedText type="body" style={styles.perkText}>
+            {perk}
+          </ThemedText>
+        </View>
+      ))}
+      {hasMore ? (
+        <Pressable onPress={onToggle} style={styles.seeMoreRow}>
+          <Feather
+            name={expanded ? "chevron-up" : "chevron-down"}
+            size={16}
+            color={Colors.primary}
+          />
+          <ThemedText type="body" style={{ color: Colors.primary, fontWeight: "600" }}>
+            {expanded ? "Ver menos" : `Ver más (${hiddenCount})`}
+          </ThemedText>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
 export default function PackagesScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteType>();
@@ -41,6 +90,7 @@ export default function PackagesScreen() {
   const { vehicleSize } = route.params;
   const [userData, setUserData] = useState<UserData | null>(null);
   const [selectedDurations, setSelectedDurations] = useState<Record<string, string>>({});
+  const [expandedPerks, setExpandedPerks] = useState<Record<string, boolean>>({});
 
   useFocusEffect(
     useCallback(() => {
@@ -169,22 +219,15 @@ export default function PackagesScreen() {
             </ThemedText>
           </View>
 
-          <View style={styles.perksContainer}>
-            {pkg.perks.map((perk, perkIndex) => (
-              <View key={perkIndex} style={styles.perkRow}>
-                <Feather name="check-circle" size={16} color={Colors.success} />
-                <ThemedText type="body" style={styles.perkText}>
-                  {perk}
-                </ThemedText>
-              </View>
-            ))}
-            <View style={styles.perkRow}>
-              <Feather name="check-circle" size={16} color={Colors.success} />
-              <ThemedText type="body" style={styles.perkText}>
-                {selectedDuration.washesIncluded} lavadas en {selectedDuration.label.toLowerCase()}
-              </ThemedText>
-            </View>
-          </View>
+          <PerksSection
+            pkg={pkg}
+            selectedDuration={selectedDuration}
+            expanded={!!expandedPerks[pkg.id]}
+            onToggle={() =>
+              setExpandedPerks((prev) => ({ ...prev, [pkg.id]: !prev[pkg.id] }))
+            }
+            theme={theme}
+          />
 
           <Button
             onPress={() => handleBuyPackage(pkg)}
@@ -320,6 +363,12 @@ const styles = StyleSheet.create({
   },
   perkText: {
     flex: 1,
+  },
+  seeMoreRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingTop: Spacing.xs,
   },
   activateButton: {
     marginTop: Spacing.xs,
