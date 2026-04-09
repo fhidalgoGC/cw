@@ -194,7 +194,7 @@ export default function PackagePurchaseScreen() {
           <Button
             onPress={handlePurchase}
             disabled={isProcessing}
-            style={[styles.purchaseButton, { backgroundColor: pkg.color }]}
+            style={[styles.purchaseButton, { backgroundColor: Colors.success }]}
           >
             {isProcessing ? "Procesando..." : `Pagar ${formatPrice(price)}`}
           </Button>
