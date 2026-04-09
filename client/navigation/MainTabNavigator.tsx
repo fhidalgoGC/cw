@@ -8,8 +8,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import HomeScreen from "@/screens/HomeScreen";
 import AppointmentsScreen from "@/screens/AppointmentsScreen";
 import HistoryScreen from "@/screens/HistoryScreen";
-import PackageVehicleSelectionScreen from "@/screens/PackageVehicleSelectionScreen";
 import { useTheme } from "@/hooks/useTheme";
+import { useNavigation } from "@react-navigation/native";
 import { Colors, Spacing, BorderRadius } from "@/constants/theme";
 
 export type MainTabParamList = {
@@ -22,7 +22,7 @@ export type MainTabParamList = {
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-function BookTabPlaceholder() {
+function EmptyPlaceholder() {
   return <View />;
 }
 
@@ -83,7 +83,7 @@ export default function MainTabNavigator() {
       />
       <Tab.Screen
         name="BookTab"
-        component={BookTabPlaceholder}
+        component={EmptyPlaceholder}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
@@ -117,13 +117,19 @@ export default function MainTabNavigator() {
       />
       <Tab.Screen
         name="PackagesTab"
-        component={PackageVehicleSelectionScreen}
+        component={EmptyPlaceholder}
         options={{
           title: "Paquetes",
           tabBarIcon: ({ color, size }) => (
             <Feather name="award" size={size} color={color} />
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate("PackageVehicleSelection");
+          },
+        })}
       />
     </Tab.Navigator>
   );
