@@ -177,7 +177,7 @@ export default function RootStackNavigator() {
         name="MembershipDetail"
         component={MembershipDetailScreen}
         options={{
-          headerTitle: "Mi Membresía",
+          headerTitle: "Mis Paquetes",
         }}
       />
       <Stack.Screen

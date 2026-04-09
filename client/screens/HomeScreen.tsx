@@ -166,7 +166,7 @@ export default function HomeScreen() {
                         {pkg.name}
                       </ThemedText>
                       <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                        Membresía activa
+                        Paquete activo
                       </ThemedText>
                     </View>
                     <Feather name="chevron-right" size={20} color={theme.textSecondary} />

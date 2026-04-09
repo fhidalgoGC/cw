@@ -124,7 +124,7 @@ export default function MembershipDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         <ThemedText type="h3" style={styles.sectionHeader}>
-          Mis Paquetes Activos ({activeMemberships.length})
+          Paquetes Comprados ({activeMemberships.length})
         </ThemedText>
 
         {activeMemberships.map(({ package: pkg, membership, daysRemaining }, index) => {
@@ -252,7 +252,7 @@ export default function MembershipDetailScreen() {
 
         <Animated.View entering={FadeInDown.delay(activeMemberships.length * 100 + 100).springify()}>
           <Button
-            onPress={() => navigation.navigate("Packages")}
+            onPress={() => navigation.navigate("PackageVehicleSelection")}
             style={[styles.addMoreButton, { backgroundColor: theme.backgroundSecondary }]}
             textColor={isDark ? Colors.accent : Colors.primary}
           >

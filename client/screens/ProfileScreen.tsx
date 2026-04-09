@@ -122,12 +122,12 @@ export default function ProfileScreen() {
   };
 
   const getMembershipSubtitle = () => {
-    if (!userData?.membership) return "Sin membresía activa";
+    if (!userData?.membership) return "Sin paquete activo";
     const pkg = PACKAGES.find((p) => p.id === userData.membership?.packageId);
     if (pkg) {
       return `${pkg.name} - ${userData.membership.washesRemaining} lavadas restantes`;
     }
-    return "Membresía activa";
+    return "Paquete activo";
   };
 
   if (isLoading) {
@@ -284,7 +284,7 @@ export default function ProfileScreen() {
               />
               <MenuItem
                 icon="award"
-                title="Mi Membresía"
+                title="Mis Paquetes"
                 subtitle={getMembershipSubtitle()}
                 onPress={() => navigation.navigate("MembershipDetail")}
                 color={userData?.membership ? Colors.success : undefined}
