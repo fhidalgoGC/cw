@@ -235,17 +235,7 @@ export default function MembershipDetailScreen() {
           <Button
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              Alert.alert(
-                "Agendar Cita",
-                "¿Qué deseas hacer?",
-                [
-                  { text: "Agendar después", style: "cancel" },
-                  {
-                    text: "Agendar nuevamente",
-                    onPress: () => navigation.navigate("VehicleSelection"),
-                  },
-                ]
-              );
+              navigation.navigate("VehicleSelection");
             }}
             style={styles.bookButton}
           >

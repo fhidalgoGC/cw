@@ -122,7 +122,17 @@ export default function AppointmentDetailScreen() {
       );
       return;
     }
-    setShowRescheduleModal(true);
+    Alert.alert(
+      "Reprogramar Cita",
+      "¿Qué deseas hacer?",
+      [
+        { text: "Agendar después", style: "cancel" },
+        {
+          text: "Agendar nuevamente",
+          onPress: () => setShowRescheduleModal(true),
+        },
+      ]
+    );
   };
 
   const handleRescheduleConfirm = async (selectedDate: Date, selectedTime: string, _reservationExpiry: number) => {
