@@ -10,6 +10,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { SelectField } from "@/components/SelectField";
 import { Button } from "@/components/Button";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors, Spacing, BorderRadius } from "@/constants/theme";
@@ -23,6 +24,9 @@ import {
   getVehicleName,
   getSavedAddresses,
   saveAddress,
+  AVAILABLE_STATES,
+  AVAILABLE_CITIES,
+  AVAILABLE_COLONIES,
 } from "@/lib/storage";
 
 import vehicleSmall from "../../assets/images/vehicle-small.png";
@@ -85,9 +89,12 @@ export default function VehicleSelectionScreen() {
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [showAddAddressModal, setShowAddAddressModal] = useState(false);
   const [newAlias, setNewAlias] = useState("");
-  const [newStreet, setNewStreet] = useState("");
+  const [newState, setNewState] = useState(AVAILABLE_STATES[0]);
+  const [newCity, setNewCity] = useState(AVAILABLE_CITIES[0]);
   const [newColony, setNewColony] = useState("");
-  const [newCity, setNewCity] = useState("");
+  const [newStreet, setNewStreet] = useState("");
+  const [newExteriorNumber, setNewExteriorNumber] = useState("");
+  const [newInteriorNumber, setNewInteriorNumber] = useState("");
   const [newReference, setNewReference] = useState("");
 
   useFocusEffect(
@@ -132,7 +139,7 @@ export default function VehicleSelectionScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const addr = savedAddresses.find((a) => a.id === selectedAddressId);
       const addressLabel = addr
-        ? `${addr.alias} - ${addr.street}, ${addr.colony}, ${addr.city}`
+        ? `${addr.alias} - ${addr.street} #${addr.exteriorNumber}${addr.interiorNumber ? ` Int. ${addr.interiorNumber}` : ""}, ${addr.colony}, ${addr.city}`
         : "";
       const vehicle = savedVehicles.find((v) => v.id === selectedVehicleId);
       navigation.navigate("ServiceCustomization", {
@@ -146,24 +153,36 @@ export default function VehicleSelectionScreen() {
     }
   };
 
+  const canSaveAddress = newAlias.trim() && newState && newCity && newColony && newStreet.trim() && newExteriorNumber.trim();
+
+  const resetAddressForm = () => {
+    setNewAlias("");
+    setNewState(AVAILABLE_STATES[0]);
+    setNewCity(AVAILABLE_CITIES[0]);
+    setNewColony("");
+    setNewStreet("");
+    setNewExteriorNumber("");
+    setNewInteriorNumber("");
+    setNewReference("");
+  };
+
   const handleAddAddress = async () => {
-    if (!newAlias.trim() || !newStreet.trim() || !newColony.trim() || !newCity.trim()) return;
+    if (!canSaveAddress) return;
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const addr = await saveAddress({
         alias: newAlias.trim(),
+        state: newState,
+        city: newCity,
+        colony: newColony,
         street: newStreet.trim(),
-        colony: newColony.trim(),
-        city: newCity.trim(),
+        exteriorNumber: newExteriorNumber.trim(),
+        interiorNumber: newInteriorNumber.trim() || undefined,
         reference: newReference.trim() || undefined,
       });
       setSavedAddresses((prev) => [...prev, addr]);
       setShowAddAddressModal(false);
-      setNewAlias("");
-      setNewStreet("");
-      setNewColony("");
-      setNewCity("");
-      setNewReference("");
+      resetAddressForm();
       setSelectedAddressId(addr.id);
     } catch {}
   };
@@ -315,10 +334,10 @@ export default function VehicleSelectionScreen() {
                       <View style={styles.optionInfo}>
                         <ThemedText type="h3">{addr.alias}</ThemedText>
                         <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                          {addr.street}, {addr.colony}
+                          {addr.street} #{addr.exteriorNumber}{addr.interiorNumber ? ` Int. ${addr.interiorNumber}` : ""}
                         </ThemedText>
                         <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                          {addr.city}
+                          {addr.colony}, {addr.city}
                           {addr.reference ? ` - ${addr.reference}` : ""}
                         </ThemedText>
                       </View>
@@ -541,7 +560,7 @@ export default function VehicleSelectionScreen() {
             </Pressable>
           </View>
 
-          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
+          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
             <View style={styles.inputGroup}>
               <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
                 Nombre de la dirección
@@ -555,43 +574,68 @@ export default function VehicleSelectionScreen() {
               />
             </View>
 
+            <SelectField
+              label="Estado"
+              options={AVAILABLE_STATES}
+              value={newState}
+              onChange={setNewState}
+              placeholder="Selecciona un estado"
+            />
+
+            <SelectField
+              label="Ciudad"
+              options={AVAILABLE_CITIES}
+              value={newCity}
+              onChange={setNewCity}
+              placeholder="Selecciona una ciudad"
+            />
+
+            <SelectField
+              label="Fraccionamiento / Colonia"
+              options={AVAILABLE_COLONIES}
+              value={newColony}
+              onChange={setNewColony}
+              placeholder="Selecciona una colonia"
+            />
+
             <View style={styles.inputGroup}>
               <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
-                Calle y número
+                Calle
               </ThemedText>
               <TextInput
                 value={newStreet}
                 onChangeText={setNewStreet}
-                placeholder="Av. Reforma 123"
+                placeholder="Av. Paseo de los Robles"
                 placeholderTextColor={theme.textSecondary + "80"}
                 style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
               />
             </View>
 
-            <View style={styles.inputGroup}>
-              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
-                Colonia
-              </ThemedText>
-              <TextInput
-                value={newColony}
-                onChangeText={setNewColony}
-                placeholder="Col. Centro"
-                placeholderTextColor={theme.textSecondary + "80"}
-                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
-                Ciudad
-              </ThemedText>
-              <TextInput
-                value={newCity}
-                onChangeText={setNewCity}
-                placeholder="Ciudad de México"
-                placeholderTextColor={theme.textSecondary + "80"}
-                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
-              />
+            <View style={styles.numberRow}>
+              <View style={styles.numberField}>
+                <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                  No. Exterior
+                </ThemedText>
+                <TextInput
+                  value={newExteriorNumber}
+                  onChangeText={setNewExteriorNumber}
+                  placeholder="123"
+                  placeholderTextColor={theme.textSecondary + "80"}
+                  style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+                />
+              </View>
+              <View style={styles.numberField}>
+                <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                  No. Interior (opcional)
+                </ThemedText>
+                <TextInput
+                  value={newInteriorNumber}
+                  onChangeText={setNewInteriorNumber}
+                  placeholder="A"
+                  placeholderTextColor={theme.textSecondary + "80"}
+                  style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+                />
+              </View>
             </View>
 
             <View style={styles.inputGroup}>
@@ -611,7 +655,7 @@ export default function VehicleSelectionScreen() {
           <View style={[styles.modalFooter, { paddingBottom: insets.bottom + Spacing.lg }]}>
             <Button
               onPress={handleAddAddress}
-              disabled={!newAlias.trim() || !newStreet.trim() || !newColony.trim() || !newCity.trim()}
+              disabled={!canSaveAddress}
               style={styles.continueButton}
             >
               Guardar Dirección
@@ -723,6 +767,13 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     fontSize: 16,
+  },
+  numberRow: {
+    flexDirection: "row",
+    gap: Spacing.md,
+  },
+  numberField: {
+    flex: 1,
   },
   sizeCardsContainer: {
     gap: Spacing.sm,

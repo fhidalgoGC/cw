@@ -71,9 +71,14 @@ Preferred communication style: Simple, everyday language.
 ### Data Storage
 
 **Client-Side Storage:**
-- AsyncStorage for bookings, user data
-- Booking structure includes: vehicle size, wash type, add-ons, date/time, price, status
-- User data includes: name, subscription status, remaining washes
+- AsyncStorage for bookings, user data, saved vehicles, saved addresses
+- Booking structure includes: vehicle size, wash type, add-ons, date/time, price, status, vehicleBrand, vehicleModel, vehicleColor, vehiclePlate, addressLabel
+- User data includes: name, subscription status, remaining washes, saved vehicles, saved addresses
+- SavedAddress: {id, alias, state, city, colony, street, exteriorNumber, interiorNumber?, reference?}
+- SavedVehicle: {id, brand, model, color, size, plate?}
+- Address form uses pre-configured select options for Estado (Jalisco), Ciudad (Tlajomulco de Zúñiga), and Fraccionamiento/Colonia (Villa California, Casa Fuerte, Adamar)
+- Reusable SelectField component at client/components/SelectField.tsx
+- Reusable SchedulePicker component at client/components/SchedulePicker.tsx (used in booking flow and reschedule modal)
 
 **Server-Side Storage:**
 - PostgreSQL database (when DATABASE_URL is configured)

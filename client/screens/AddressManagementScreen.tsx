@@ -9,6 +9,7 @@ import Animated, { FadeInDown, Layout } from "react-native-reanimated";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Button } from "@/components/Button";
+import { SelectField } from "@/components/SelectField";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors, Spacing, BorderRadius } from "@/constants/theme";
 import {
@@ -16,6 +17,9 @@ import {
   getSavedAddresses,
   saveAddress,
   deleteAddress,
+  AVAILABLE_STATES,
+  AVAILABLE_CITIES,
+  AVAILABLE_COLONIES,
 } from "@/lib/storage";
 
 export default function AddressManagementScreen() {
@@ -25,9 +29,12 @@ export default function AddressManagementScreen() {
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newAlias, setNewAlias] = useState("");
-  const [newStreet, setNewStreet] = useState("");
+  const [newState, setNewState] = useState(AVAILABLE_STATES[0]);
+  const [newCity, setNewCity] = useState(AVAILABLE_CITIES[0]);
   const [newColony, setNewColony] = useState("");
-  const [newCity, setNewCity] = useState("");
+  const [newStreet, setNewStreet] = useState("");
+  const [newExteriorNumber, setNewExteriorNumber] = useState("");
+  const [newInteriorNumber, setNewInteriorNumber] = useState("");
   const [newReference, setNewReference] = useState("");
 
   useFocusEffect(
@@ -40,23 +47,35 @@ export default function AddressManagementScreen() {
     }, [])
   );
 
+  const resetForm = () => {
+    setNewAlias("");
+    setNewState(AVAILABLE_STATES[0]);
+    setNewCity(AVAILABLE_CITIES[0]);
+    setNewColony("");
+    setNewStreet("");
+    setNewExteriorNumber("");
+    setNewInteriorNumber("");
+    setNewReference("");
+  };
+
+  const canSave = newAlias.trim() && newState && newCity && newColony && newStreet.trim() && newExteriorNumber.trim();
+
   const handleAddAddress = async () => {
-    if (!newAlias.trim() || !newStreet.trim() || !newColony.trim() || !newCity.trim()) return;
+    if (!canSave) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const addr = await saveAddress({
       alias: newAlias.trim(),
+      state: newState,
+      city: newCity,
+      colony: newColony,
       street: newStreet.trim(),
-      colony: newColony.trim(),
-      city: newCity.trim(),
+      exteriorNumber: newExteriorNumber.trim(),
+      interiorNumber: newInteriorNumber.trim() || undefined,
       reference: newReference.trim() || undefined,
     });
     setAddresses((prev) => [...prev, addr]);
     setShowAddModal(false);
-    setNewAlias("");
-    setNewStreet("");
-    setNewColony("");
-    setNewCity("");
-    setNewReference("");
+    resetForm();
   };
 
   const handleRemoveAddress = (addressId: string, alias: string) => {
@@ -76,6 +95,12 @@ export default function AddressManagementScreen() {
         },
       ]
     );
+  };
+
+  const formatAddressLine = (addr: SavedAddress) => {
+    let line = `${addr.street} #${addr.exteriorNumber}`;
+    if (addr.interiorNumber) line += ` Int. ${addr.interiorNumber}`;
+    return line;
   };
 
   return (
@@ -110,12 +135,16 @@ export default function AddressManagementScreen() {
                       {addr.alias}
                     </ThemedText>
                     <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                      {addr.street}, {addr.colony}
+                      {formatAddressLine(addr)}
                     </ThemedText>
                     <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                      {addr.city}
-                      {addr.reference ? ` - ${addr.reference}` : ""}
+                      {addr.colony}, {addr.city}, {addr.state}
                     </ThemedText>
+                    {addr.reference ? (
+                      <ThemedText type="small" style={{ color: theme.textSecondary + "80" }}>
+                        Ref: {addr.reference}
+                      </ThemedText>
+                    ) : null}
                   </View>
                   <Pressable
                     onPress={() => handleRemoveAddress(addr.id, addr.alias)}
@@ -159,12 +188,16 @@ export default function AddressManagementScreen() {
         <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
           <View style={styles.modalHeader}>
             <ThemedText type="h2">Registrar Dirección</ThemedText>
-            <Pressable onPress={() => setShowAddModal(false)}>
+            <Pressable onPress={() => { setShowAddModal(false); resetForm(); }}>
               <Feather name="x" size={24} color={theme.text} />
             </Pressable>
           </View>
 
-          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
+          <ScrollView
+            style={styles.modalScroll}
+            contentContainerStyle={styles.modalContent}
+            keyboardShouldPersistTaps="handled"
+          >
             <View style={styles.inputGroup}>
               <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
                 Nombre de la dirección
@@ -178,43 +211,69 @@ export default function AddressManagementScreen() {
               />
             </View>
 
+            <SelectField
+              label="Estado"
+              options={AVAILABLE_STATES}
+              value={newState}
+              onChange={setNewState}
+              placeholder="Selecciona un estado"
+            />
+
+            <SelectField
+              label="Ciudad"
+              options={AVAILABLE_CITIES}
+              value={newCity}
+              onChange={setNewCity}
+              placeholder="Selecciona una ciudad"
+            />
+
+            <SelectField
+              label="Fraccionamiento / Colonia"
+              options={AVAILABLE_COLONIES}
+              value={newColony}
+              onChange={setNewColony}
+              placeholder="Selecciona una colonia"
+            />
+
             <View style={styles.inputGroup}>
               <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
-                Calle y número
+                Calle
               </ThemedText>
               <TextInput
                 value={newStreet}
                 onChangeText={setNewStreet}
-                placeholder="Av. Reforma 123"
+                placeholder="Av. Paseo de los Robles"
                 placeholderTextColor={theme.textSecondary + "80"}
                 style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
               />
             </View>
 
-            <View style={styles.inputGroup}>
-              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
-                Colonia
-              </ThemedText>
-              <TextInput
-                value={newColony}
-                onChangeText={setNewColony}
-                placeholder="Col. Centro"
-                placeholderTextColor={theme.textSecondary + "80"}
-                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
-                Ciudad
-              </ThemedText>
-              <TextInput
-                value={newCity}
-                onChangeText={setNewCity}
-                placeholder="Ciudad de México"
-                placeholderTextColor={theme.textSecondary + "80"}
-                style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
-              />
+            <View style={styles.numberRow}>
+              <View style={styles.numberField}>
+                <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                  No. Exterior
+                </ThemedText>
+                <TextInput
+                  value={newExteriorNumber}
+                  onChangeText={setNewExteriorNumber}
+                  placeholder="123"
+                  placeholderTextColor={theme.textSecondary + "80"}
+                  keyboardType="default"
+                  style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+                />
+              </View>
+              <View style={styles.numberField}>
+                <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                  No. Interior (opcional)
+                </ThemedText>
+                <TextInput
+                  value={newInteriorNumber}
+                  onChangeText={setNewInteriorNumber}
+                  placeholder="A"
+                  placeholderTextColor={theme.textSecondary + "80"}
+                  style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, borderColor: theme.backgroundTertiary }]}
+                />
+              </View>
             </View>
 
             <View style={styles.inputGroup}>
@@ -234,7 +293,7 @@ export default function AddressManagementScreen() {
           <View style={[styles.modalFooter, { paddingBottom: insets.bottom + Spacing.lg }]}>
             <Button
               onPress={handleAddAddress}
-              disabled={!newAlias.trim() || !newStreet.trim() || !newColony.trim() || !newCity.trim()}
+              disabled={!canSave}
               style={styles.saveButton}
             >
               Guardar Dirección
@@ -313,6 +372,7 @@ const styles = StyleSheet.create({
   modalContent: {
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.md,
+    paddingBottom: Spacing.xl,
     gap: Spacing.lg,
   },
   inputGroup: {},
@@ -322,6 +382,13 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     fontSize: 16,
+  },
+  numberRow: {
+    flexDirection: "row",
+    gap: Spacing.md,
+  },
+  numberField: {
+    flex: 1,
   },
   modalFooter: {
     paddingHorizontal: Spacing.xl,

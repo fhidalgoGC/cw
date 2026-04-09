@@ -73,11 +73,18 @@ export interface UserAddress {
 export interface SavedAddress {
   id: string;
   alias: string;
-  street: string;
-  colony: string;
+  state: string;
   city: string;
+  colony: string;
+  street: string;
+  exteriorNumber: string;
+  interiorNumber?: string;
   reference?: string;
 }
+
+export const AVAILABLE_STATES = ["Jalisco"];
+export const AVAILABLE_CITIES = ["Tlajomulco de Zúñiga"];
+export const AVAILABLE_COLONIES = ["Villa California", "Casa Fuerte", "Adamar"];
 
 export interface UserData {
   name: string;
