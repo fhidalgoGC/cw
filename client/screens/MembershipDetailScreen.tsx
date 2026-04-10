@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { StyleSheet, View, ScrollView } from "react-native";
+import { StyleSheet, View, ScrollView, Pressable } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -30,6 +30,7 @@ export default function MembershipDetailScreen() {
 
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [expandedPerks, setExpandedPerks] = useState<Record<string, boolean>>({});
 
   useFocusEffect(
     useCallback(() => {
@@ -166,6 +167,53 @@ export default function MembershipDetailScreen() {
                     })}
                   </ThemedText>
                 </View>
+
+                <View style={styles.perksDivider} />
+
+                {(() => {
+                  const allPerks = [
+                    ...pkg.perks,
+                    `${totalWashes} lavadas en ${duration ? duration.label.toLowerCase() : "tu plan"}`,
+                  ];
+                  const MAX_VISIBLE = 3;
+                  const isExpanded = !!expandedPerks[membership.id];
+                  const visiblePerks = isExpanded ? allPerks : allPerks.slice(0, MAX_VISIBLE);
+                  const hasMore = allPerks.length > MAX_VISIBLE;
+                  const hiddenCount = allPerks.length - MAX_VISIBLE;
+
+                  return (
+                    <View style={styles.perksContainer}>
+                      {visiblePerks.map((perk, perkIndex) => (
+                        <View key={perkIndex} style={styles.perkRow}>
+                          <Feather name="check-circle" size={14} color="rgba(255,255,255,0.9)" />
+                          <ThemedText type="small" style={styles.perkText}>
+                            {perk}
+                          </ThemedText>
+                        </View>
+                      ))}
+                      {hasMore ? (
+                        <Pressable
+                          onPress={() =>
+                            setExpandedPerks((prev) => ({
+                              ...prev,
+                              [membership.id]: !prev[membership.id],
+                            }))
+                          }
+                          style={styles.seeMoreRow}
+                        >
+                          <Feather
+                            name={isExpanded ? "chevron-up" : "chevron-down"}
+                            size={14}
+                            color="#FFFFFF"
+                          />
+                          <ThemedText type="small" style={styles.seeMoreText}>
+                            {isExpanded ? "Ver menos" : `Ver más (${hiddenCount})`}
+                          </ThemedText>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  );
+                })()}
 
                 <Button
                   onPress={() => {
@@ -312,6 +360,33 @@ const styles = StyleSheet.create({
   },
   expirationText: {
     color: "rgba(255,255,255,0.8)",
+  },
+  perksDivider: {
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    marginVertical: Spacing.md,
+  },
+  perksContainer: {
+    gap: Spacing.sm,
+  },
+  perkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  perkText: {
+    color: "rgba(255,255,255,0.95)",
+    flex: 1,
+  },
+  seeMoreRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    paddingTop: Spacing.xs,
+  },
+  seeMoreText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
   bookButtonInCard: {
     backgroundColor: "#FFFFFF",
