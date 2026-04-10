@@ -522,14 +522,6 @@ export default function AppointmentDetailScreen() {
               <Feather name="x" size={20} color={theme.text} />
             </Pressable>
           </View>
-          <View style={modalStyles.noteContainer}>
-            <View style={[modalStyles.note, { backgroundColor: Colors.warning + "15" }]}>
-              <Feather name="info" size={16} color={Colors.warning} />
-              <ThemedText type="small" style={{ color: Colors.warning, flex: 1 }}>
-                Solo puedes reprogramar hasta 2 horas antes del servicio
-              </ThemedText>
-            </View>
-          </View>
           {showRescheduleModal ? (
             <SchedulePicker
               washType={booking.washType}
