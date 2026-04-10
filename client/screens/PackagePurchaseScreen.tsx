@@ -132,16 +132,6 @@ export default function PackagePurchaseScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            Método de Pago
-          </ThemedText>
-          <PaymentMethodSelector
-            selectedId={selectedPayment}
-            onSelect={setSelectedPayment}
-          />
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(150).springify()}>
           <Card elevation={1} style={styles.section}>
             <ThemedText type="h3" style={styles.sectionTitle}>
               Resumen de Compra
@@ -181,6 +171,16 @@ export default function PackagePurchaseScreen() {
               </ThemedText>
             </View>
           </Card>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(150).springify()}>
+          <ThemedText type="h3" style={styles.sectionTitle}>
+            Método de Pago
+          </ThemedText>
+          <PaymentMethodSelector
+            selectedId={selectedPayment}
+            onSelect={setSelectedPayment}
+          />
         </Animated.View>
 
         <View style={styles.footer}>
