@@ -161,6 +161,17 @@ export default function BookingPackageOptionScreen() {
                     isSelected ? { borderColor: pkg.color, borderWidth: 2 } : undefined,
                   ])}
                 >
+                  <View style={[styles.vehicleBanner, { backgroundColor: `${pkg.color}08` }]}>
+                    <Image
+                      source={membership.vehicleSize === "small" ? vehicleSmall : membership.vehicleSize === "suv" ? vehicleSuv : vehicleLarge}
+                      style={styles.vehicleBannerImage}
+                      contentFit="contain"
+                    />
+                    <ThemedText type="body" style={{ fontWeight: "700" }}>
+                      {getVehicleName(membership.vehicleSize)}
+                    </ThemedText>
+                  </View>
+
                   <View style={styles.packageHeader}>
                     <View style={[styles.packageIcon, { backgroundColor: `${pkg.color}20` }]}>
                       <Feather
@@ -180,17 +191,6 @@ export default function BookingPackageOptionScreen() {
                         <View style={[styles.radioInner, { backgroundColor: pkg.color }]} />
                       ) : null}
                     </View>
-                  </View>
-
-                  <View style={styles.vehicleBadge}>
-                    <Image
-                      source={membership.vehicleSize === "small" ? vehicleSmall : membership.vehicleSize === "suv" ? vehicleSuv : vehicleLarge}
-                      style={styles.vehicleBadgeImage}
-                      contentFit="contain"
-                    />
-                    <ThemedText type="caption" style={{ color: theme.textSecondary, fontWeight: "600" }}>
-                      {getVehicleName(membership.vehicleSize)}
-                    </ThemedText>
                   </View>
 
                   <View style={styles.statsRow}>
@@ -307,19 +307,19 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: Spacing.xs,
   },
-  vehicleBadge: {
+  vehicleBanner: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: "rgba(0,0,0,0.04)",
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    marginHorizontal: -Spacing.xs,
   },
-  vehicleBadgeImage: {
-    width: 32,
-    height: 20,
+  vehicleBannerImage: {
+    width: 64,
+    height: 40,
   },
   radioOuter: {
     width: 24,
