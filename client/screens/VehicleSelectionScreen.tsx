@@ -143,7 +143,7 @@ export default function VehicleSelectionScreen() {
         ? `${addr.alias} - ${addr.coto ? `${addr.coto}, ` : ""}${addr.street} #${addr.exteriorNumber}${addr.interiorNumber ? ` Int. ${addr.interiorNumber}` : ""}, ${addr.colony}, ${addr.city}`
         : "";
       const vehicle = savedVehicles.find((v) => v.id === selectedVehicleId);
-      navigation.navigate("ServiceCustomization", {
+      navigation.navigate("BookingPackageOption", {
         vehicleSize: selectedSize,
         addressLabel,
         vehicleBrand: vehicle?.brand || "",

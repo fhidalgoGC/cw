@@ -16,6 +16,7 @@ import VehicleManagementScreen from "@/screens/VehicleManagementScreen";
 import MembershipDetailScreen from "@/screens/MembershipDetailScreen";
 import PackagePurchaseScreen from "@/screens/PackagePurchaseScreen";
 import BookingPaymentSelectionScreen from "@/screens/BookingPaymentSelectionScreen";
+import BookingPackageOptionScreen from "@/screens/BookingPackageOptionScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 import { VehicleSize, WashType, Booking } from "@/lib/storage";
 
@@ -23,6 +24,14 @@ export type RootStackParamList = {
   Main: undefined;
   BookingPaymentSelection: undefined;
   VehicleSelection: undefined;
+  BookingPackageOption: {
+    vehicleSize: VehicleSize;
+    addressLabel: string;
+    vehicleBrand: string;
+    vehicleModel: string;
+    vehicleColor: string;
+    vehiclePlate?: string;
+  };
   ServiceCustomization: {
     vehicleSize: VehicleSize;
     addressLabel: string;
@@ -42,6 +51,7 @@ export type RootStackParamList = {
     vehicleColor: string;
     vehiclePlate?: string;
     comments?: string;
+    membershipId?: string;
   };
   Payment: {
     vehicleSize: VehicleSize;
@@ -57,6 +67,7 @@ export type RootStackParamList = {
     vehicleColor: string;
     vehiclePlate?: string;
     comments?: string;
+    membershipId?: string;
   };
   Confirmation: { booking: Booking };
   AppointmentDetail: { booking: Booking };
@@ -95,6 +106,14 @@ export default function RootStackNavigator() {
         options={{
           presentation: "modal",
           headerTitle: "Selecciona tu Vehículo",
+        }}
+      />
+      <Stack.Screen
+        name="BookingPackageOption"
+        component={BookingPackageOptionScreen}
+        options={{
+          presentation: "modal",
+          headerTitle: "Usar Paquete",
         }}
       />
       <Stack.Screen

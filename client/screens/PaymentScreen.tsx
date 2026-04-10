@@ -48,7 +48,7 @@ export default function PaymentScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const { vehicleSize, washType, addOns, date, time, totalPrice, reservationExpiry, addressLabel, vehicleBrand, vehicleModel, vehicleColor, vehiclePlate, comments } = route.params;
+  const { vehicleSize, washType, addOns, date, time, totalPrice, reservationExpiry, addressLabel, vehicleBrand, vehicleModel, vehicleColor, vehiclePlate, comments, membershipId: preselectedMembershipId } = route.params;
 
   const VEHICLE_IMAGES: Record<string, any> = {
     small: vehicleSmall,
@@ -103,7 +103,7 @@ export default function PaymentScreen() {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  const [selectedMembershipId, setSelectedMembershipId] = useState<string | null>(null);
+  const [selectedMembershipId, setSelectedMembershipId] = useState<string | null>(preselectedMembershipId || null);
   const isUsingMembership = !!selectedMembershipId;
 
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -118,7 +118,20 @@ export default function PaymentScreen() {
     }, [])
   );
 
-  const activeMemberships = userData ? getActiveMemberships(userData) : [];
+  const activeMemberships = userData ? getActiveMemberships(userData).filter(
+    (a) => a.membership.vehicleSize === vehicleSize
+  ) : [];
+
+  useEffect(() => {
+    if (preselectedMembershipId && userData) {
+      const isValid = activeMemberships.some(
+        (a) => a.membership.id === preselectedMembershipId
+      );
+      if (!isValid) {
+        setSelectedMembershipId(null);
+      }
+    }
+  }, [userData]);
 
   const handleMembershipSelect = (membershipId: string | null) => {
     Haptics.selectionAsync();
@@ -175,7 +188,17 @@ export default function PaymentScreen() {
     }
 
     if (isUsingMembership && selectedMembershipId) {
-      await useMembershipWash(selectedMembershipId);
+      const result = await useMembershipWash(selectedMembershipId);
+      if (!result) {
+        setIsProcessing(false);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+          "Error",
+          "No se pudo usar la lavada del paquete. Verifica que tu paquete siga activo.",
+          [{ text: "OK" }]
+        );
+        return;
+      }
     }
 
     const booking: Booking = {

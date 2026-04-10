@@ -31,7 +31,8 @@ Preferred communication style: Simple, everyday language.
 - Tab-based navigation with 5 tabs (Home, Appointments, Book, History, Packages)
 - Native stack navigator for booking flow screens
 - Modal presentation for booking wizard steps
-- Booking flow: Vehicle Selection → Service Customization → Schedule Selection → Payment (with integrated membership/package selection) → Confirmation
+- Booking flow: Vehicle Selection → Package Option (auto-skips if no active packages for vehicle size) → Service Customization → Schedule Selection → Payment (with integrated membership/package selection) → Confirmation
+- BookingPackageOptionScreen: Checks active packages matching the selected vehicle size. If found, user can select one (navigates to ScheduleSelection with membershipId, skipping ServiceCustomization) or continue normally. If no matching packages, auto-redirects to ServiceCustomization.
 
 **State Management:**
 - TanStack React Query for server state and caching
