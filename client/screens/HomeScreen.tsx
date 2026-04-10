@@ -376,8 +376,8 @@ export default function HomeScreen() {
                   <Feather name="user" size={20} color={isDark ? Colors.accent : Colors.primary} />
                 </View>
                 <View style={styles.drawerItemText}>
-                  <ThemedText type="body" style={{ fontWeight: "600" }}>Información Personal</ThemedText>
-                  <ThemedText type="small" style={{ color: theme.textSecondary }}>Editar nombre, teléfono, correo</ThemedText>
+                  <ThemedText type="body" style={{ fontWeight: "600" }}>Mi Perfil</ThemedText>
+                  <ThemedText type="small" style={{ color: theme.textSecondary }}>Nombre, teléfono, correo</ThemedText>
                 </View>
               </Pressable>
 

@@ -1,8 +1,7 @@
 import React, { useCallback, useState } from "react";
-import { StyleSheet, View, TextInput, Pressable, Alert } from "react-native";
+import { StyleSheet, View, TextInput, Pressable } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -11,57 +10,11 @@ import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollV
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Card } from "@/components/Card";
-import { Button } from "@/components/Button";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors, Spacing, BorderRadius, Typography } from "@/constants/theme";
-import { getUserData, saveUserData, UserData, PACKAGES, getSavedAddresses } from "@/lib/storage";
-import { RootStackParamList } from "@/navigation/RootStackNavigator";
-
-type ProfileNavigationProp = NativeStackNavigationProp<RootStackParamList, "Profile">;
-
-interface MenuItemProps {
-  icon: keyof typeof Feather.glyphMap;
-  title: string;
-  subtitle?: string;
-  onPress: () => void;
-  color?: string;
-}
-
-function MenuItem({ icon, title, subtitle, onPress, color }: MenuItemProps) {
-  const { theme, isDark } = useTheme();
-  const iconColor = color || (isDark ? Colors.accent : Colors.primary);
-
-  return (
-    <Pressable
-      onPress={() => {
-        Haptics.selectionAsync();
-        onPress();
-      }}
-      style={({ pressed }) => [
-        styles.menuItem,
-        { backgroundColor: theme.backgroundSecondary, opacity: pressed ? 0.8 : 1 },
-      ]}
-    >
-      <View style={[styles.menuIcon, { backgroundColor: iconColor + "20" }]}>
-        <Feather name={icon} size={20} color={iconColor} />
-      </View>
-      <View style={styles.menuContent}>
-        <ThemedText type="body" style={{ fontWeight: "600" }}>
-          {title}
-        </ThemedText>
-        {subtitle ? (
-          <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-            {subtitle}
-          </ThemedText>
-        ) : null}
-      </View>
-      <Feather name="chevron-right" size={20} color={theme.textSecondary} />
-    </Pressable>
-  );
-}
+import { getUserData, saveUserData, UserData } from "@/lib/storage";
 
 export default function ProfileScreen() {
-  const navigation = useNavigation<ProfileNavigationProp>();
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
 
@@ -71,19 +24,12 @@ export default function ProfileScreen() {
   const [email, setEmail] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [addressCount, setAddressCount] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
       loadUserData();
-      loadAddressCount();
     }, [])
   );
-
-  const loadAddressCount = async () => {
-    const addrs = await getSavedAddresses();
-    setAddressCount(addrs.length);
-  };
 
   const loadUserData = async () => {
     const data = await getUserData();
@@ -107,27 +53,6 @@ export default function ProfileScreen() {
       setUserData(updatedData);
       setIsEditing(false);
     }
-  };
-
-  const getAddressSubtitle = () => {
-    if (addressCount === 0) return "Agregar dirección";
-    return `${addressCount} dirección${addressCount > 1 ? "es" : ""} guardada${addressCount > 1 ? "s" : ""}`;
-  };
-
-  const getVehiclesSubtitle = () => {
-    if (!userData?.vehicles || userData.vehicles.length === 0) {
-      return "Agregar vehículos";
-    }
-    return `${userData.vehicles.length} vehículo${userData.vehicles.length > 1 ? "s" : ""} guardado${userData.vehicles.length > 1 ? "s" : ""}`;
-  };
-
-  const getMembershipSubtitle = () => {
-    if (!userData?.membership) return "Sin paquete activo";
-    const pkg = PACKAGES.find((p) => p.id === userData.membership?.packageId);
-    if (pkg) {
-      return `${pkg.name} - ${userData.membership.washesRemaining} lavadas restantes`;
-    }
-    return "Paquete activo";
   };
 
   if (isLoading) {
@@ -264,45 +189,7 @@ export default function ProfileScreen() {
           </Card>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <Card elevation={1} style={styles.section}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Mis Datos
-            </ThemedText>
-            <View style={styles.menuList}>
-              <MenuItem
-                icon="map-pin"
-                title="Direcciones"
-                subtitle={getAddressSubtitle()}
-                onPress={() => navigation.navigate("AddressManagement")}
-              />
-              <MenuItem
-                icon="truck"
-                title="Mis Vehículos"
-                subtitle={getVehiclesSubtitle()}
-                onPress={() => navigation.navigate("VehicleManagement")}
-              />
-              <MenuItem
-                icon="award"
-                title="Mis Paquetes"
-                subtitle={getMembershipSubtitle()}
-                onPress={() => navigation.navigate("MembershipDetail")}
-                color={userData?.membership ? Colors.success : undefined}
-              />
-            </View>
-          </Card>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(150).springify()}>
-          <Card elevation={1} style={styles.section}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Información
-            </ThemedText>
-            <ThemedText type="body" style={{ color: theme.textSecondary }}>
-              Versión 1.0.0
-            </ThemedText>
-          </Card>
-        </Animated.View>
+        
       </KeyboardAwareScrollViewCompat>
     </ThemedView>
   );
@@ -361,25 +248,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.md,
-  },
-  menuList: {
-    gap: Spacing.sm,
-  },
-  menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    gap: Spacing.md,
-  },
-  menuIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  menuContent: {
-    flex: 1,
   },
 });
