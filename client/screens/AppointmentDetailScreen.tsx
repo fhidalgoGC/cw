@@ -63,7 +63,6 @@ export default function AppointmentDetailScreen() {
   const insets = useSafeAreaInsets();
 
   const [booking, setBooking] = useState<Booking>(route.params.booking);
-  const [isCancelling, setIsCancelling] = useState(false);
   const [servicesExpanded, setServicesExpanded] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
 
@@ -187,31 +186,9 @@ export default function AppointmentDetailScreen() {
     );
   };
 
-  const handleCancel = () => {
-    Alert.alert(
-      "Cancelar Cita",
-      "¿Estás seguro de que deseas cancelar esta cita? Esta acción no se puede deshacer.",
-      [
-        { text: "No, mantener", style: "cancel" },
-        {
-          text: "Sí, cancelar",
-          style: "destructive",
-          onPress: confirmCancel,
-        },
-      ]
-    );
-  };
-
-  const confirmCancel = async () => {
-    setIsCancelling(true);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-
-    const updatedBooking: Booking = { ...booking, status: "cancelled" };
-    await updateBooking(updatedBooking);
-    setBooking(updatedBooking);
-
-    setIsCancelling(false);
-    Alert.alert("Cita Cancelada", "Tu cita ha sido cancelada exitosamente.");
+  const handleServiceCompleted = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    navigation.navigate("ServiceFeedback", { booking });
   };
 
   return (
@@ -492,16 +469,13 @@ export default function AppointmentDetailScreen() {
             >
               Reprogramar Cita
             </Button>
-            {!booking.pendingReschedule ? (
-              <Button
-                onPress={handleCancel}
-                disabled={isCancelling}
-                style={[styles.cancelButton, { backgroundColor: `${Colors.error}15` }]}
-                textColor={Colors.error}
-              >
-                {isCancelling ? "Cancelando..." : "Cancelar Cita"}
-              </Button>
-            ) : null}
+            <Button
+              onPress={handleServiceCompleted}
+              style={[styles.completedButton, { backgroundColor: Colors.success + "15" }]}
+              textColor={Colors.success}
+            >
+              Servicio Completado
+            </Button>
           </Animated.View>
         ) : null}
       </ScrollView>
@@ -676,7 +650,7 @@ const styles = StyleSheet.create({
   rescheduleButton: {
     backgroundColor: "transparent",
   },
-  cancelButton: {
+  completedButton: {
     backgroundColor: "transparent",
   },
 });

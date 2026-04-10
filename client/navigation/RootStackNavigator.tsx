@@ -17,6 +17,7 @@ import MembershipDetailScreen from "@/screens/MembershipDetailScreen";
 import PackagePurchaseScreen from "@/screens/PackagePurchaseScreen";
 import BookingPaymentSelectionScreen from "@/screens/BookingPaymentSelectionScreen";
 import BookingPackageOptionScreen from "@/screens/BookingPackageOptionScreen";
+import ServiceFeedbackScreen from "@/screens/ServiceFeedbackScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 import { VehicleSize, WashType, Booking } from "@/lib/storage";
 
@@ -78,6 +79,7 @@ export type RootStackParamList = {
   VehicleManagement: undefined;
   MembershipDetail: undefined;
   PackagePurchase: { packageId: string; durationId: string; vehicleSize: VehicleSize };
+  ServiceFeedback: { booking: Booking };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -203,6 +205,13 @@ export default function RootStackNavigator() {
         component={PackagePurchaseScreen}
         options={{
           headerTitle: "Comprar Paquete",
+        }}
+      />
+      <Stack.Screen
+        name="ServiceFeedback"
+        component={ServiceFeedbackScreen}
+        options={{
+          headerTitle: "Calificar Servicio",
         }}
       />
     </Stack.Navigator>
