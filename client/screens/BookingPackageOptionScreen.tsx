@@ -161,13 +161,13 @@ export default function BookingPackageOptionScreen() {
                     isSelected ? { borderColor: pkg.color, borderWidth: 2 } : undefined,
                   ])}
                 >
-                  <View style={[styles.vehicleBanner, { backgroundColor: `${pkg.color}08` }]}>
+                  <View style={[styles.vehicleBanner, { backgroundColor: `${pkg.color}10` }]}>
                     <Image
                       source={membership.vehicleSize === "small" ? vehicleSmall : membership.vehicleSize === "suv" ? vehicleSuv : vehicleLarge}
                       style={styles.vehicleBannerImage}
                       contentFit="contain"
                     />
-                    <ThemedText type="body" style={{ fontWeight: "700" }}>
+                    <ThemedText type="h3">
                       {getVehicleName(membership.vehicleSize)}
                     </ThemedText>
                   </View>
@@ -287,7 +287,9 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   packageCard: {
-    padding: Spacing.xl,
+    paddingTop: 0,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.xl,
     overflow: "hidden",
   },
   packageHeader: {
@@ -310,16 +312,17 @@ const styles = StyleSheet.create({
   vehicleBanner: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.md,
+    justifyContent: "center",
+    gap: Spacing.lg,
     marginBottom: Spacing.lg,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    marginHorizontal: -Spacing.xs,
+    paddingVertical: Spacing.lg,
+    marginHorizontal: -Spacing.xl,
+    borderTopLeftRadius: BorderRadius.lg,
+    borderTopRightRadius: BorderRadius.lg,
   },
   vehicleBannerImage: {
-    width: 64,
-    height: 40,
+    width: 80,
+    height: 48,
   },
   radioOuter: {
     width: 24,
