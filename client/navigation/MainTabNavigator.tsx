@@ -7,17 +7,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import HomeScreen from "@/screens/HomeScreen";
 import AppointmentsScreen from "@/screens/AppointmentsScreen";
-import HistoryScreen from "@/screens/HistoryScreen";
+import MenuScreen from "@/screens/MenuScreen";
 import { useTheme } from "@/hooks/useTheme";
-import { useNavigation } from "@react-navigation/native";
 import { Colors, Spacing, BorderRadius } from "@/constants/theme";
 
 export type MainTabParamList = {
   HomeTab: undefined;
   AppointmentsTab: undefined;
   BookTab: undefined;
-  HistoryTab: undefined;
   PackagesTab: undefined;
+  MenuTab: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -106,16 +105,6 @@ export default function MainTabNavigator() {
         }}
       />
       <Tab.Screen
-        name="HistoryTab"
-        component={HistoryScreen}
-        options={{
-          title: "Historial",
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="clock" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
         name="PackagesTab"
         component={EmptyPlaceholder}
         options={{
@@ -130,6 +119,16 @@ export default function MainTabNavigator() {
             navigation.navigate("PackageVehicleSelection");
           },
         })}
+      />
+      <Tab.Screen
+        name="MenuTab"
+        component={MenuScreen}
+        options={{
+          title: "Menú",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="menu" size={size} color={color} />
+          ),
+        }}
       />
     </Tab.Navigator>
   );

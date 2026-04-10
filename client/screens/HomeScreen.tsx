@@ -4,9 +4,7 @@ import {
   ScrollView,
   FlatList,
   View,
-  Pressable,
   RefreshControl,
-  useWindowDimensions,
 } from "react-native";
 import { Image } from "expo-image";
 import { Feather } from "@expo/vector-icons";
@@ -15,7 +13,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown, SlideInLeft, SlideOutLeft, FadeIn, FadeOut } from "react-native-reanimated";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -28,7 +26,6 @@ import {
   getBookings,
   getUserData,
   getActiveMembership,
-  getSavedAddresses,
   PACKAGES,
   Booking,
   UserData,
@@ -52,15 +49,10 @@ export default function HomeScreen() {
   const [recentBookings, setRecentBookings] = useState<Booking[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerVisible, setDrawerVisible] = useState(false);
-  const [addressCount, setAddressCount] = useState(0);
-  const { width: screenWidth } = useWindowDimensions();
 
   const loadData = useCallback(async () => {
-    const [user, bookings, addrs] = await Promise.all([getUserData(), getBookings(), getSavedAddresses()]);
+    const [user, bookings] = await Promise.all([getUserData(), getBookings()]);
     setUserData(user);
-    setAddressCount(addrs.length);
     setRecentBookings(
       bookings.filter((b) => b.status === "upcoming").slice(0, 3)
     );
@@ -82,29 +74,6 @@ export default function HomeScreen() {
   const handleBookPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     navigation.navigate("VehicleSelection");
-  };
-
-  const openDrawer = () => {
-    Haptics.selectionAsync();
-    setDrawerVisible(true);
-    setDrawerOpen(true);
-  };
-
-  const closeDrawer = () => {
-    setDrawerOpen(false);
-    setTimeout(() => setDrawerVisible(false), 300);
-  };
-
-  const handleDrawerNav = (screen: keyof RootStackParamList) => {
-    closeDrawer();
-    setTimeout(() => navigation.navigate(screen as any), 350);
-  };
-
-  const vehicleCount = userData?.vehicles?.length || 0;
-  const getMembershipLabel = () => {
-    if (!userData?.membership) return "Sin paquete activo";
-    const pkg = PACKAGES.find((p) => p.id === userData.membership?.packageId);
-    return pkg ? `${pkg.name} - ${userData.membership.washesRemaining} lavadas` : "Paquete activo";
   };
 
   const handleBookingPress = (booking: Booking) => {
@@ -142,18 +111,6 @@ export default function HomeScreen() {
           <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
         }
       >
-        <Animated.View
-          entering={FadeInDown.delay(50).springify()}
-          style={styles.header}
-        >
-          <Pressable onPress={openDrawer} style={styles.profileButton}>
-            <Feather
-              name="menu"
-              size={24}
-              color={isDark ? Colors.accent : Colors.primary}
-            />
-          </Pressable>
-        </Animated.View>
 
         {userData?.membership ? (
           (() => {
@@ -334,99 +291,6 @@ export default function HomeScreen() {
         </Animated.View>
       </ScrollView>
 
-      {drawerVisible ? (
-        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-          <Animated.View
-            entering={FadeIn.duration(200)}
-            exiting={FadeOut.duration(200)}
-            style={[styles.drawerOverlay, { opacity: drawerOpen ? 1 : 0 }]}
-          >
-            <Pressable style={StyleSheet.absoluteFill} onPress={closeDrawer} />
-          </Animated.View>
-          <Animated.View
-            entering={SlideInLeft.duration(250).springify()}
-            exiting={SlideOutLeft.duration(200)}
-            style={[
-              styles.drawerContainer,
-              {
-                backgroundColor: theme.backgroundDefault,
-                paddingTop: insets.top + Spacing.lg,
-                paddingBottom: insets.bottom + Spacing.lg,
-                width: screenWidth * 0.78,
-              },
-            ]}
-          >
-            <View style={styles.drawerHeader}>
-              <View style={[styles.drawerAvatar, { backgroundColor: isDark ? Colors.accent + "20" : Colors.primary + "15" }]}>
-                <Feather name="user" size={28} color={isDark ? Colors.accent : Colors.primary} />
-              </View>
-              <ThemedText type="h2">{userData?.name || "Usuario"}</ThemedText>
-              {userData?.email ? (
-                <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                  {userData.email}
-                </ThemedText>
-              ) : null}
-            </View>
-
-            <View style={styles.drawerDivider} />
-
-            <ScrollView style={styles.drawerMenu} showsVerticalScrollIndicator={false}>
-              <Pressable style={styles.drawerItem} onPress={() => handleDrawerNav("Profile")}>
-                <View style={[styles.drawerItemIcon, { backgroundColor: (isDark ? Colors.accent : Colors.primary) + "15" }]}>
-                  <Feather name="user" size={20} color={isDark ? Colors.accent : Colors.primary} />
-                </View>
-                <View style={styles.drawerItemText}>
-                  <ThemedText type="body" style={{ fontWeight: "600" }}>Mi Perfil</ThemedText>
-                  <ThemedText type="small" style={{ color: theme.textSecondary }}>Nombre, teléfono, correo</ThemedText>
-                </View>
-              </Pressable>
-
-              <Pressable style={styles.drawerItem} onPress={() => handleDrawerNav("AddressManagement")}>
-                <View style={[styles.drawerItemIcon, { backgroundColor: Colors.success + "15" }]}>
-                  <Feather name="map-pin" size={20} color={Colors.success} />
-                </View>
-                <View style={styles.drawerItemText}>
-                  <ThemedText type="body" style={{ fontWeight: "600" }}>Direcciones</ThemedText>
-                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                    {addressCount > 0 ? `${addressCount} dirección${addressCount > 1 ? "es" : ""} guardada${addressCount > 1 ? "s" : ""}` : "Agregar dirección"}
-                  </ThemedText>
-                </View>
-              </Pressable>
-
-              <Pressable style={styles.drawerItem} onPress={() => handleDrawerNav("VehicleManagement")}>
-                <View style={[styles.drawerItemIcon, { backgroundColor: Colors.warning + "15" }]}>
-                  <Feather name="truck" size={20} color={Colors.warning} />
-                </View>
-                <View style={styles.drawerItemText}>
-                  <ThemedText type="body" style={{ fontWeight: "600" }}>Mis Vehículos</ThemedText>
-                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                    {vehicleCount > 0 ? `${vehicleCount} vehículo${vehicleCount > 1 ? "s" : ""} guardado${vehicleCount > 1 ? "s" : ""}` : "Agregar vehículos"}
-                  </ThemedText>
-                </View>
-              </Pressable>
-
-              <Pressable style={styles.drawerItem} onPress={() => handleDrawerNav("MembershipDetail")}>
-                <View style={[styles.drawerItemIcon, { backgroundColor: (userData?.membership ? Colors.success : Colors.error) + "15" }]}>
-                  <Feather name="award" size={20} color={userData?.membership ? Colors.success : Colors.error} />
-                </View>
-                <View style={styles.drawerItemText}>
-                  <ThemedText type="body" style={{ fontWeight: "600" }}>Mis Paquetes</ThemedText>
-                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                    {getMembershipLabel()}
-                  </ThemedText>
-                </View>
-              </Pressable>
-            </ScrollView>
-
-            <View style={styles.drawerDivider} />
-            <View style={styles.drawerFooter}>
-              <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                Sparkle Clean v1.0.0
-              </ThemedText>
-            </View>
-          </Animated.View>
-        </View>
-      ) : null}
     </ThemedView>
   );
 }
@@ -450,19 +314,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: Spacing.xl,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    alignItems: "center",
-    marginBottom: Spacing.lg,
-  },
-  profileButton: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.full,
-    alignItems: "center",
-    justifyContent: "center",
   },
   subscriptionCard: {
     marginBottom: Spacing.lg,
@@ -594,62 +445,5 @@ const styles = StyleSheet.create({
   progressBarFill: {
     height: "100%",
     borderRadius: BorderRadius.full,
-  },
-  drawerOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.45)",
-  },
-  drawerContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    bottom: 0,
-    shadowColor: "#000",
-    shadowOffset: { width: 4, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 20,
-    paddingHorizontal: Spacing.xl,
-  },
-  drawerHeader: {
-    gap: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
-  drawerAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: BorderRadius.full,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: Spacing.sm,
-  },
-  drawerDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(128,128,128,0.25)",
-    marginVertical: Spacing.md,
-  },
-  drawerMenu: {
-    flex: 1,
-  },
-  drawerItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
-  drawerItemIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  drawerItemText: {
-    flex: 1,
-    gap: 2,
-  },
-  drawerFooter: {
-    alignItems: "center",
-    paddingTop: Spacing.sm,
   },
 });
