@@ -295,9 +295,11 @@ export default function AppointmentDetailScreen() {
               </ThemedText>
               <View style={{ alignItems: "flex-end" }}>
                 <ThemedText type="body">{getWashTypeName(booking.washType)}</ThemedText>
-                <ThemedText type="small" style={{ color: Colors.success, fontWeight: "600" }}>
-                  {formatPrice(VEHICLE_PRICES[booking.vehicleSize] + WASH_TYPE_PRICES[booking.washType])}
-                </ThemedText>
+                {!booking.usedMembership ? (
+                  <ThemedText type="small" style={{ color: Colors.success, fontWeight: "600" }}>
+                    {formatPrice(VEHICLE_PRICES[booking.vehicleSize] + WASH_TYPE_PRICES[booking.washType])}
+                  </ThemedText>
+                ) : null}
               </View>
             </View>
 
@@ -424,26 +426,28 @@ export default function AppointmentDetailScreen() {
 
             <View style={styles.summaryDivider} />
 
-            <View style={styles.summaryRow}>
-              <ThemedText type="h3">Total Pagado</ThemedText>
-              {booking.usedMembership ? (
+            {booking.usedMembership ? (
+              <View style={styles.summaryRow}>
+                <ThemedText type="body" style={{ color: theme.textSecondary }}>
+                  Pago
+                </ThemedText>
                 <View style={{ alignItems: "flex-end" }}>
-                  <ThemedText type="h2" style={{ color: Colors.success }}>
-                    Incluido
-                  </ThemedText>
-                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                    Con tu paquete
+                  <ThemedText type="body" style={{ color: Colors.success, fontWeight: "600" }}>
+                    Incluido en paquete
                   </ThemedText>
                 </View>
-              ) : (
+              </View>
+            ) : (
+              <View style={styles.summaryRow}>
+                <ThemedText type="h3">Total Pagado</ThemedText>
                 <ThemedText
                   type="h2"
                   style={{ color: isDark ? Colors.accent : Colors.primary }}
                 >
                   {formatPrice(booking.totalPrice)}
                 </ThemedText>
-              )}
-            </View>
+              </View>
+            )}
           </Card>
         </Animated.View>
 

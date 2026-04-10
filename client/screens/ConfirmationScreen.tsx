@@ -115,15 +115,26 @@ export default function ConfirmationScreen() {
               <ThemedText type="body">{booking.time}</ThemedText>
             </View>
             <View style={styles.divider} />
-            <View style={styles.detailRow}>
-              <ThemedText type="h3">Total Pagado</ThemedText>
-              <ThemedText
-                type="h2"
-                style={{ color: isDark ? Colors.accent : Colors.primary }}
-              >
-                {formatPrice(booking.totalPrice)}
-              </ThemedText>
-            </View>
+            {booking.usedMembership ? (
+              <View style={styles.detailRow}>
+                <ThemedText type="body" style={{ color: theme.textSecondary }}>
+                  Pago
+                </ThemedText>
+                <ThemedText type="body" style={{ color: Colors.success, fontWeight: "600" }}>
+                  Incluido en paquete
+                </ThemedText>
+              </View>
+            ) : (
+              <View style={styles.detailRow}>
+                <ThemedText type="h3">Total Pagado</ThemedText>
+                <ThemedText
+                  type="h2"
+                  style={{ color: isDark ? Colors.accent : Colors.primary }}
+                >
+                  {formatPrice(booking.totalPrice)}
+                </ThemedText>
+              </View>
+            )}
           </Card>
         </Animated.View>
       </View>

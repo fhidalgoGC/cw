@@ -136,12 +136,21 @@ export default function AppointmentsScreen() {
           </ThemedText>
         </View>
         <View style={styles.bookingFooter}>
-          <ThemedText
-            type="h3"
-            style={{ color: isDark ? Colors.accent : Colors.primary }}
-          >
-            {formatPrice(item.totalPrice)}
-          </ThemedText>
+          {item.usedMembership ? (
+            <ThemedText
+              type="caption"
+              style={{ color: Colors.success, fontWeight: "600" }}
+            >
+              Paquete
+            </ThemedText>
+          ) : (
+            <ThemedText
+              type="h3"
+              style={{ color: isDark ? Colors.accent : Colors.primary }}
+            >
+              {formatPrice(item.totalPrice)}
+            </ThemedText>
+          )}
           <Feather
             name="chevron-right"
             size={20}

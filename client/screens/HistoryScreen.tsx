@@ -141,12 +141,21 @@ export default function HistoryScreen() {
                       Completada
                     </ThemedText>
                   </View>
-                  <ThemedText
-                    type="h3"
-                    style={{ color: isDark ? Colors.accent : Colors.primary }}
-                  >
-                    {formatPrice(booking.totalPrice)}
-                  </ThemedText>
+                  {booking.usedMembership ? (
+                    <ThemedText
+                      type="caption"
+                      style={{ color: Colors.success, fontWeight: "600" }}
+                    >
+                      Paquete
+                    </ThemedText>
+                  ) : (
+                    <ThemedText
+                      type="h3"
+                      style={{ color: isDark ? Colors.accent : Colors.primary }}
+                    >
+                      {formatPrice(booking.totalPrice)}
+                    </ThemedText>
+                  )}
                 </View>
 
                 <View style={styles.bookingDetails}>
