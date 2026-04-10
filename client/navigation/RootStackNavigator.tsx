@@ -23,7 +23,7 @@ import { VehicleSize, WashType, Booking } from "@/lib/storage";
 export type RootStackParamList = {
   Main: undefined;
   BookingPaymentSelection: undefined;
-  VehicleSelection: undefined;
+  VehicleSelection: { membershipId?: string } | undefined;
   BookingPackageOption: {
     vehicleSize: VehicleSize;
     addressLabel: string;

@@ -15,7 +15,6 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Card } from "@/components/Card";
-import { Button } from "@/components/Button";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors, Spacing, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -32,6 +31,12 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteType = RouteProp<RootStackParamList, "BookingPackageOption">;
 
+const VEHICLE_IMAGES: Record<string, any> = {
+  small: vehicleSmall,
+  suv: vehicleSuv,
+  large: vehicleLarge,
+};
+
 export default function BookingPackageOptionScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteType>();
@@ -41,7 +46,6 @@ export default function BookingPackageOptionScreen() {
   const { vehicleSize, addressLabel, vehicleBrand, vehicleModel, vehicleColor, vehiclePlate } = route.params;
 
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [selectedMembershipId, setSelectedMembershipId] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -73,16 +77,10 @@ export default function BookingPackageOptionScreen() {
     return <ThemedView style={styles.container} />;
   }
 
-  const handleSelectMembership = (membershipId: string) => {
-    Haptics.selectionAsync();
-    setSelectedMembershipId((prev) => (prev === membershipId ? null : membershipId));
-  };
-
-  const handleUsePackage = () => {
-    if (!selectedMembershipId) return;
+  const handleUsePackage = (membershipId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    const selected = matchingMemberships.find((m) => m.membership.id === selectedMembershipId);
+    const selected = matchingMemberships.find((m) => m.membership.id === membershipId);
     if (!selected) return;
 
     const pkg = selected.package;
@@ -98,7 +96,7 @@ export default function BookingPackageOptionScreen() {
       vehicleModel,
       vehicleColor,
       vehiclePlate,
-      membershipId: selectedMembershipId,
+      membershipId,
     });
   };
 
@@ -118,138 +116,100 @@ export default function BookingPackageOptionScreen() {
     <ThemedView style={styles.container}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 120 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl }]}
         showsVerticalScrollIndicator={false}
       >
         <Animated.View entering={FadeInDown.delay(50).springify()}>
-          <View style={[styles.infoBanner, { backgroundColor: Colors.primary + "12" }]}>
-            <View style={[styles.infoBannerIcon, { backgroundColor: Colors.primary + "20" }]}>
-              <Feather name="gift" size={22} color={Colors.primary} />
-            </View>
-            <View style={styles.infoBannerText}>
-              <ThemedText type="h3" style={{ color: Colors.primary }}>
-                Tienes paquetes disponibles
-              </ThemedText>
-              <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                Usa una lavada de tu paquete o continúa con el proceso normal
-              </ThemedText>
-            </View>
-          </View>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
           <ThemedText type="h2" style={styles.sectionTitle}>
-            Mis Paquetes
+            Usar paquete
+          </ThemedText>
+          <ThemedText type="body" style={{ color: theme.textSecondary, marginBottom: Spacing.lg }}>
+            Selecciona un paquete para usar una lavada incluida
           </ThemedText>
         </Animated.View>
 
         {matchingMemberships.map(({ package: pkg, membership, daysRemaining }, index) => {
           const duration = pkg.durations.find((d) => d.id === membership.durationId);
           const totalWashes = duration ? duration.washesIncluded : membership.washesRemaining;
-          const isSelected = selectedMembershipId === membership.id;
 
           return (
             <Animated.View
               key={membership.id}
-              entering={FadeInDown.delay(150 + index * 80).springify()}
+              entering={FadeInDown.delay(100 + index * 80).springify()}
             >
-              <Pressable onPress={() => handleSelectMembership(membership.id)}>
-                <Card
-                  elevation={isSelected ? 2 : 1}
-                  style={StyleSheet.flatten([
-                    styles.packageCard,
-                    isSelected ? { borderColor: pkg.color, borderWidth: 2 } : undefined,
-                  ])}
-                >
-                  <View style={[styles.vehicleBanner, { backgroundColor: `${pkg.color}10` }]}>
-                    <Image
-                      source={membership.vehicleSize === "small" ? vehicleSmall : membership.vehicleSize === "suv" ? vehicleSuv : vehicleLarge}
-                      style={styles.vehicleBannerImage}
-                      contentFit="contain"
-                    />
-                    <ThemedText type="h3">
-                      {getVehicleName(membership.vehicleSize)}
-                    </ThemedText>
-                  </View>
-
-                  <View style={styles.packageHeader}>
-                    <View style={[styles.packageIcon, { backgroundColor: `${pkg.color}20` }]}>
-                      <Feather
-                        name={pkg.id === "premium" ? "award" : pkg.id === "completo" ? "star" : "check-circle"}
-                        size={24}
-                        color={pkg.color}
+              <Pressable onPress={() => handleUsePackage(membership.id)}>
+                <Card elevation={2} style={styles.packageCard}>
+                  <View style={styles.cardRow}>
+                    <View style={styles.cardLeft}>
+                      <Image
+                        source={VEHICLE_IMAGES[membership.vehicleSize]}
+                        style={styles.vehicleImage}
+                        contentFit="contain"
                       />
                     </View>
-                    <View style={styles.packageTitleContainer}>
-                      <ThemedText type="h2">{pkg.name}</ThemedText>
-                      <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                        {pkg.description}
-                      </ThemedText>
-                    </View>
-                    <View style={[styles.radioOuter, { borderColor: isSelected ? pkg.color : theme.backgroundTertiary }]}>
-                      {isSelected ? (
-                        <View style={[styles.radioInner, { backgroundColor: pkg.color }]} />
-                      ) : null}
-                    </View>
-                  </View>
-
-                  <View style={styles.statsRow}>
-                    <View style={[styles.statBadge, { backgroundColor: pkg.color + "15" }]}>
-                      <Feather name="droplet" size={14} color={pkg.color} />
-                      <ThemedText type="caption" style={{ color: pkg.color, fontWeight: "700" }}>
-                        {membership.washesRemaining}/{totalWashes} lavadas
-                      </ThemedText>
-                    </View>
-                    <View style={[styles.statBadge, { backgroundColor: theme.backgroundSecondary }]}>
-                      <Feather name="clock" size={14} color={theme.textSecondary} />
-                      <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                        {daysRemaining} {daysRemaining === 1 ? "día" : "días"}
-                      </ThemedText>
-                    </View>
-                    {duration ? (
-                      <View style={[styles.statBadge, { backgroundColor: theme.backgroundSecondary }]}>
-                        <Feather name="calendar" size={14} color={theme.textSecondary} />
-                        <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                          {duration.label}
-                        </ThemedText>
+                    <View style={styles.cardCenter}>
+                      <View style={styles.cardTitleRow}>
+                        <View style={[styles.packageDot, { backgroundColor: pkg.color }]} />
+                        <ThemedText type="h3">{pkg.name}</ThemedText>
                       </View>
-                    ) : null}
-                  </View>
-
-                  {isSelected ? (
-                    <View style={styles.selectedInfo}>
-                      <Feather name="check-circle" size={16} color={Colors.success} />
-                      <ThemedText type="body" style={{ color: Colors.success, fontWeight: "600" }}>
-                        Se descontará 1 lavada de este paquete
+                      <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                        {getVehicleName(membership.vehicleSize)}
                       </ThemedText>
+                      <View style={styles.cardMeta}>
+                        <View style={[styles.metaChip, { backgroundColor: pkg.color + "15" }]}>
+                          <ThemedText type="small" style={{ color: pkg.color, fontWeight: "700" }}>
+                            {membership.washesRemaining}/{totalWashes}
+                          </ThemedText>
+                        </View>
+                        <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                          {daysRemaining}d
+                        </ThemedText>
+                        {duration ? (
+                          <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                            {duration.label}
+                          </ThemedText>
+                        ) : null}
+                      </View>
                     </View>
-                  ) : null}
+                    <View style={[styles.useButton, { backgroundColor: pkg.color }]}>
+                      <Feather name="arrow-right" size={18} color="#FFFFFF" />
+                    </View>
+                  </View>
                 </Card>
               </Pressable>
             </Animated.View>
           );
         })}
-      </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.lg }]}>
-        {selectedMembershipId ? (
-          <Button
-            onPress={handleUsePackage}
-            style={[styles.primaryButton, { backgroundColor: Colors.success }]}
-          >
-            Usar Paquete
-          </Button>
-        ) : null}
-        <Pressable
-          onPress={handleContinueNormal}
-          style={styles.secondaryButton}
-        >
-          <ThemedText type="body" style={{ color: Colors.primary, fontWeight: "600" }}>
-            Continuar sin paquete
-          </ThemedText>
-          <Feather name="arrow-right" size={18} color={Colors.primary} />
-        </Pressable>
-      </View>
+        <Animated.View entering={FadeInDown.delay(100 + matchingMemberships.length * 80).springify()}>
+          <View style={styles.dividerRow}>
+            <View style={[styles.dividerLine, { backgroundColor: theme.backgroundTertiary }]} />
+            <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+              o
+            </ThemedText>
+            <View style={[styles.dividerLine, { backgroundColor: theme.backgroundTertiary }]} />
+          </View>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(150 + matchingMemberships.length * 80).springify()}>
+          <Pressable onPress={handleContinueNormal}>
+            <Card elevation={1} style={styles.normalCard}>
+              <View style={styles.normalCardRow}>
+                <View style={[styles.normalIcon, { backgroundColor: theme.backgroundSecondary }]}>
+                  <Feather name="credit-card" size={22} color={theme.textSecondary} />
+                </View>
+                <View style={styles.normalCardText}>
+                  <ThemedText type="h3">Continuar sin paquete</ThemedText>
+                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                    Elige servicios y paga individualmente
+                  </ThemedText>
+                </View>
+                <Feather name="chevron-right" size={22} color={theme.textSecondary} />
+              </View>
+            </Card>
+          </Pressable>
+        </Animated.View>
+      </ScrollView>
     </ThemedView>
   );
 }
@@ -263,116 +223,88 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: Spacing.lg,
-    gap: Spacing.md,
   },
-  infoBanner: {
+  sectionTitle: {
+    marginBottom: Spacing.xs,
+  },
+  packageCard: {
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  cardRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.md,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.lg,
   },
-  infoBannerIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  cardLeft: {
+    width: 64,
+    height: 48,
     alignItems: "center",
     justifyContent: "center",
   },
-  infoBannerText: {
+  vehicleImage: {
+    width: 60,
+    height: 40,
+  },
+  cardCenter: {
     flex: 1,
-    gap: Spacing.xs,
+    gap: 2,
   },
-  sectionTitle: {
-    marginTop: Spacing.sm,
-  },
-  packageCard: {
-    paddingTop: 0,
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.xl,
-    overflow: "hidden",
-  },
-  packageHeader: {
+  cardTitleRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: Spacing.md,
-    marginBottom: Spacing.lg,
+    alignItems: "center",
+    gap: Spacing.sm,
   },
-  packageIcon: {
+  packageDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  cardMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  metaChip: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+  },
+  useButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    marginVertical: Spacing.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  normalCard: {
+    padding: Spacing.lg,
+  },
+  normalCardRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  normalIcon: {
     width: 48,
     height: 48,
     borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
   },
-  packageTitleContainer: {
+  normalCardText: {
     flex: 1,
     gap: Spacing.xs,
-  },
-  vehicleBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.lg,
-    marginBottom: Spacing.lg,
-    paddingVertical: Spacing.lg,
-    marginHorizontal: -Spacing.xl,
-    borderTopLeftRadius: BorderRadius.lg,
-    borderTopRightRadius: BorderRadius.lg,
-  },
-  vehicleBannerImage: {
-    width: 80,
-    height: 48,
-  },
-  radioOuter: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 4,
-  },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  statsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.sm,
-  },
-  statBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-  },
-  selectedInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    marginTop: Spacing.lg,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.success + "30",
-  },
-  footer: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    gap: Spacing.md,
-  },
-  primaryButton: {
-    width: "100%",
-  },
-  secondaryButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
   },
 });

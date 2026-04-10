@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react";
 import { StyleSheet, View, Pressable, ScrollView, Modal, TextInput } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useNavigation, useFocusEffect, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -24,6 +24,10 @@ import {
   getVehicleName,
   getSavedAddresses,
   saveAddress,
+  getActiveMemberships,
+  getIncludedServiceIds,
+  getUserData,
+  PACKAGES,
   AVAILABLE_STATES,
   AVAILABLE_CITIES,
   AVAILABLE_COLONIES,
@@ -34,6 +38,7 @@ import vehicleSuv from "../../assets/images/vehicle-suv.png";
 import vehicleLarge from "../../assets/images/vehicle-large.png";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "VehicleSelection">;
+type RouteType = RouteProp<RootStackParamList, "VehicleSelection">;
 
 interface VehicleOption {
   size: VehicleSize;
@@ -72,8 +77,10 @@ const VEHICLE_IMAGES: Record<VehicleSize, any> = {
 
 export default function VehicleSelectionScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<RouteType>();
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const incomingMembershipId = route.params?.membershipId;
 
   const [selectedSize, setSelectedSize] = useState<VehicleSize | null>(null);
   const [savedVehicles, setSavedVehicles] = useState<SavedVehicle[]>([]);
@@ -135,7 +142,7 @@ export default function VehicleSelectionScreen() {
     setSelectedAddressId(address.id);
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (selectedSize && selectedVehicleId && selectedAddressId) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const addr = savedAddresses.find((a) => a.id === selectedAddressId);
@@ -143,14 +150,34 @@ export default function VehicleSelectionScreen() {
         ? `${addr.alias} - ${addr.coto ? `${addr.coto}, ` : ""}${addr.street} #${addr.exteriorNumber}${addr.interiorNumber ? ` Int. ${addr.interiorNumber}` : ""}, ${addr.colony}, ${addr.city}`
         : "";
       const vehicle = savedVehicles.find((v) => v.id === selectedVehicleId);
-      navigation.navigate("BookingPackageOption", {
+      const baseParams = {
         vehicleSize: selectedSize,
         addressLabel,
         vehicleBrand: vehicle?.brand || "",
         vehicleModel: vehicle?.model || "",
         vehicleColor: vehicle?.color || "",
         vehiclePlate: vehicle?.plate,
-      });
+      };
+
+      if (incomingMembershipId) {
+        const userData = await getUserData();
+        const actives = userData ? getActiveMemberships(userData) : [];
+        const match = actives.find((a) => a.membership.id === incomingMembershipId);
+        if (match) {
+          const pkg = match.package;
+          const addOns = getIncludedServiceIds(pkg.washType);
+          navigation.navigate("ScheduleSelection", {
+            ...baseParams,
+            washType: pkg.washType,
+            addOns,
+            totalPrice: 0,
+            membershipId: incomingMembershipId,
+          });
+          return;
+        }
+      }
+
+      navigation.navigate("BookingPackageOption", baseParams);
     }
   };
 
