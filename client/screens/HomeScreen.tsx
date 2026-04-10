@@ -32,6 +32,7 @@ import {
   formatDate,
   formatPrice,
   getVehicleName,
+  getWashTypeName,
 } from "@/lib/storage";
 
 const subscriptionBadge = require("../../assets/images/subscription-badge.png");
@@ -280,14 +281,26 @@ export default function HomeScreen() {
                   </View>
                   <View style={styles.bookingInfo}>
                     <ThemedText type="h3">
-                      {getVehicleName(booking.vehicleSize)}
+                      {booking.vehicleBrand ? `${booking.vehicleBrand} ${booking.vehicleModel}` : getVehicleName(booking.vehicleSize)}
                     </ThemedText>
-                    <ThemedText
-                      type="body"
-                      style={{ color: theme.textSecondary }}
-                    >
-                      {formatDate(booking.date)} - {booking.time}
-                    </ThemedText>
+                  </View>
+                  <View style={styles.bookingDetailRows}>
+                    <View style={styles.bookingDetailRow}>
+                      <ThemedText type="small" style={{ color: theme.textSecondary }}>Tamaño</ThemedText>
+                      <ThemedText type="small" style={{ fontWeight: "600" }}>{getVehicleName(booking.vehicleSize)}</ThemedText>
+                    </View>
+                    <View style={styles.bookingDetailRow}>
+                      <ThemedText type="small" style={{ color: theme.textSecondary }}>Lavado</ThemedText>
+                      <ThemedText type="small" style={{ fontWeight: "600" }}>{getWashTypeName(booking.washType)}</ThemedText>
+                    </View>
+                    <View style={styles.bookingDetailRow}>
+                      <ThemedText type="small" style={{ color: theme.textSecondary }}>Fecha</ThemedText>
+                      <ThemedText type="small" style={{ fontWeight: "600" }}>{formatDate(booking.date)}</ThemedText>
+                    </View>
+                    <View style={styles.bookingDetailRow}>
+                      <ThemedText type="small" style={{ color: theme.textSecondary }}>Hora</ThemedText>
+                      <ThemedText type="small" style={{ fontWeight: "600" }}>{booking.time}</ThemedText>
+                    </View>
                   </View>
                   <View style={styles.bookingFooter}>
                     {booking.usedMembership ? (
@@ -433,6 +446,15 @@ const styles = StyleSheet.create({
   },
   bookingInfo: {
     marginBottom: Spacing.md,
+  },
+  bookingDetailRows: {
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  bookingDetailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   bookingFooter: {
     flexDirection: "row",

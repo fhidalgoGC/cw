@@ -119,38 +119,41 @@ export default function AppointmentsScreen() {
           </ThemedText>
         </View>
         <View style={styles.bookingInfo}>
-          <ThemedText type="h3">{getVehicleName(item.vehicleSize)}</ThemedText>
-          <ThemedText type="body" style={{ color: theme.textSecondary }}>
-            {getWashTypeName(item.washType)}
+          <ThemedText type="h3">
+            {item.vehicleBrand ? `${item.vehicleBrand} ${item.vehicleModel}` : getVehicleName(item.vehicleSize)}
           </ThemedText>
         </View>
-        <View style={styles.bookingMeta}>
-          <Feather
-            name="calendar"
-            size={14}
-            color={theme.textSecondary}
-            style={styles.metaIcon}
-          />
-          <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-            {formatDate(item.date)} - {item.time}
-          </ThemedText>
+        <View style={styles.bookingDetailRows}>
+          <View style={styles.bookingDetailRow}>
+            <ThemedText type="small" style={{ color: theme.textSecondary }}>Tamaño</ThemedText>
+            <ThemedText type="small" style={{ fontWeight: "600" }}>{getVehicleName(item.vehicleSize)}</ThemedText>
+          </View>
+          <View style={styles.bookingDetailRow}>
+            <ThemedText type="small" style={{ color: theme.textSecondary }}>Lavado</ThemedText>
+            <ThemedText type="small" style={{ fontWeight: "600" }}>{getWashTypeName(item.washType)}</ThemedText>
+          </View>
+          <View style={styles.bookingDetailRow}>
+            <ThemedText type="small" style={{ color: theme.textSecondary }}>Fecha</ThemedText>
+            <ThemedText type="small" style={{ fontWeight: "600" }}>{formatDate(item.date)}</ThemedText>
+          </View>
+          <View style={styles.bookingDetailRow}>
+            <ThemedText type="small" style={{ color: theme.textSecondary }}>Hora</ThemedText>
+            <ThemedText type="small" style={{ fontWeight: "600" }}>{item.time}</ThemedText>
+          </View>
+          <View style={styles.bookingDetailRow}>
+            <ThemedText type="small" style={{ color: theme.textSecondary }}>Precio</ThemedText>
+            {item.usedMembership ? (
+              <ThemedText type="small" style={{ color: Colors.success, fontWeight: "600" }}>
+                Paquete
+              </ThemedText>
+            ) : (
+              <ThemedText type="small" style={{ color: isDark ? Colors.accent : Colors.primary, fontWeight: "600" }}>
+                {formatPrice(item.totalPrice)}
+              </ThemedText>
+            )}
+          </View>
         </View>
         <View style={styles.bookingFooter}>
-          {item.usedMembership ? (
-            <ThemedText
-              type="caption"
-              style={{ color: Colors.success, fontWeight: "600" }}
-            >
-              Paquete
-            </ThemedText>
-          ) : (
-            <ThemedText
-              type="h3"
-              style={{ color: isDark ? Colors.accent : Colors.primary }}
-            >
-              {formatPrice(item.totalPrice)}
-            </ThemedText>
-          )}
           <Feather
             name="chevron-right"
             size={20}
@@ -306,9 +309,18 @@ const styles = StyleSheet.create({
   metaIcon: {
     marginRight: Spacing.xs,
   },
-  bookingFooter: {
+  bookingDetailRows: {
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  bookingDetailRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
+  },
+  bookingFooter: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
     alignItems: "center",
   },
   emptyContainer: {
