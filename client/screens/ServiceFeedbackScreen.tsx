@@ -75,7 +75,15 @@ export default function ServiceFeedbackScreen() {
     setIsSubmitting(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    const updatedBooking: Booking = { ...booking, status: "completed" };
+    const updatedBooking: Booking = {
+      ...booking,
+      status: "completed",
+      feedbackRating: rating,
+      feedbackCleanliness: cleanliness || undefined,
+      feedbackPunctuality: punctuality || undefined,
+      feedbackExtras: extras.length > 0 ? extras : undefined,
+      feedbackComment: comment.trim() || undefined,
+    };
     await updateBooking(updatedBooking);
 
     setIsSubmitting(false);

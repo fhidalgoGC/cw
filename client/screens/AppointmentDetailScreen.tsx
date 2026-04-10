@@ -428,6 +428,91 @@ export default function AppointmentDetailScreen() {
           </Card>
         </Animated.View>
 
+        {booking.status === "completed" && booking.feedbackRating ? (
+          <Animated.View
+            entering={FadeInDown.delay(300).springify()}
+          >
+            <Card elevation={1} style={styles.feedbackCard}>
+              <View style={styles.feedbackHeader}>
+                <Feather name="message-circle" size={20} color={isDark ? Colors.accent : Colors.primary} />
+                <ThemedText type="h3">Tu Opinión</ThemedText>
+              </View>
+
+              <View style={styles.feedbackRow}>
+                <ThemedText type="small" style={{ color: theme.textSecondary }}>Calificación</ThemedText>
+                <View style={styles.starsRow}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Feather
+                      key={star}
+                      name="star"
+                      size={16}
+                      color={star <= (booking.feedbackRating || 0) ? Colors.warning : theme.textSecondary + "30"}
+                    />
+                  ))}
+                </View>
+              </View>
+
+              {booking.feedbackCleanliness ? (
+                <View style={styles.feedbackRow}>
+                  <ThemedText type="small" style={{ color: theme.textSecondary }}>Limpieza</ThemedText>
+                  <ThemedText type="small" style={{ fontWeight: "600" }}>
+                    {booking.feedbackCleanliness === "excelente" ? "Excelente"
+                      : booking.feedbackCleanliness === "buena" ? "Buena"
+                      : booking.feedbackCleanliness === "regular" ? "Regular"
+                      : "Mala"}
+                  </ThemedText>
+                </View>
+              ) : null}
+
+              {booking.feedbackPunctuality ? (
+                <View style={styles.feedbackRow}>
+                  <ThemedText type="small" style={{ color: theme.textSecondary }}>Puntualidad</ThemedText>
+                  <ThemedText type="small" style={{ fontWeight: "600" }}>
+                    {booking.feedbackPunctuality === "a_tiempo" ? "A tiempo"
+                      : booking.feedbackPunctuality === "leve_retraso" ? "Leve retraso"
+                      : "Con retraso"}
+                  </ThemedText>
+                </View>
+              ) : null}
+
+              {booking.feedbackExtras && booking.feedbackExtras.length > 0 ? (
+                <View style={styles.feedbackExtrasSection}>
+                  <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>Destacados</ThemedText>
+                  <View style={styles.feedbackChips}>
+                    {booking.feedbackExtras.map((extra) => {
+                      const labels: Record<string, string> = {
+                        amabilidad: "Amabilidad del personal",
+                        productos: "Buenos productos",
+                        rapidez: "Rapidez del servicio",
+                        detallado: "Trabajo detallado",
+                        recomendaria: "Lo recomendaría",
+                      };
+                      return (
+                        <View
+                          key={extra}
+                          style={[styles.feedbackChip, { backgroundColor: (isDark ? Colors.accent : Colors.primary) + "15" }]}
+                        >
+                          <Feather name="check" size={12} color={isDark ? Colors.accent : Colors.primary} />
+                          <ThemedText type="small" style={{ color: isDark ? Colors.accent : Colors.primary, fontWeight: "600" }}>
+                            {labels[extra] || extra}
+                          </ThemedText>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
+
+              {booking.feedbackComment ? (
+                <View style={[styles.feedbackCommentBox, { backgroundColor: theme.backgroundSecondary }]}>
+                  <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>Comentario</ThemedText>
+                  <ThemedText type="body">{booking.feedbackComment}</ThemedText>
+                </View>
+              ) : null}
+            </Card>
+          </Animated.View>
+        ) : null}
+
         {booking.status === "upcoming" ? (
           <Animated.View
             entering={FadeInDown.delay(150).springify()}
@@ -652,5 +737,45 @@ const styles = StyleSheet.create({
   },
   completedButton: {
     backgroundColor: "transparent",
+  },
+  feedbackCard: {
+    marginBottom: Spacing.lg,
+  },
+  feedbackHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  feedbackRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: Spacing.xs,
+  },
+  starsRow: {
+    flexDirection: "row",
+    gap: 4,
+  },
+  feedbackExtrasSection: {
+    paddingTop: Spacing.sm,
+  },
+  feedbackChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.xs,
+  },
+  feedbackChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.full,
+  },
+  feedbackCommentBox: {
+    marginTop: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
   },
 });

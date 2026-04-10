@@ -64,6 +64,11 @@ export interface Booking {
   vehiclePlate?: string;
   addressLabel?: string;
   comments?: string;
+  feedbackRating?: number;
+  feedbackCleanliness?: string;
+  feedbackPunctuality?: string;
+  feedbackExtras?: string[];
+  feedbackComment?: string;
 }
 
 export interface SavedVehicle {
