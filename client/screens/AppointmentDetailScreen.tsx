@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { StyleSheet, View, ScrollView, Alert, Pressable, Modal } from "react-native";
 import { Image } from "expo-image";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import { useNavigation, useRoute, useFocusEffect, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -22,6 +22,7 @@ import { Colors, Spacing, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import {
   updateBooking,
+  getBookings,
   formatDate,
   formatPrice,
   getVehicleName,
@@ -65,6 +66,19 @@ export default function AppointmentDetailScreen() {
   const [booking, setBooking] = useState<Booking>(route.params.booking);
   const [servicesExpanded, setServicesExpanded] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      const reloadBooking = async () => {
+        const allBookings = await getBookings();
+        const updated = allBookings.find((b) => b.id === booking.id);
+        if (updated) {
+          setBooking(updated);
+        }
+      };
+      reloadBooking();
+    }, [booking.id])
+  );
 
   const allIncludedServices = useMemo(() => {
     const includedByWash = ALL_SERVICES.filter((s) => s.includedIn.includes(booking.washType));
