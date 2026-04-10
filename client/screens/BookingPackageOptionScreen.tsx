@@ -1,6 +1,11 @@
 import React, { useState, useCallback } from "react";
 import { StyleSheet, View, ScrollView, Pressable } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { Image } from "expo-image";
+
+import vehicleSmall from "../../assets/images/vehicle-small.png";
+import vehicleSuv from "../../assets/images/vehicle-suv.png";
+import vehicleLarge from "../../assets/images/vehicle-large.png";
 import { useNavigation, useFocusEffect, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -178,9 +183,13 @@ export default function BookingPackageOptionScreen() {
                   </View>
 
                   <View style={styles.vehicleBadge}>
-                    <Feather name="truck" size={14} color={theme.textSecondary} />
+                    <Image
+                      source={membership.vehicleSize === "small" ? vehicleSmall : membership.vehicleSize === "suv" ? vehicleSuv : vehicleLarge}
+                      style={styles.vehicleBadgeImage}
+                      contentFit="contain"
+                    />
                     <ThemedText type="caption" style={{ color: theme.textSecondary, fontWeight: "600" }}>
-                      Vehículo: {getVehicleName(membership.vehicleSize)}
+                      {getVehicleName(membership.vehicleSize)}
                     </ThemedText>
                   </View>
 
@@ -307,6 +316,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.sm,
     backgroundColor: "rgba(0,0,0,0.04)",
+  },
+  vehicleBadgeImage: {
+    width: 32,
+    height: 20,
   },
   radioOuter: {
     width: 24,
