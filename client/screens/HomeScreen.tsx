@@ -202,19 +202,20 @@ export default function HomeScreen() {
           })()
         ) : (
           <Animated.View entering={FadeInDown.delay(100).springify()}>
-            <FlatList
-              data={PACKAGES}
+            <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              keyExtractor={(item) => item.id}
               contentContainerStyle={styles.carouselContent}
-              snapToInterval={220}
+              snapToInterval={160}
               decelerationRate="fast"
-              renderItem={({ item: pkg }) => {
+            >
+              {PACKAGES.map((pkg) => {
                 const iconName = pkg.id === "premium" ? "award" as const : pkg.id === "completo" ? "star" as const : "check-circle" as const;
-                const startPrice = pkg.durations[0].prices.small;
+                const washes = pkg.durations[0].washesIncluded;
+                const days = pkg.durations[0].days;
                 return (
                   <Card
+                    key={pkg.id}
                     elevation={2}
                     onPress={() => navigation.navigate("PackageVehicleSelection")}
                     style={StyleSheet.flatten([
@@ -222,22 +223,23 @@ export default function HomeScreen() {
                       { backgroundColor: pkg.color + "10" },
                     ])}
                   >
-                    <View style={[styles.carouselIconCircle, { backgroundColor: pkg.color }]}>
-                      <Feather name={iconName} size={20} color="#FFFFFF" />
+                    <View style={styles.carouselRow}>
+                      <View style={[styles.carouselIconCircle, { backgroundColor: pkg.color }]}>
+                        <Feather name={iconName} size={16} color="#FFFFFF" />
+                      </View>
+                      <View style={styles.carouselTextCol}>
+                        <ThemedText type="body" style={{ color: pkg.color, fontWeight: "700" }}>
+                          {pkg.name}
+                        </ThemedText>
+                        <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                          {washes} lavadas / {days}d
+                        </ThemedText>
+                      </View>
                     </View>
-                    <ThemedText type="h3" style={{ color: pkg.color, marginTop: Spacing.sm }}>
-                      {pkg.name}
-                    </ThemedText>
-                    <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: 2 }} numberOfLines={2}>
-                      {pkg.description}
-                    </ThemedText>
-                    <ThemedText type="caption" style={{ color: pkg.color, fontWeight: "700", marginTop: Spacing.sm }}>
-                      Desde ${startPrice}
-                    </ThemedText>
                   </Card>
                 );
-              }}
-            />
+              })}
+            </ScrollView>
           </Animated.View>
         )}
 
@@ -408,20 +410,28 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   carouselContent: {
-    gap: Spacing.md,
+    gap: Spacing.sm,
     paddingRight: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   carouselCard: {
-    width: 200,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  carouselRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
   },
   carouselIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.md,
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.sm,
     alignItems: "center",
     justifyContent: "center",
+  },
+  carouselTextCol: {
+    gap: 1,
   },
   bookSection: {
     marginBottom: Spacing["2xl"],
