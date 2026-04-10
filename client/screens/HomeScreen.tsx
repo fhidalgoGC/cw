@@ -146,12 +146,6 @@ export default function HomeScreen() {
           entering={FadeInDown.delay(50).springify()}
           style={styles.header}
         >
-          <View>
-            <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-              Bienvenido
-            </ThemedText>
-            <ThemedText type="h1">{userData?.name || "Usuario"}</ThemedText>
-          </View>
           <Pressable onPress={openDrawer} style={styles.profileButton}>
             <Feather
               name="menu"
@@ -459,9 +453,9 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     alignItems: "center",
-    marginBottom: Spacing["2xl"],
+    marginBottom: Spacing.lg,
   },
   profileButton: {
     width: 44,
