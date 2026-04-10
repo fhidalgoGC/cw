@@ -110,6 +110,16 @@ export default function MembershipDetailScreen() {
           const totalWashes = duration ? duration.washesIncluded : membership.washesRemaining;
           const progressPercent = (membership.washesRemaining / totalWashes) * 100;
 
+          const allPerks = [
+            ...pkg.perks,
+            `${totalWashes} lavadas en ${duration ? duration.label.toLowerCase() : "tu plan"}`,
+          ];
+          const MAX_VISIBLE = 3;
+          const isExpanded = !!expandedPerks[membership.id];
+          const visiblePerks = isExpanded ? allPerks : allPerks.slice(0, MAX_VISIBLE);
+          const hasMore = allPerks.length > MAX_VISIBLE;
+          const hiddenCount = allPerks.length - MAX_VISIBLE;
+
           return (
             <Animated.View
               key={membership.id}
@@ -117,117 +127,104 @@ export default function MembershipDetailScreen() {
             >
               <Card
                 elevation={2}
-                style={{ ...styles.packageCard, backgroundColor: pkg.color }}
+                style={styles.packageCard}
               >
                 <View style={styles.packageHeader}>
-                  <View style={styles.packageBadge}>
+                  <View
+                    style={[styles.packageIcon, { backgroundColor: `${pkg.color}20` }]}
+                  >
                     <Feather
                       name={pkg.id === "premium" ? "award" : pkg.id === "completo" ? "star" : "check-circle"}
                       size={24}
-                      color="#FFFFFF"
+                      color={pkg.color}
                     />
                   </View>
                   <View style={styles.packageTitleContainer}>
-                    <ThemedText type="h2" style={styles.packageName}>
-                      {pkg.name}
+                    <ThemedText type="h2">{pkg.name}</ThemedText>
+                    <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                      {pkg.description}
                     </ThemedText>
-                    <View style={styles.daysContainer}>
-                      <Feather name="clock" size={14} color="rgba(255,255,255,0.8)" />
-                      <ThemedText type="caption" style={styles.daysText}>
+                  </View>
+                </View>
+
+                <View style={styles.durationBadge}>
+                  <View style={[styles.durationTag, { backgroundColor: pkg.color + "20", borderColor: pkg.color }]}>
+                    <ThemedText type="caption" style={{ fontWeight: "700", color: pkg.color }}>
+                      {duration ? duration.label : "Activo"}
+                    </ThemedText>
+                    <ThemedText type="caption" style={{ color: pkg.color, fontSize: 11 }}>
+                      {membership.washesRemaining}/{totalWashes} lavadas
+                    </ThemedText>
+                  </View>
+                  <View style={styles.metaInfo}>
+                    <View style={styles.metaRow}>
+                      <Feather name="clock" size={13} color={theme.textSecondary} />
+                      <ThemedText type="caption" style={{ color: theme.textSecondary }}>
                         {daysRemaining} {daysRemaining === 1 ? "día" : "días"} restantes
+                      </ThemedText>
+                    </View>
+                    <View style={styles.metaRow}>
+                      <Feather name="calendar" size={13} color={theme.textSecondary} />
+                      <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                        Vence: {new Date(membership.expirationDate).toLocaleDateString("es-MX", {
+                          day: "numeric",
+                          month: "short",
+                        })}
                       </ThemedText>
                     </View>
                   </View>
                 </View>
 
-                <View style={styles.washesSection}>
-                  <ThemedText type="h1" style={styles.washesCount}>
-                    {membership.washesRemaining}
-                  </ThemedText>
-                  <ThemedText type="body" style={styles.washesLabel}>
-                    de {totalWashes} lavadas restantes
-                  </ThemedText>
-                  <View style={styles.progressBar}>
+                <View style={styles.progressBarContainer}>
+                  <View style={[styles.progressBar, { backgroundColor: pkg.color + "20" }]}>
                     <View
                       style={[
                         styles.progressFill,
-                        { width: `${progressPercent}%` },
+                        { width: `${progressPercent}%`, backgroundColor: pkg.color },
                       ]}
                     />
                   </View>
                 </View>
 
-                <View style={styles.expirationInfo}>
-                  <Feather name="calendar" size={14} color="rgba(255,255,255,0.8)" />
-                  <ThemedText type="caption" style={styles.expirationText}>
-                    Vence: {new Date(membership.expirationDate).toLocaleDateString("es-MX", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </ThemedText>
-                </View>
-
-                <View style={styles.perksDivider} />
-
-                {(() => {
-                  const allPerks = [
-                    ...pkg.perks,
-                    `${totalWashes} lavadas en ${duration ? duration.label.toLowerCase() : "tu plan"}`,
-                  ];
-                  const MAX_VISIBLE = 3;
-                  const isExpanded = !!expandedPerks[membership.id];
-                  const visiblePerks = isExpanded ? allPerks : allPerks.slice(0, MAX_VISIBLE);
-                  const hasMore = allPerks.length > MAX_VISIBLE;
-                  const hiddenCount = allPerks.length - MAX_VISIBLE;
-
-                  return (
-                    <View style={styles.perksContainer}>
-                      {visiblePerks.map((perk, perkIndex) => (
-                        <View key={perkIndex} style={styles.perkRow}>
-                          <Feather name="check-circle" size={14} color="rgba(255,255,255,0.9)" />
-                          <ThemedText type="small" style={styles.perkText}>
-                            {perk}
-                          </ThemedText>
-                        </View>
-                      ))}
-                      {hasMore ? (
-                        <Pressable
-                          onPress={() =>
-                            setExpandedPerks((prev) => ({
-                              ...prev,
-                              [membership.id]: !prev[membership.id],
-                            }))
-                          }
-                          style={styles.seeMoreRow}
-                        >
-                          <Feather
-                            name={isExpanded ? "chevron-up" : "chevron-down"}
-                            size={14}
-                            color="#FFFFFF"
-                          />
-                          <ThemedText type="small" style={styles.seeMoreText}>
-                            {isExpanded ? "Ver menos" : `Ver más (${hiddenCount})`}
-                          </ThemedText>
-                        </Pressable>
-                      ) : null}
+                <View style={styles.perksContainer}>
+                  {visiblePerks.map((perk, perkIndex) => (
+                    <View key={perkIndex} style={styles.perkRow}>
+                      <Feather name="check-circle" size={16} color={Colors.success} />
+                      <ThemedText type="body" style={styles.perkText}>
+                        {perk}
+                      </ThemedText>
                     </View>
-                  );
-                })()}
+                  ))}
+                  {hasMore ? (
+                    <Pressable
+                      onPress={() =>
+                        setExpandedPerks((prev) => ({
+                          ...prev,
+                          [membership.id]: !prev[membership.id],
+                        }))
+                      }
+                      style={styles.seeMoreRow}
+                    >
+                      <Feather
+                        name={isExpanded ? "chevron-up" : "chevron-down"}
+                        size={16}
+                        color={Colors.primary}
+                      />
+                      <ThemedText type="body" style={{ color: Colors.primary, fontWeight: "600" }}>
+                        {isExpanded ? "Ver menos" : `Ver más (${hiddenCount})`}
+                      </ThemedText>
+                    </Pressable>
+                  ) : null}
+                </View>
 
                 <Button
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     navigation.navigate("VehicleSelection");
                   }}
-                  style={styles.bookButtonInCard}
+                  style={[styles.bookButton, { backgroundColor: pkg.color }]}
                 >
-                  <View style={styles.bookButtonContent}>
-                    <Feather name="calendar" size={18} color={pkg.color} />
-                    <ThemedText type="body" style={[styles.bookButtonText, { color: pkg.color }]}>
-                      Agendar Cita
-                    </ThemedText>
-                  </View>
+                  Agendar Cita
                 </Button>
               </Card>
             </Animated.View>
@@ -295,6 +292,7 @@ const styles = StyleSheet.create({
   },
   packageCard: {
     padding: Spacing.xl,
+    overflow: "hidden",
   },
   packageHeader: {
     flexDirection: "row",
@@ -302,72 +300,56 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     marginBottom: Spacing.lg,
   },
-  packageBadge: {
+  packageIcon: {
     width: 48,
     height: 48,
     borderRadius: BorderRadius.md,
-    backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
   },
   packageTitleContainer: {
     flex: 1,
+    gap: Spacing.xs,
   },
-  packageName: {
-    color: "#FFFFFF",
+  durationBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
   },
-  daysContainer: {
+  durationTag: {
+    alignItems: "center",
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 2,
+    gap: 2,
+  },
+  metaInfo: {
+    flex: 1,
+    gap: Spacing.xs,
+  },
+  metaRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.xs,
-    marginTop: Spacing.xs,
   },
-  daysText: {
-    color: "rgba(255,255,255,0.9)",
-    fontWeight: "600",
-  },
-  washesSection: {
-    alignItems: "center",
+  progressBarContainer: {
     marginBottom: Spacing.lg,
-  },
-  washesCount: {
-    fontSize: 56,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    lineHeight: 64,
-  },
-  washesLabel: {
-    color: "rgba(255,255,255,0.9)",
-    marginBottom: Spacing.md,
   },
   progressBar: {
     width: "100%",
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "rgba(255,255,255,0.3)",
+    height: 6,
+    borderRadius: 3,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    borderRadius: 4,
-    backgroundColor: "#FFFFFF",
-  },
-  expirationInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.xs,
-  },
-  expirationText: {
-    color: "rgba(255,255,255,0.8)",
-  },
-  perksDivider: {
-    height: 1,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    marginVertical: Spacing.md,
+    borderRadius: 3,
   },
   perksContainer: {
     gap: Spacing.sm,
+    marginBottom: Spacing.lg,
   },
   perkRow: {
     flexDirection: "row",
@@ -375,31 +357,16 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   perkText: {
-    color: "rgba(255,255,255,0.95)",
     flex: 1,
   },
   seeMoreRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.xs,
+    gap: Spacing.sm,
     paddingTop: Spacing.xs,
   },
-  seeMoreText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
-  bookButtonInCard: {
-    backgroundColor: "#FFFFFF",
-    marginTop: Spacing.lg,
-  },
-  bookButtonContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-  },
-  bookButtonText: {
-    fontWeight: "600",
+  bookButton: {
+    marginTop: Spacing.xs,
   },
   addMoreButton: {
     marginTop: Spacing.sm,
