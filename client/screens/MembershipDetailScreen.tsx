@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { StyleSheet, View, ScrollView, Alert } from "react-native";
+import { StyleSheet, View, ScrollView } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -17,12 +17,7 @@ import {
   getUserData,
   UserData,
   PACKAGES,
-  ADD_ONS,
   getActiveMemberships,
-  getDaysRemaining,
-  cancelMembership,
-  Package,
-  Membership,
 } from "@/lib/storage";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
@@ -48,24 +43,6 @@ export default function MembershipDetailScreen() {
     setIsLoading(false);
   };
 
-  const handleCancelMembership = (membership: Membership, pkg: Package) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert(
-      "Cancelar Paquete",
-      `¿Estás seguro de cancelar tu paquete ${pkg.name}? Perderás las lavadas restantes.`,
-      [
-        { text: "No", style: "cancel" },
-        {
-          text: "Sí, cancelar",
-          style: "destructive",
-          onPress: async () => {
-            await cancelMembership(membership.id);
-            loadUserData();
-          },
-        },
-      ]
-    );
-  };
 
   if (isLoading) {
     return (
@@ -189,68 +166,27 @@ export default function MembershipDetailScreen() {
                     })}
                   </ThemedText>
                 </View>
+
+                <Button
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    navigation.navigate("VehicleSelection");
+                  }}
+                  style={styles.bookButtonInCard}
+                >
+                  <View style={styles.bookButtonContent}>
+                    <Feather name="calendar" size={18} color={pkg.color} />
+                    <ThemedText type="body" style={[styles.bookButtonText, { color: pkg.color }]}>
+                      Agendar Cita
+                    </ThemedText>
+                  </View>
+                </Button>
               </Card>
-
-              {pkg.addOnsIncluded.length > 0 ? (
-                <Card elevation={1} style={styles.addOnsCard}>
-                  <ThemedText type="body" style={{ fontWeight: "600", marginBottom: Spacing.sm }}>
-                    Add-Ons Incluidos
-                  </ThemedText>
-                  {pkg.addOnsIncluded.map((addon) => {
-                    const addOnInfo = ADD_ONS.find((a) => a.id === addon.addOnId);
-                    const remaining = membership.addOnUsage[addon.addOnId] || 0;
-                    return (
-                      <View
-                        key={addon.addOnId}
-                        style={[styles.addOnRow, { borderBottomColor: theme.backgroundTertiary }]}
-                      >
-                        <ThemedText type="caption">
-                          {addOnInfo?.name || addon.addOnId}
-                        </ThemedText>
-                        <ThemedText
-                          type="caption"
-                          style={{
-                            color: remaining > 0 ? Colors.success : Colors.error,
-                            fontWeight: "600",
-                          }}
-                        >
-                          {remaining}/{addon.includedUses}
-                        </ThemedText>
-                      </View>
-                    );
-                  })}
-                </Card>
-              ) : null}
-
-              <Button
-                onPress={() => handleCancelMembership(membership, pkg)}
-                style={[styles.cancelButton, { backgroundColor: Colors.error + "15" }]}
-                textColor={Colors.error}
-              >
-                Cancelar Paquete
-              </Button>
             </Animated.View>
           );
         })}
 
         <Animated.View entering={FadeInDown.delay(activeMemberships.length * 100 + 50).springify()}>
-          <Button
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              navigation.navigate("VehicleSelection");
-            }}
-            style={styles.bookButton}
-          >
-            <View style={styles.bookButtonContent}>
-              <Feather name="calendar" size={20} color="#FFFFFF" />
-              <ThemedText type="body" style={styles.bookButtonText}>
-                Agendar Cita
-              </ThemedText>
-            </View>
-          </Button>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(activeMemberships.length * 100 + 100).springify()}>
           <Button
             onPress={() => navigation.navigate("PackageVehicleSelection")}
             style={[styles.addMoreButton, { backgroundColor: theme.backgroundSecondary }]}
@@ -377,21 +313,9 @@ const styles = StyleSheet.create({
   expirationText: {
     color: "rgba(255,255,255,0.8)",
   },
-  addOnsCard: {
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
-  addOnRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: Spacing.xs,
-    borderBottomWidth: 1,
-  },
-  cancelButton: {
-    marginBottom: Spacing.xl,
-  },
-  bookButton: {
-    backgroundColor: Colors.primary,
+  bookButtonInCard: {
+    backgroundColor: "#FFFFFF",
+    marginTop: Spacing.lg,
   },
   bookButtonContent: {
     flexDirection: "row",
@@ -400,7 +324,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   bookButtonText: {
-    color: "#FFFFFF",
     fontWeight: "600",
   },
   addMoreButton: {
