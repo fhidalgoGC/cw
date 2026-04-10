@@ -18,6 +18,7 @@ import {
   UserData,
   PACKAGES,
   getActiveMemberships,
+  getVehicleName,
 } from "@/lib/storage";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
@@ -145,6 +146,13 @@ export default function MembershipDetailScreen() {
                       {pkg.description}
                     </ThemedText>
                   </View>
+                </View>
+
+                <View style={styles.vehicleBadge}>
+                  <Feather name="truck" size={14} color={theme.textSecondary} />
+                  <ThemedText type="caption" style={{ color: theme.textSecondary, fontWeight: "600" }}>
+                    Vehículo: {getVehicleName(membership.vehicleSize)}
+                  </ThemedText>
                 </View>
 
                 <View style={styles.durationBadge}>
@@ -310,6 +318,16 @@ const styles = StyleSheet.create({
   packageTitleContainer: {
     flex: 1,
     gap: Spacing.xs,
+  },
+  vehicleBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: "rgba(0,0,0,0.04)",
   },
   durationBadge: {
     flexDirection: "row",

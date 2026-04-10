@@ -18,6 +18,7 @@ import {
   getUserData,
   getActiveMemberships,
   getIncludedServiceIds,
+  getVehicleName,
   UserData,
   Package,
   Membership,
@@ -176,6 +177,13 @@ export default function BookingPackageOptionScreen() {
                     </View>
                   </View>
 
+                  <View style={styles.vehicleBadge}>
+                    <Feather name="truck" size={14} color={theme.textSecondary} />
+                    <ThemedText type="caption" style={{ color: theme.textSecondary, fontWeight: "600" }}>
+                      Vehículo: {getVehicleName(membership.vehicleSize)}
+                    </ThemedText>
+                  </View>
+
                   <View style={styles.statsRow}>
                     <View style={[styles.statBadge, { backgroundColor: pkg.color + "15" }]}>
                       <Feather name="droplet" size={14} color={pkg.color} />
@@ -289,6 +297,16 @@ const styles = StyleSheet.create({
   packageTitleContainer: {
     flex: 1,
     gap: Spacing.xs,
+  },
+  vehicleBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: "rgba(0,0,0,0.04)",
   },
   radioOuter: {
     width: 24,
