@@ -32,6 +32,7 @@ import {
   WASH_TYPE_PRICES,
   ADD_ONS,
   ALL_SERVICES,
+  PACKAGES,
   Booking,
   getUserData,
   UserData,
@@ -103,6 +104,7 @@ export default function PaymentScreen() {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
+  const isBookingWithPackage = !!preselectedMembershipId;
   const [selectedMembershipId, setSelectedMembershipId] = useState<string | null>(preselectedMembershipId || null);
   const isUsingMembership = !!selectedMembershipId;
 
@@ -143,6 +145,23 @@ export default function PaymentScreen() {
   const [servicesExpanded, setServicesExpanded] = useState(false);
 
   const selectedAddOns = ALL_SERVICES.filter((s) => addOns.includes(s.id));
+
+  const matchedPackageInfo = useMemo(() => {
+    if (!isBookingWithPackage || !userData) return null;
+    const actives = getActiveMemberships(userData);
+    const found = actives.find((a) => a.membership.id === preselectedMembershipId);
+    if (!found) return null;
+    const duration = found.package.durations.find((d) => d.id === found.membership.durationId);
+    return {
+      packageName: found.package.name,
+      packageColor: found.package.color,
+      packageIcon: found.package.id === "premium" ? "award" as const : found.package.id === "completo" ? "star" as const : "check-circle" as const,
+      washesRemaining: found.membership.washesRemaining,
+      totalWashes: duration ? duration.washesIncluded : found.membership.washesRemaining,
+      daysRemaining: found.daysRemaining,
+      durationLabel: duration ? duration.label : "",
+    };
+  }, [isBookingWithPackage, userData, preselectedMembershipId]);
 
   const allIncludedServices = useMemo(() => {
     const includedByWash = ALL_SERVICES.filter((s) => s.includedIn.includes(washType));
@@ -324,9 +343,11 @@ export default function PaymentScreen() {
               </ThemedText>
               <View style={{ alignItems: "flex-end" }}>
                 <ThemedText type="body">{getWashTypeName(washType)}</ThemedText>
-                <ThemedText type="small" style={{ color: Colors.success, fontWeight: "600" }}>
-                  {formatPrice(VEHICLE_PRICES[vehicleSize] + WASH_TYPE_PRICES[washType])}
-                </ThemedText>
+                {!isBookingWithPackage ? (
+                  <ThemedText type="small" style={{ color: Colors.success, fontWeight: "600" }}>
+                    {formatPrice(VEHICLE_PRICES[vehicleSize] + WASH_TYPE_PRICES[washType])}
+                  </ThemedText>
+                ) : null}
               </View>
             </View>
             {allIncludedServices.length > 0 ? (
@@ -437,157 +458,195 @@ export default function PaymentScreen() {
               </ThemedText>
               <ThemedText type="body">{time}</ThemedText>
             </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryRow}>
-              <ThemedText type="h3">Total</ThemedText>
-              {isUsingMembership ? (
-                <View style={{ alignItems: "flex-end" }}>
+            {!isBookingWithPackage ? (
+              <>
+                <View style={styles.summaryDivider} />
+                <View style={styles.summaryRow}>
+                  <ThemedText type="h3">Total</ThemedText>
                   <ThemedText
                     type="h2"
-                    style={{ color: Colors.success }}
+                    style={{ color: isDark ? Colors.accent : Colors.primary }}
                   >
-                    Incluido
-                  </ThemedText>
-                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                    Con tu paquete
+                    {formatPrice(totalPrice)}
                   </ThemedText>
                 </View>
-              ) : (
-                <ThemedText
-                  type="h2"
-                  style={{ color: isDark ? Colors.accent : Colors.primary }}
-                >
-                  {formatPrice(totalPrice)}
-                </ThemedText>
-              )}
-            </View>
+              </>
+            ) : null}
           </Card>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <ThemedText type="h2" style={styles.sectionTitle}>
-            Método de Pago
-          </ThemedText>
-
-          {activeMemberships.length > 0 ? (
-            <View style={styles.paymentMethods}>
-              <Pressable
-                onPress={() => handleMembershipSelect(null)}
-                style={[
-                  styles.paymentMethod,
-                  {
-                    backgroundColor: !isUsingMembership
-                      ? isDark
-                        ? "rgba(6, 182, 212, 0.15)"
-                        : "rgba(30, 64, 175, 0.08)"
-                      : theme.backgroundDefault,
-                    borderColor: !isUsingMembership
-                      ? isDark
-                        ? Colors.accent
-                        : Colors.primary
-                      : theme.backgroundTertiary,
-                  },
-                ]}
-              >
-                <Feather
-                  name="credit-card"
-                  size={24}
-                  color={
-                    !isUsingMembership
-                      ? isDark
-                        ? Colors.accent
-                        : Colors.primary
-                      : theme.textSecondary
-                  }
-                />
-                <View style={styles.paymentInfo}>
-                  <ThemedText type="body">Pago Directo</ThemedText>
+        {isBookingWithPackage && matchedPackageInfo ? (
+          <Animated.View entering={FadeInDown.delay(100).springify()}>
+            <ThemedText type="h2" style={styles.sectionTitle}>
+              Tu Paquete
+            </ThemedText>
+            <Card elevation={2} style={[styles.packageInfoCard, { borderLeftColor: matchedPackageInfo.packageColor, borderLeftWidth: 4 }]}>
+              <View style={styles.packageInfoRow}>
+                <View style={[styles.packageIcon, { backgroundColor: matchedPackageInfo.packageColor }]}>
+                  <Feather name={matchedPackageInfo.packageIcon} size={20} color="#FFFFFF" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <ThemedText type="h3">{matchedPackageInfo.packageName}</ThemedText>
+                  {matchedPackageInfo.durationLabel ? (
+                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                      {matchedPackageInfo.durationLabel}
+                    </ThemedText>
+                  ) : null}
+                </View>
+              </View>
+              <View style={styles.summaryDivider} />
+              <View style={styles.packageStatsRow}>
+                <View style={styles.packageStat}>
+                  <ThemedText type="h2" style={{ color: matchedPackageInfo.packageColor }}>
+                    {matchedPackageInfo.washesRemaining}
+                  </ThemedText>
                   <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                    Paga esta lavada individualmente
+                    de {matchedPackageInfo.totalWashes} lavadas restantes
                   </ThemedText>
                 </View>
-                <View
+                <View style={[styles.packageStatDivider, { backgroundColor: theme.backgroundTertiary }]} />
+                <View style={styles.packageStat}>
+                  <ThemedText type="h2" style={{ color: theme.text }}>
+                    {matchedPackageInfo.daysRemaining}
+                  </ThemedText>
+                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                    días restantes
+                  </ThemedText>
+                </View>
+              </View>
+              <View style={styles.summaryDivider} />
+              <View style={styles.packageNote}>
+                <Feather name="info" size={14} color={matchedPackageInfo.packageColor} />
+                <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                  Se descontará 1 lavada de tu paquete al confirmar
+                </ThemedText>
+              </View>
+            </Card>
+          </Animated.View>
+        ) : (
+          <Animated.View entering={FadeInDown.delay(100).springify()}>
+            <ThemedText type="h2" style={styles.sectionTitle}>
+              Método de Pago
+            </ThemedText>
+
+            {activeMemberships.length > 0 ? (
+              <View style={styles.paymentMethods}>
+                <Pressable
+                  onPress={() => handleMembershipSelect(null)}
                   style={[
-                    styles.radioOuter,
+                    styles.paymentMethod,
                     {
+                      backgroundColor: !isUsingMembership
+                        ? isDark
+                          ? "rgba(6, 182, 212, 0.15)"
+                          : "rgba(30, 64, 175, 0.08)"
+                        : theme.backgroundDefault,
                       borderColor: !isUsingMembership
                         ? isDark
                           ? Colors.accent
                           : Colors.primary
-                        : theme.textSecondary,
+                        : theme.backgroundTertiary,
                     },
                   ]}
                 >
-                  {!isUsingMembership ? (
-                    <View
-                      style={[
-                        styles.radioInner,
-                        {
-                          backgroundColor: isDark
-                            ? Colors.accent
-                            : Colors.primary,
-                        },
-                      ]}
-                    />
-                  ) : null}
-                </View>
-              </Pressable>
-
-              {activeMemberships.map(({ package: pkg, membership, daysRemaining }) => {
-                const isSelected = selectedMembershipId === membership.id;
-                return (
-                  <Pressable
-                    key={membership.id}
-                    onPress={() => handleMembershipSelect(membership.id)}
+                  <Feather
+                    name="credit-card"
+                    size={24}
+                    color={
+                      !isUsingMembership
+                        ? isDark
+                          ? Colors.accent
+                          : Colors.primary
+                        : theme.textSecondary
+                    }
+                  />
+                  <View style={styles.paymentInfo}>
+                    <ThemedText type="body">Pago Directo</ThemedText>
+                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                      Paga esta lavada individualmente
+                    </ThemedText>
+                  </View>
+                  <View
                     style={[
-                      styles.paymentMethod,
+                      styles.radioOuter,
                       {
-                        backgroundColor: isSelected
-                          ? pkg.color + "20"
-                          : theme.backgroundDefault,
-                        borderColor: isSelected
-                          ? pkg.color
-                          : theme.backgroundTertiary,
+                        borderColor: !isUsingMembership
+                          ? isDark
+                            ? Colors.accent
+                            : Colors.primary
+                          : theme.textSecondary,
                       },
                     ]}
                   >
-                    <View style={[styles.packageIcon, { backgroundColor: pkg.color }]}>
-                      <Feather
-                        name={pkg.id === "premium" ? "award" : pkg.id === "completo" ? "star" : "check-circle"}
-                        size={18}
-                        color="#FFFFFF"
+                    {!isUsingMembership ? (
+                      <View
+                        style={[
+                          styles.radioInner,
+                          {
+                            backgroundColor: isDark
+                              ? Colors.accent
+                              : Colors.primary,
+                          },
+                        ]}
                       />
-                    </View>
-                    <View style={styles.paymentInfo}>
-                      <ThemedText type="body">{pkg.name}</ThemedText>
-                      <View style={styles.packageMeta}>
-                        <ThemedText type="small" style={{ color: pkg.color, fontWeight: "600" }}>
-                          {membership.washesRemaining} lavadas
-                        </ThemedText>
-                        <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                          {daysRemaining} días
-                        </ThemedText>
-                      </View>
-                    </View>
-                    <View
+                    ) : null}
+                  </View>
+                </Pressable>
+
+                {activeMemberships.map(({ package: pkg, membership, daysRemaining }) => {
+                  const isSelected = selectedMembershipId === membership.id;
+                  return (
+                    <Pressable
+                      key={membership.id}
+                      onPress={() => handleMembershipSelect(membership.id)}
                       style={[
-                        styles.radioOuter,
-                        { borderColor: isSelected ? pkg.color : theme.textSecondary },
+                        styles.paymentMethod,
+                        {
+                          backgroundColor: isSelected
+                            ? pkg.color + "20"
+                            : theme.backgroundDefault,
+                          borderColor: isSelected
+                            ? pkg.color
+                            : theme.backgroundTertiary,
+                        },
                       ]}
                     >
-                      {isSelected ? (
-                        <View
-                          style={[styles.radioInner, { backgroundColor: pkg.color }]}
+                      <View style={[styles.packageIcon, { backgroundColor: pkg.color }]}>
+                        <Feather
+                          name={pkg.id === "premium" ? "award" : pkg.id === "completo" ? "star" : "check-circle"}
+                          size={18}
+                          color="#FFFFFF"
                         />
-                      ) : null}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ) : null}
+                      </View>
+                      <View style={styles.paymentInfo}>
+                        <ThemedText type="body">{pkg.name}</ThemedText>
+                        <View style={styles.packageMeta}>
+                          <ThemedText type="small" style={{ color: pkg.color, fontWeight: "600" }}>
+                            {membership.washesRemaining} lavadas
+                          </ThemedText>
+                          <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                            {daysRemaining} días
+                          </ThemedText>
+                        </View>
+                      </View>
+                      <View
+                        style={[
+                          styles.radioOuter,
+                          { borderColor: isSelected ? pkg.color : theme.textSecondary },
+                        ]}
+                      >
+                        {isSelected ? (
+                          <View
+                            style={[styles.radioInner, { backgroundColor: pkg.color }]}
+                          />
+                        ) : null}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null}
 
-          {!isUsingMembership ? (
             <View style={styles.cardPaymentSection}>
               <PaymentMethodSelector
                 selectedId={selectedPayment}
@@ -601,22 +660,8 @@ export default function PaymentScreen() {
                 </ThemedText>
               </View>
             </View>
-          ) : (
-            <Card elevation={1} style={[styles.membershipActiveCard, { backgroundColor: Colors.success + "15" }]}>
-              <View style={styles.membershipBadge}>
-                <Feather name="award" size={24} color={Colors.success} />
-                <View style={{ flex: 1 }}>
-                  <ThemedText type="h3" style={{ color: Colors.success }}>
-                    Usando tu Paquete
-                  </ThemedText>
-                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                    Esta lavada se descontará de tu paquete activo
-                  </ThemedText>
-                </View>
-              </View>
-            </Card>
-          )}
-        </Animated.View>
+          </Animated.View>
+        )}
       </ScrollView>
 
       <View

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { StyleSheet, View, ScrollView, Pressable } from "react-native";
+import { StyleSheet, View, ScrollView } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 
@@ -137,46 +137,44 @@ export default function BookingPackageOptionScreen() {
               key={membership.id}
               entering={FadeInDown.delay(100 + index * 80).springify()}
             >
-              <Pressable onPress={() => handleUsePackage(membership.id)}>
-                <Card elevation={2} style={styles.packageCard}>
-                  <View style={styles.cardRow}>
-                    <View style={styles.cardLeft}>
-                      <Image
-                        source={VEHICLE_IMAGES[membership.vehicleSize]}
-                        style={styles.vehicleImage}
-                        contentFit="contain"
-                      />
+              <Card elevation={2} style={styles.packageCard} onPress={() => handleUsePackage(membership.id)}>
+                <View style={styles.cardRow}>
+                  <View style={styles.cardLeft}>
+                    <Image
+                      source={VEHICLE_IMAGES[membership.vehicleSize]}
+                      style={styles.vehicleImage}
+                      contentFit="contain"
+                    />
+                  </View>
+                  <View style={styles.cardCenter}>
+                    <View style={styles.cardTitleRow}>
+                      <View style={[styles.packageDot, { backgroundColor: pkg.color }]} />
+                      <ThemedText type="h3">{pkg.name}</ThemedText>
                     </View>
-                    <View style={styles.cardCenter}>
-                      <View style={styles.cardTitleRow}>
-                        <View style={[styles.packageDot, { backgroundColor: pkg.color }]} />
-                        <ThemedText type="h3">{pkg.name}</ThemedText>
-                      </View>
-                      <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                        {getVehicleName(membership.vehicleSize)}
-                      </ThemedText>
-                      <View style={styles.cardMeta}>
-                        <View style={[styles.metaChip, { backgroundColor: pkg.color + "15" }]}>
-                          <ThemedText type="small" style={{ color: pkg.color, fontWeight: "700" }}>
-                            {membership.washesRemaining}/{totalWashes}
-                          </ThemedText>
-                        </View>
-                        <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                          {daysRemaining}d
+                    <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                      {getVehicleName(membership.vehicleSize)}
+                    </ThemedText>
+                    <View style={styles.cardMeta}>
+                      <View style={[styles.metaChip, { backgroundColor: pkg.color + "15" }]}>
+                        <ThemedText type="small" style={{ color: pkg.color, fontWeight: "700" }}>
+                          {membership.washesRemaining}/{totalWashes}
                         </ThemedText>
-                        {duration ? (
-                          <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                            {duration.label}
-                          </ThemedText>
-                        ) : null}
                       </View>
-                    </View>
-                    <View style={[styles.useButton, { backgroundColor: pkg.color }]}>
-                      <Feather name="arrow-right" size={18} color="#FFFFFF" />
+                      <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                        {daysRemaining}d
+                      </ThemedText>
+                      {duration ? (
+                        <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                          {duration.label}
+                        </ThemedText>
+                      ) : null}
                     </View>
                   </View>
-                </Card>
-              </Pressable>
+                  <View style={[styles.useButton, { backgroundColor: pkg.color }]}>
+                    <Feather name="arrow-right" size={18} color="#FFFFFF" />
+                  </View>
+                </View>
+              </Card>
             </Animated.View>
           );
         })}
@@ -192,22 +190,20 @@ export default function BookingPackageOptionScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(150 + matchingMemberships.length * 80).springify()}>
-          <Pressable onPress={handleContinueNormal}>
-            <Card elevation={1} style={styles.normalCard}>
-              <View style={styles.normalCardRow}>
-                <View style={[styles.normalIcon, { backgroundColor: theme.backgroundSecondary }]}>
-                  <Feather name="credit-card" size={22} color={theme.textSecondary} />
-                </View>
-                <View style={styles.normalCardText}>
-                  <ThemedText type="h3">Continuar sin paquete</ThemedText>
-                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                    Elige servicios y paga individualmente
-                  </ThemedText>
-                </View>
-                <Feather name="chevron-right" size={22} color={theme.textSecondary} />
+          <Card elevation={1} style={styles.normalCard} onPress={handleContinueNormal}>
+            <View style={styles.normalCardRow}>
+              <View style={[styles.normalIcon, { backgroundColor: theme.backgroundSecondary }]}>
+                <Feather name="credit-card" size={22} color={theme.textSecondary} />
               </View>
-            </Card>
-          </Pressable>
+              <View style={styles.normalCardText}>
+                <ThemedText type="h3">Continuar sin paquete</ThemedText>
+                <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                  Elige servicios y paga individualmente
+                </ThemedText>
+              </View>
+              <Feather name="chevron-right" size={22} color={theme.textSecondary} />
+            </View>
+          </Card>
         </Animated.View>
       </ScrollView>
     </ThemedView>
