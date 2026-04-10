@@ -200,48 +200,7 @@ export default function HomeScreen() {
               </Animated.View>
             );
           })()
-        ) : (
-          <Animated.View entering={FadeInDown.delay(100).springify()}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.carouselContent}
-              snapToInterval={160}
-              decelerationRate="fast"
-            >
-              {PACKAGES.map((pkg) => {
-                const iconName = pkg.id === "premium" ? "award" as const : pkg.id === "completo" ? "star" as const : "check-circle" as const;
-                const washes = pkg.durations[0].washesIncluded;
-                const days = pkg.durations[0].days;
-                return (
-                  <Card
-                    key={pkg.id}
-                    elevation={2}
-                    onPress={() => navigation.navigate("PackageVehicleSelection")}
-                    style={StyleSheet.flatten([
-                      styles.carouselCard,
-                      { backgroundColor: pkg.color + "10" },
-                    ])}
-                  >
-                    <View style={styles.carouselRow}>
-                      <View style={[styles.carouselIconCircle, { backgroundColor: pkg.color }]}>
-                        <Feather name={iconName} size={16} color="#FFFFFF" />
-                      </View>
-                      <View style={styles.carouselTextCol}>
-                        <ThemedText type="body" style={{ color: pkg.color, fontWeight: "700" }}>
-                          {pkg.name}
-                        </ThemedText>
-                        <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                          {washes} lavadas / {days}d
-                        </ThemedText>
-                      </View>
-                    </View>
-                  </Card>
-                );
-              })}
-            </ScrollView>
-          </Animated.View>
-        )}
+        ) : null}
 
         <Animated.View
           entering={FadeInDown.delay(150).springify()}
