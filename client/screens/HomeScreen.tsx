@@ -2,6 +2,7 @@ import React, { useCallback, useState } from "react";
 import {
   StyleSheet,
   ScrollView,
+  FlatList,
   View,
   Pressable,
   RefreshControl,
@@ -201,47 +202,42 @@ export default function HomeScreen() {
           })()
         ) : (
           <Animated.View entering={FadeInDown.delay(100).springify()}>
-            {(() => {
-              const promoPkg = PACKAGES.find((p) => p.id === "premium") || PACKAGES[PACKAGES.length - 1];
-              return (
-                <Card
-                  elevation={2}
-                  onPress={() => navigation.navigate("PackageVehicleSelection")}
-                  style={StyleSheet.flatten([
-                    styles.promoCard,
-                    {
-                      backgroundColor: promoPkg.color + "12",
-                    },
-                  ])}
-                >
-                  <View style={styles.promoContent}>
-                    <View style={[styles.promoIconCircle, { backgroundColor: promoPkg.color }]}>
-                      <Feather
-                        name={promoPkg.id === "premium" ? "award" : promoPkg.id === "completo" ? "star" : "check-circle"}
-                        size={22}
-                        color="#FFFFFF"
-                      />
+            <FlatList
+              data={PACKAGES}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.carouselContent}
+              snapToInterval={220}
+              decelerationRate="fast"
+              renderItem={({ item: pkg }) => {
+                const iconName = pkg.id === "premium" ? "award" as const : pkg.id === "completo" ? "star" as const : "check-circle" as const;
+                const startPrice = pkg.durations[0].prices.small;
+                return (
+                  <Card
+                    elevation={2}
+                    onPress={() => navigation.navigate("PackageVehicleSelection")}
+                    style={StyleSheet.flatten([
+                      styles.carouselCard,
+                      { backgroundColor: pkg.color + "10" },
+                    ])}
+                  >
+                    <View style={[styles.carouselIconCircle, { backgroundColor: pkg.color }]}>
+                      <Feather name={iconName} size={20} color="#FFFFFF" />
                     </View>
-                    <View style={styles.promoInfo}>
-                      <ThemedText
-                        type="h3"
-                        style={{ color: promoPkg.color }}
-                      >
-                        Paquete {promoPkg.name}
-                      </ThemedText>
-                      <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                        {promoPkg.description}
-                      </ThemedText>
-                    </View>
-                    <Feather
-                      name="chevron-right"
-                      size={24}
-                      color={promoPkg.color}
-                    />
-                  </View>
-                </Card>
-              );
-            })()}
+                    <ThemedText type="h3" style={{ color: pkg.color, marginTop: Spacing.sm }}>
+                      {pkg.name}
+                    </ThemedText>
+                    <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: 2 }} numberOfLines={2}>
+                      {pkg.description}
+                    </ThemedText>
+                    <ThemedText type="caption" style={{ color: pkg.color, fontWeight: "700", marginTop: Spacing.sm }}>
+                      Desde ${startPrice}
+                    </ThemedText>
+                  </Card>
+                );
+              }}
+            />
           </Animated.View>
         )}
 
@@ -411,20 +407,21 @@ const styles = StyleSheet.create({
   promoCard: {
     marginBottom: Spacing.lg,
   },
-  promoContent: {
-    flexDirection: "row",
-    alignItems: "center",
+  carouselContent: {
+    gap: Spacing.md,
+    paddingRight: Spacing.lg,
   },
-  promoIconCircle: {
-    width: 40,
-    height: 40,
+  carouselCard: {
+    width: 200,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+  },
+  carouselIconCircle: {
+    width: 36,
+    height: 36,
     borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: Spacing.md,
-  },
-  promoInfo: {
-    flex: 1,
   },
   bookSection: {
     marginBottom: Spacing["2xl"],
