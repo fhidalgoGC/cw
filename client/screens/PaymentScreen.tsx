@@ -480,45 +480,29 @@ export default function PaymentScreen() {
             <ThemedText type="h2" style={styles.sectionTitle}>
               Tu Paquete
             </ThemedText>
-            <Card elevation={2} style={[styles.packageInfoCard, { borderLeftColor: matchedPackageInfo.packageColor, borderLeftWidth: 4 }]}>
-              <View style={styles.packageInfoRow}>
+            <Card elevation={1} style={[styles.membershipActiveCard, { backgroundColor: matchedPackageInfo.packageColor + "10" }]}>
+              <View style={styles.membershipBadge}>
                 <View style={[styles.packageIcon, { backgroundColor: matchedPackageInfo.packageColor }]}>
-                  <Feather name={matchedPackageInfo.packageIcon} size={20} color="#FFFFFF" />
+                  <Feather name={matchedPackageInfo.packageIcon} size={18} color="#FFFFFF" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <ThemedText type="h3">{matchedPackageInfo.packageName}</ThemedText>
-                  {matchedPackageInfo.durationLabel ? (
-                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                      {matchedPackageInfo.durationLabel}
+                  <ThemedText type="body" style={{ fontWeight: "600" }}>
+                    {matchedPackageInfo.packageName} {matchedPackageInfo.durationLabel ? `\u00B7 ${matchedPackageInfo.durationLabel}` : ""}
+                  </ThemedText>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md, marginTop: 2 }}>
+                    <ThemedText type="small" style={{ color: matchedPackageInfo.packageColor, fontWeight: "700" }}>
+                      {matchedPackageInfo.washesRemaining}/{matchedPackageInfo.totalWashes} lavadas
                     </ThemedText>
-                  ) : null}
+                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                      {matchedPackageInfo.daysRemaining}d restantes
+                    </ThemedText>
+                  </View>
                 </View>
               </View>
-              <View style={styles.summaryDivider} />
-              <View style={styles.packageStatsRow}>
-                <View style={styles.packageStat}>
-                  <ThemedText type="h2" style={{ color: matchedPackageInfo.packageColor }}>
-                    {matchedPackageInfo.washesRemaining}
-                  </ThemedText>
-                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                    de {matchedPackageInfo.totalWashes} lavadas restantes
-                  </ThemedText>
-                </View>
-                <View style={[styles.packageStatDivider, { backgroundColor: theme.backgroundTertiary }]} />
-                <View style={styles.packageStat}>
-                  <ThemedText type="h2" style={{ color: theme.text }}>
-                    {matchedPackageInfo.daysRemaining}
-                  </ThemedText>
-                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                    días restantes
-                  </ThemedText>
-                </View>
-              </View>
-              <View style={styles.summaryDivider} />
-              <View style={styles.packageNote}>
-                <Feather name="info" size={14} color={matchedPackageInfo.packageColor} />
+              <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.xs, marginTop: Spacing.sm }}>
+                <Feather name="info" size={12} color={theme.textSecondary} />
                 <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                  Se descontará 1 lavada de tu paquete al confirmar
+                  Se descontará 1 lavada al confirmar
                 </ThemedText>
               </View>
             </Card>
