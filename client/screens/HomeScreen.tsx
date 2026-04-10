@@ -201,42 +201,47 @@ export default function HomeScreen() {
           })()
         ) : (
           <Animated.View entering={FadeInDown.delay(100).springify()}>
-            <Card
-              elevation={2}
-              onPress={() => (navigation as any).navigate("PackagesTab")}
-              style={StyleSheet.flatten([
-                styles.promoCard,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(6, 182, 212, 0.15)"
-                    : "rgba(30, 64, 175, 0.08)",
-                },
-              ])}
-            >
-              <View style={styles.promoContent}>
-                <Image
-                  source={subscriptionBadge}
-                  style={styles.promoBadge}
-                  contentFit="contain"
-                />
-                <View style={styles.promoInfo}>
-                  <ThemedText
-                    type="h3"
-                    style={{ color: isDark ? Colors.accent : Colors.primary }}
-                  >
-                    Pase de 20 Lavadas
-                  </ThemedText>
-                  <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-                    Ahorra hasta 40% con tu suscripción mensual
-                  </ThemedText>
-                </View>
-                <Feather
-                  name="chevron-right"
-                  size={24}
-                  color={isDark ? Colors.accent : Colors.primary}
-                />
-              </View>
-            </Card>
+            {(() => {
+              const promoPkg = PACKAGES.find((p) => p.id === "premium") || PACKAGES[PACKAGES.length - 1];
+              return (
+                <Card
+                  elevation={2}
+                  onPress={() => navigation.navigate("PackageVehicleSelection")}
+                  style={StyleSheet.flatten([
+                    styles.promoCard,
+                    {
+                      backgroundColor: promoPkg.color + "12",
+                    },
+                  ])}
+                >
+                  <View style={styles.promoContent}>
+                    <View style={[styles.promoIconCircle, { backgroundColor: promoPkg.color }]}>
+                      <Feather
+                        name={promoPkg.id === "premium" ? "award" : promoPkg.id === "completo" ? "star" : "check-circle"}
+                        size={22}
+                        color="#FFFFFF"
+                      />
+                    </View>
+                    <View style={styles.promoInfo}>
+                      <ThemedText
+                        type="h3"
+                        style={{ color: promoPkg.color }}
+                      >
+                        Paquete {promoPkg.name}
+                      </ThemedText>
+                      <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                        {promoPkg.description}
+                      </ThemedText>
+                    </View>
+                    <Feather
+                      name="chevron-right"
+                      size={24}
+                      color={promoPkg.color}
+                    />
+                  </View>
+                </Card>
+              );
+            })()}
           </Animated.View>
         )}
 
@@ -410,9 +415,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  promoBadge: {
+  promoIconCircle: {
     width: 40,
     height: 40,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: Spacing.md,
   },
   promoInfo: {
