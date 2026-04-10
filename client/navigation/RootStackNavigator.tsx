@@ -160,8 +160,7 @@ export default function RootStackNavigator() {
         name="Profile"
         component={ProfileScreen}
         options={{
-          presentation: "modal",
-          headerTitle: "Perfil",
+          headerTitle: "Mi Perfil",
         }}
       />
       <Stack.Screen
