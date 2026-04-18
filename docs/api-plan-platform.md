@@ -966,3 +966,6 @@ Membresías de un cliente específico.
 | GET    | `/api/platform/clients/:userId`                      | Perfil completo de cliente                                       |
 | GET    | `/api/platform/clients/:userId/bookings`             | Historial de citas de un cliente                                 |
 | GET    | `/api/platform/clients/:userId/memberships`          | Membresías de un cliente                                         |
+| GET    | `/api/platform/companies/:id/earnings`               | Ver ganancias y cobros pendientes de una empresa                 |
+| GET    | `/api/platform/companies/:id/earnings/services`      | Lista de cobros de una empresa con filtros                       |
+| PATCH  | `/api/platform/companies/:id/earnings/settle`        | Liquidar (marcar como pagados) servicios seleccionados           |

@@ -17,6 +17,7 @@
 5. [Paquetes que ofrezco](#5-paquetes-que-ofrezco)
 6. [Servicios que ofrezco](#6-servicios-que-ofrezco)
 7. [Mi perfil de empresa](#7-mi-perfil-de-empresa)
+8. [Cobros y Liquidaciones](#8-cobros-y-liquidaciones)
 
 ---
 
@@ -223,6 +224,90 @@ Pantalla: Mi perfil
 
 ---
 
+## 8. Cobros y Liquidaciones
+
+La empresa necesita saber cuántos servicios realizó, cuánto dinero generó y cuál es el estado del pago de la plataforma hacia ella. Esta pantalla es la base para luego cobrar (o reclamar) a la plataforma.
+
+### 8.1 Pantalla de resumen de ganancias
+
+```
+Pantalla: Mis cobros — Resumen
+│
+├── Al entrar (default: mes en curso)
+│   └── GET /api/company/earnings?dateFrom=YYYY-MM-DD&dateTo=YYYY-MM-DD
+│       → Muestra tarjetas con:
+│         - Total de servicios realizados en el período
+│         - Monto total generado (MXN)
+│         - Por cobrar (pendiente de pago de la plataforma)
+│         - Ya cobrado (liquidado por la plataforma)
+│         - Desglose: servicios directos vs servicios de membresía
+│
+├── Selector de período
+│   ├── Esta semana
+│   ├── Este mes  ← default
+│   ├── Mes anterior
+│   └── Rango personalizado (dateFrom / dateTo)
+│   → Recarga GET /api/company/earnings con el nuevo rango
+│
+└── [Ver detalle] → flujo 8.2
+```
+
+### 8.2 Pantalla de lista de servicios (cobros individuales)
+
+```
+Pantalla: Mis cobros — Lista de servicios
+│
+├── Al entrar
+│   └── GET /api/company/earnings/services?page=1
+│       → Lista paginada de servicios completados con:
+│         - Fecha y hora del servicio
+│         - Nombre del cliente
+│         - Tamaño del vehículo + tipo de lavado + add-ons
+│         - Monto a cobrar
+│         - Tipo de pago del cliente (directo / membresía)
+│         - Estado de cobro (pendiente / pagado)
+│         - Si pagado: fecha de liquidación
+│
+├── Filtros disponibles (tabs o selector):
+│   ├── [Todos]         → sin filtro de paymentStatus ni paymentType
+│   ├── [Por cobrar]    → paymentStatus=pendiente
+│   ├── [Cobrados]      → paymentStatus=pagado
+│   └── [Prepagados]    → paymentType=membresia
+│                           (el cliente usó membresía; la plataforma ya tiene el dinero)
+│
+├── Filtro de período (igual que el resumen)
+│
+└── Al tocar un servicio → flujo 8.3
+```
+
+### 8.3 Detalle de cobro
+
+```
+Pantalla: Detalle de cobro
+│
+├── Al entrar
+│   └── Muestra los datos del CompanyServiceBilling:
+│       - Fecha y hora del servicio
+│       - Cliente: nombre, teléfono
+│       - Vehículo: tamaño, marca, modelo, color, placa
+│       - Tipo de lavado + add-ons realizados
+│       - Monto del servicio
+│       - Tipo de pago del cliente:
+│         · "Directo" → el cliente pagó al momento de la cita
+│         · "Membresía" → el cliente usó su paquete (la plataforma ya cobró al cliente)
+│       - Estado:
+│         · "Pendiente" → la plataforma aún no ha liquidado a esta empresa
+│         · "Pagado" → liquidado el [fecha]
+│
+└── [Ir a la cita original] → navega al detalle de cita (flujo 3.2)
+```
+
+> **Regla de negocio:**
+> La empresa **no puede marcar servicios como pagados**. Solo la plataforma liquida.
+> Si hay discrepancias, la empresa debe contactar a la plataforma directamente.
+
+---
+
 ## Resumen: pantallas y sus endpoints principales
 
 | Pantalla                 | Endpoints que consume                                                                 |
@@ -235,5 +320,7 @@ Pantalla: Mi perfil
 | Mis paquetes             | `GET /api/company/packages`, `PUT /api/company/packages`                             |
 | Mis servicios            | `GET /api/company/services`, `PUT /api/company/services`                             |
 | Mi perfil                | `GET /api/company/profile`, `PUT /api/company/profile`                               |
+| Cobros — Resumen         | `GET /api/company/earnings`                                                          |
+| Cobros — Lista servicios | `GET /api/company/earnings/services` (filtros: paymentStatus, paymentType, período)  |
 
 > **Nota:** todos los endpoints `/api/company/...` son exclusivos para usuarios con `role: "company"`. El backend retorna `403 FORBIDDEN` si un cliente o admin intenta acceder.

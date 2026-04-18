@@ -335,7 +335,93 @@ interface UpdateCompanyServicesRequest {
 
 ---
 
-## 7. Tabla resumen
+## 7. Cobros y Liquidaciones — `/api/company/earnings`
+
+Cada vez que la empresa completa un servicio (`status → completed`), ese servicio genera automáticamente un registro de cobro. La empresa puede ver cuánto ha ganado y en qué estado está el pago de cada servicio por parte de la plataforma.
+
+### Tipos
+
+```typescript
+// Resumen de ganancias por período
+interface CompanyEarningsSummary {
+  period: {
+    from: string; // "YYYY-MM-DD"
+    to: string;   // "YYYY-MM-DD"
+  };
+  totalServices: number;   // total de servicios completados en el período
+  totalAmount: number;     // suma total en MXN
+  pendingAmount: number;   // monto aún no liquidado por la plataforma
+  paidAmount: number;      // monto ya liquidado
+  byPaymentType: {
+    directo:  { count: number; amount: number }; // cliente pagó individualmente
+    membresia: { count: number; amount: number }; // cliente usó membresía
+  };
+}
+
+// Detalle de un servicio facturado (cobro individual)
+interface CompanyServiceBilling {
+  billingId: string;
+  bookingId: string;
+  date: string;         // "YYYY-MM-DD"
+  time: string;         // "10:00 AM"
+  clientName: string;
+  vehicleSize: VehicleSize;
+  washType: WashType;
+  addOns: string[];
+  totalAmount: number;  // lo que la empresa cobra a la plataforma por este servicio
+  paymentType:
+    | "directo"    // el cliente pagó por la cita individualmente
+    | "membresia"; // el cliente usó una membresía (la plataforma ya cobró al cliente)
+  paymentStatus:
+    | "pendiente"  // la plataforma aún no ha pagado a la empresa
+    | "pagado";    // la plataforma ya liquidó este servicio
+  paidAt?: string; // ISO — fecha en que la plataforma liquidó
+}
+```
+
+---
+
+### `GET /api/company/earnings`
+Resumen de ganancias de la empresa autenticada. Por defecto devuelve el mes en curso.
+
+**Query params:**
+```typescript
+interface GetEarningsSummaryQuery {
+  dateFrom?: string; // "YYYY-MM-DD" (default: primer día del mes en curso)
+  dateTo?: string;   // "YYYY-MM-DD" (default: hoy)
+}
+```
+
+**Response `200`:** `ApiResponse<CompanyEarningsSummary>`
+
+---
+
+### `GET /api/company/earnings/services`
+Lista los servicios completados con su estado de cobro. Soporta filtros por estado de pago y tipo de pago.
+
+**Query params:**
+```typescript
+interface GetEarningsServicesQuery {
+  paymentStatus?: "pendiente" | "pagado" | "all"; // default: "all"
+  paymentType?:   "directo" | "membresia" | "all"; // default: "all"
+  dateFrom?: string;  // "YYYY-MM-DD"
+  dateTo?: string;    // "YYYY-MM-DD"
+  page?: number;      // default: 1
+  limit?: number;     // default: 20
+}
+```
+
+**Response `200`:** `PaginatedResponse<CompanyServiceBilling>`
+
+> **Filtros clave:**
+> - `paymentStatus=pendiente` → servicios completados pero aún sin pago de la plataforma
+> - `paymentStatus=pagado` → servicios ya liquidados
+> - `paymentType=membresia` → servicios donde el cliente pagó con membresía (la plataforma ya tiene ese dinero)
+> - `paymentType=directo` → servicios donde el cliente pagó directamente por la cita
+
+---
+
+## 8. Tabla resumen
 
 | Método | Endpoint                                    | Descripción                                                   |
 |--------|---------------------------------------------|---------------------------------------------------------------|
@@ -356,10 +442,12 @@ interface UpdateCompanyServicesRequest {
 | PUT    | `/api/company/packages`                     | Elegir qué paquetes trabaja la empresa                        |
 | GET    | `/api/company/services`                     | Ver servicios del catálogo con bandera activo/inactivo        |
 | PUT    | `/api/company/services`                     | Elegir qué servicios ofrece la empresa                        |
+| GET    | `/api/company/earnings`                     | Resumen de ganancias por período                              |
+| GET    | `/api/company/earnings/services`            | Lista de cobros con filtros de estado y tipo de pago          |
 
 ---
 
-## 8. Transiciones de estado para la empresa
+## 9. Transiciones de estado para la empresa
 
 La empresa solo puede accionar sobre citas que le están asignadas.
 
