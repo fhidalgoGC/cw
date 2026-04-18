@@ -6,3 +6,9 @@ id = "6f4Up5-6xH2gNWq4unv_A"
 uri = "file://docs/negocio.md"
 type = "text"
 title = "Documentación de Negocio — Car Wash App"
+
+[[outputs]]
+id = "hS_B7hXZIsWsMmvmjelgV"
+uri = "file://docs/api-plan.md"
+type = "text"
+title = "Plan de API — Car Wash Backend"
