@@ -8,6 +8,36 @@
 
 ---
 
+## Patrón de creación idempotente
+
+Cualquier formulario de la app (vehículo, dirección, cita, membresía) usa **dos pasos**:
+
+**Paso 1 — Generar ID (`POST`)**
+
+Antes de que el usuario llene el formulario, la app llama al `POST` del recurso. El backend responde únicamente con un `id` recién generado. En este punto no se guarda nada más.
+
+```
+POST /api/vehicles
+→ { id: "abc123" }
+```
+
+**Paso 2 — Guardar datos (`PUT`)**
+
+Cuando el usuario termina de llenar el formulario y confirma, la app hace un `PUT` usando el `id` obtenido en el paso 1. El backend crea el recurso si no existía, o lo actualiza si ya existía (idempotente).
+
+```
+PUT /api/vehicles/abc123
+body: { brand, model, color, size, plate }
+→ { id: "abc123", brand, model, ... }
+```
+
+**Ventajas de este patrón:**
+- Si la red falla en el `PUT`, el cliente puede reintentar con el mismo `id` sin crear duplicados.
+- El ID queda disponible en el cliente desde el inicio del flujo, útil para referencias locales temporales.
+- Aplica igual para: vehículos, direcciones, citas y membresías.
+
+---
+
 ## Tipos base compartidos
 
 Estos tipos se usan a lo largo de todos los endpoints y deben vivir en `shared/types.ts`.
@@ -298,36 +328,30 @@ Lista todos los vehículos del usuario autenticado. Requiere auth.
 ---
 
 ### `POST /api/vehicles`
-Guarda un nuevo vehículo. Requiere auth.
+**Solo genera y devuelve un nuevo ID.** No recibe body ni guarda datos. Se llama al abrir el formulario de nuevo vehículo, antes de que el usuario llene nada. Requiere auth.
 
-**Request body:**
-```typescript
-interface CreateVehicleRequest {
-  brand: string;
-  model: string;
-  color: string;
-  size: VehicleSize;
-  plate?: string;
-}
-```
+**Request body:** vacío
 
 **Response `201`:**
 ```typescript
-// ApiResponse<SavedVehicle>
+interface GenerateIdResponse {
+  id: string; // ID único generado por el backend (ej. UUID)
+}
+// ApiResponse<GenerateIdResponse>
 ```
 
 ---
 
 ### `PUT /api/vehicles/:vehicleId`
-Edita un vehículo existente. Requiere auth.
+Crea o actualiza un vehículo usando el `id` generado por el `POST`. Si el vehículo no existe lo crea; si ya existe lo actualiza. Idempotente: llamar varias veces con los mismos datos produce el mismo resultado. Requiere auth.
 
 **Request body:**
 ```typescript
-interface UpdateVehicleRequest {
-  brand?: string;
-  model?: string;
-  color?: string;
-  size?: VehicleSize;
+interface UpsertVehicleRequest {
+  brand: string;
+  model: string;
+  color: string;
+  size: VehicleSize;
   plate?: string;
 }
 ```
@@ -338,8 +362,7 @@ interface UpdateVehicleRequest {
 ```
 
 **Errores posibles:**
-- `404 VEHICLE_NOT_FOUND`
-- `403 FORBIDDEN` — el vehículo no pertenece al usuario
+- `403 FORBIDDEN` — el vehículo pertenece a otro usuario
 
 ---
 
@@ -370,48 +393,33 @@ Lista todas las direcciones del usuario autenticado. Requiere auth.
 ---
 
 ### `POST /api/addresses`
-Guarda una nueva dirección. Requiere auth.
+**Solo genera y devuelve un nuevo ID.** No recibe body ni guarda datos. Se llama al abrir el formulario de nueva dirección. Requiere auth.
 
-El backend valida que `state`, `city` y `colony` sean valores permitidos.
-
-**Request body:**
-```typescript
-interface CreateAddressRequest {
-  alias: string;
-  state: string;       // solo "Jalisco"
-  city: string;        // solo "Tlajomulco de Zúñiga"
-  colony: string;      // "Villa California" | "Casa Fuerte" | "Adamar"
-  coto?: string;
-  street: string;
-  exteriorNumber: string;
-  interiorNumber?: string;
-  reference?: string;
-}
-```
+**Request body:** vacío
 
 **Response `201`:**
 ```typescript
-// ApiResponse<SavedAddress>
+interface GenerateIdResponse {
+  id: string;
+}
+// ApiResponse<GenerateIdResponse>
 ```
-
-**Errores posibles:**
-- `400 INVALID_LOCATION` — estado, ciudad o colonia fuera de cobertura
 
 ---
 
 ### `PUT /api/addresses/:addressId`
-Edita una dirección existente. Requiere auth.
+Crea o actualiza una dirección usando el `id` generado por el `POST`. Idempotente. El backend valida que `state`, `city` y `colony` sean valores permitidos. Requiere auth.
 
 **Request body:**
 ```typescript
-interface UpdateAddressRequest {
-  alias?: string;
-  state?: string;
-  city?: string;
-  colony?: string;
+interface UpsertAddressRequest {
+  alias: string;
+  state: string;         // solo "Jalisco"
+  city: string;          // solo "Tlajomulco de Zúñiga"
+  colony: string;        // "Villa California" | "Casa Fuerte" | "Adamar"
   coto?: string;
-  street?: string;
-  exteriorNumber?: string;
+  street: string;
+  exteriorNumber: string;
   interiorNumber?: string;
   reference?: string;
 }
@@ -423,9 +431,8 @@ interface UpdateAddressRequest {
 ```
 
 **Errores posibles:**
-- `404 ADDRESS_NOT_FOUND`
-- `403 FORBIDDEN`
-- `400 INVALID_LOCATION`
+- `403 FORBIDDEN` — la dirección pertenece a otro usuario
+- `400 INVALID_LOCATION` — estado, ciudad o colonia fuera de cobertura
 
 ---
 
@@ -463,13 +470,26 @@ interface GetMembershipsQuery {
 ---
 
 ### `POST /api/memberships`
-Activa (compra) una nueva membresía. Requiere auth.
+**Solo genera y devuelve un nuevo ID.** Se llama al iniciar el flujo de compra de un paquete, antes de elegir duración o confirmar. Requiere auth.
 
-El backend calcula `expirationDate`, `washesRemaining` y `addOnUsage` según el paquete y duración.
+**Request body:** vacío
+
+**Response `201`:**
+```typescript
+interface GenerateIdResponse {
+  id: string;
+}
+// ApiResponse<GenerateIdResponse>
+```
+
+---
+
+### `PUT /api/memberships/:membershipId`
+Activa (compra) la membresía usando el `id` generado por el `POST`. Idempotente. El backend calcula `expirationDate`, `washesRemaining` y `addOnUsage` según el paquete y duración elegidos. Requiere auth.
 
 **Request body:**
 ```typescript
-interface CreateMembershipRequest {
+interface UpsertMembershipRequest {
   packageId: PackageId;
   durationId: DurationId;
   vehicleSize: VehicleSize;
@@ -477,7 +497,7 @@ interface CreateMembershipRequest {
 }
 ```
 
-**Response `201`:**
+**Response `200`:**
 ```typescript
 // ApiResponse<Membership>
 ```
@@ -552,35 +572,48 @@ Detalle de una cita. Requiere auth.
 ---
 
 ### `POST /api/bookings`
-Crea una nueva reserva. Requiere auth.
+**Solo genera y devuelve un nuevo ID.** Se llama al iniciar el flujo de reserva (al entrar a la pantalla de selección de vehículo). Requiere auth.
 
-El backend valida disponibilidad del horario, descuenta la lavada de la membresía si se indica `membershipId`, y crea la cita con `status: "pending"`.
+**Request body:** vacío
+
+**Response `201`:**
+```typescript
+interface GenerateIdResponse {
+  id: string;
+}
+// ApiResponse<GenerateIdResponse>
+```
+
+---
+
+### `PUT /api/bookings/:bookingId`
+Crea o actualiza la reserva usando el `id` generado por el `POST`. Idempotente. El backend valida disponibilidad del horario, descuenta la lavada de la membresía si se indica `membershipId`, y guarda la cita con `status: "pending"`. Requiere auth.
 
 **Request body:**
 ```typescript
-interface CreateBookingRequest {
+interface UpsertBookingRequest {
   // Vehículo — una de las dos opciones:
-  vehicleId?: string;       // ID de vehículo guardado
-  vehicleSize?: VehicleSize; // o indicar tamaño directo
+  vehicleId?: string;        // ID de vehículo guardado
+  vehicleSize?: VehicleSize; // o tamaño directo si no hay vehículo guardado
   vehicleBrand?: string;
   vehicleModel?: string;
   vehicleColor?: string;
   vehiclePlate?: string;
 
   // Dirección — una de las dos opciones:
-  addressId?: string;       // ID de dirección guardada
-  addressLabel?: string;    // o texto libre
+  addressId?: string;        // ID de dirección guardada
+  addressLabel?: string;     // o texto libre si no hay dirección guardada
 
   // Servicio
   washType: WashType;
-  addOns: string[];         // IDs de servicios extra seleccionados
+  addOns: string[];          // IDs de servicios seleccionados (incluidos + extras)
 
   // Horario
-  date: string;             // "YYYY-MM-DD"
-  time: string;             // "10:00 AM"
+  date: string;              // "YYYY-MM-DD"
+  time: string;              // "10:00 AM"
 
   // Pago
-  membershipId?: string;    // si usa membresía (precio = 0)
+  membershipId?: string;     // si usa membresía (precio resultante = 0)
   // En el futuro: paymentMethodId
 
   // Extra
@@ -588,7 +621,7 @@ interface CreateBookingRequest {
 }
 ```
 
-**Response `201`:**
+**Response `200`:**
 ```typescript
 // ApiResponse<Booking>
 ```
@@ -596,9 +629,9 @@ interface CreateBookingRequest {
 **Errores posibles:**
 - `400 SLOT_UNAVAILABLE` — el horario ya no está disponible
 - `400 INVALID_MEMBERSHIP` — membresía no activa, vencida o sin lavadas
-- `400 MEMBERSHIP_VEHICLE_MISMATCH` — el tamaño del vehículo no coincide con la membresía
+- `400 MEMBERSHIP_VEHICLE_MISMATCH` — tamaño de vehículo no coincide con la membresía
 - `400 INVALID_LOCATION` — dirección fuera de cobertura
-- `400 INVALID_ADDON` — ID de add-on no existe
+- `400 INVALID_ADDON` — ID de add-on no reconocido
 
 ---
 
@@ -1156,51 +1189,55 @@ interface AdminClientDetail {
 
 ## 10. Tabla resumen de endpoints
 
-| Método   | Endpoint                                       | Auth      | Descripción                                |
-|----------|------------------------------------------------|-----------|--------------------------------------------|
-| POST     | `/api/auth/register`                           | Pública   | Registrar nuevo usuario                    |
-| POST     | `/api/auth/login`                              | Pública   | Iniciar sesión                             |
-| POST     | `/api/auth/logout`                             | Cliente   | Cerrar sesión                              |
-| GET      | `/api/auth/me`                                 | Cliente   | Usuario autenticado actual                 |
-| GET      | `/api/profile`                                 | Cliente   | Perfil completo                            |
-| PUT      | `/api/profile`                                 | Cliente   | Actualizar perfil                          |
-| PUT      | `/api/profile/password`                        | Cliente   | Cambiar contraseña                         |
-| GET      | `/api/vehicles`                                | Cliente   | Listar vehículos                           |
-| POST     | `/api/vehicles`                                | Cliente   | Agregar vehículo                           |
-| PUT      | `/api/vehicles/:id`                            | Cliente   | Editar vehículo                            |
-| DELETE   | `/api/vehicles/:id`                            | Cliente   | Eliminar vehículo                          |
-| GET      | `/api/addresses`                               | Cliente   | Listar direcciones                         |
-| POST     | `/api/addresses`                               | Cliente   | Agregar dirección                          |
-| PUT      | `/api/addresses/:id`                           | Cliente   | Editar dirección                           |
-| DELETE   | `/api/addresses/:id`                           | Cliente   | Eliminar dirección                         |
-| GET      | `/api/memberships`                             | Cliente   | Listar membresías                          |
-| POST     | `/api/memberships`                             | Cliente   | Comprar membresía                          |
-| GET      | `/api/memberships/:id`                         | Cliente   | Detalle de membresía                       |
-| DELETE   | `/api/memberships/:id`                         | Cliente   | Cancelar membresía                         |
-| GET      | `/api/bookings`                                | Cliente   | Listar mis citas                           |
-| GET      | `/api/bookings/:id`                            | Cliente   | Detalle de cita                            |
-| POST     | `/api/bookings`                                | Cliente   | Crear nueva cita                           |
-| PATCH    | `/api/bookings/:id/reschedule`                 | Cliente   | Reagendar cita                             |
-| PATCH    | `/api/bookings/:id/cancel`                     | Cliente   | Cancelar cita                              |
-| POST     | `/api/bookings/:id/feedback`                   | Cliente   | Enviar feedback de cita                    |
-| GET      | `/api/availability`                            | Pública   | Consultar horarios disponibles             |
-| GET      | `/api/catalog/packages`                        | Pública   | Catálogo de paquetes                       |
-| GET      | `/api/catalog/services`                        | Pública   | Catálogo de servicios y precios            |
-| GET      | `/api/admin/bookings`                          | Admin     | Listar todas las citas                     |
-| GET      | `/api/admin/bookings/:id`                      | Admin     | Detalle de cita                            |
-| PATCH    | `/api/admin/bookings/:id/accept`               | Admin     | Aceptar cita                               |
-| PATCH    | `/api/admin/bookings/:id/start`                | Admin     | Marcar cita en curso                       |
-| PATCH    | `/api/admin/bookings/:id/complete`             | Admin     | Marcar cita completada                     |
-| PATCH    | `/api/admin/bookings/:id/cancel`               | Admin     | Cancelar cita                              |
-| GET      | `/api/admin/agenda`                            | Admin     | Agenda del día                             |
-| GET      | `/api/admin/availability`                      | Admin     | Config de horarios                         |
-| PUT      | `/api/admin/availability`                      | Admin     | Actualizar config de horarios              |
-| POST     | `/api/admin/availability/block`                | Admin     | Bloquear fechas                            |
-| DELETE   | `/api/admin/availability/block`                | Admin     | Desbloquear fechas                         |
-| GET      | `/api/admin/reports/revenue`                   | Admin     | Reporte de ingresos                        |
-| GET      | `/api/admin/reports/services`                  | Admin     | Reporte de servicios                       |
-| GET      | `/api/admin/clients`                           | Admin     | Listar clientes                            |
-| GET      | `/api/admin/clients/:userId`                   | Admin     | Perfil completo de cliente                 |
+> Los `POST` marcados con ★ solo generan un ID. El `PUT` correspondiente es el que crea o actualiza el recurso.
+
+| Método   | Endpoint                                       | Auth      | Descripción                                      |
+|----------|------------------------------------------------|-----------|--------------------------------------------------|
+| POST     | `/api/auth/register`                           | Pública   | Registrar nuevo usuario                          |
+| POST     | `/api/auth/login`                              | Pública   | Iniciar sesión                                   |
+| POST     | `/api/auth/logout`                             | Cliente   | Cerrar sesión                                    |
+| GET      | `/api/auth/me`                                 | Cliente   | Usuario autenticado actual                       |
+| GET      | `/api/profile`                                 | Cliente   | Perfil completo                                  |
+| PUT      | `/api/profile`                                 | Cliente   | Actualizar perfil                                |
+| PUT      | `/api/profile/password`                        | Cliente   | Cambiar contraseña                               |
+| GET      | `/api/vehicles`                                | Cliente   | Listar vehículos                                 |
+| POST ★   | `/api/vehicles`                                | Cliente   | Genera y devuelve un nuevo ID de vehículo        |
+| PUT      | `/api/vehicles/:id`                            | Cliente   | Crea o actualiza un vehículo (idempotente)       |
+| DELETE   | `/api/vehicles/:id`                            | Cliente   | Eliminar vehículo                                |
+| GET      | `/api/addresses`                               | Cliente   | Listar direcciones                               |
+| POST ★   | `/api/addresses`                               | Cliente   | Genera y devuelve un nuevo ID de dirección       |
+| PUT      | `/api/addresses/:id`                           | Cliente   | Crea o actualiza una dirección (idempotente)     |
+| DELETE   | `/api/addresses/:id`                           | Cliente   | Eliminar dirección                               |
+| GET      | `/api/memberships`                             | Cliente   | Listar membresías                                |
+| POST ★   | `/api/memberships`                             | Cliente   | Genera y devuelve un nuevo ID de membresía       |
+| PUT      | `/api/memberships/:id`                         | Cliente   | Activa / actualiza una membresía (idempotente)   |
+| GET      | `/api/memberships/:id`                         | Cliente   | Detalle de membresía                             |
+| DELETE   | `/api/memberships/:id`                         | Cliente   | Cancelar membresía                               |
+| GET      | `/api/bookings`                                | Cliente   | Listar mis citas                                 |
+| GET      | `/api/bookings/:id`                            | Cliente   | Detalle de cita                                  |
+| POST ★   | `/api/bookings`                                | Cliente   | Genera y devuelve un nuevo ID de cita            |
+| PUT      | `/api/bookings/:id`                            | Cliente   | Crea o actualiza una cita (idempotente)          |
+| PATCH    | `/api/bookings/:id/reschedule`                 | Cliente   | Reagendar cita                                   |
+| PATCH    | `/api/bookings/:id/cancel`                     | Cliente   | Cancelar cita                                    |
+| POST     | `/api/bookings/:id/feedback`                   | Cliente   | Enviar feedback de cita                          |
+| GET      | `/api/availability`                            | Pública   | Consultar horarios disponibles                   |
+| GET      | `/api/catalog/packages`                        | Pública   | Catálogo de paquetes                             |
+| GET      | `/api/catalog/services`                        | Pública   | Catálogo de servicios y precios                  |
+| GET      | `/api/admin/bookings`                          | Admin     | Listar todas las citas                           |
+| GET      | `/api/admin/bookings/:id`                      | Admin     | Detalle de cita                                  |
+| PATCH    | `/api/admin/bookings/:id/accept`               | Admin     | Aceptar cita                                     |
+| PATCH    | `/api/admin/bookings/:id/start`                | Admin     | Marcar cita en curso                             |
+| PATCH    | `/api/admin/bookings/:id/complete`             | Admin     | Marcar cita completada                           |
+| PATCH    | `/api/admin/bookings/:id/cancel`               | Admin     | Cancelar cita                                    |
+| GET      | `/api/admin/agenda`                            | Admin     | Agenda del día                                   |
+| GET      | `/api/admin/availability`                      | Admin     | Config de horarios                               |
+| PUT      | `/api/admin/availability`                      | Admin     | Actualizar config de horarios                    |
+| POST     | `/api/admin/availability/block`                | Admin     | Bloquear fechas                                  |
+| DELETE   | `/api/admin/availability/block`                | Admin     | Desbloquear fechas                               |
+| GET      | `/api/admin/reports/revenue`                   | Admin     | Reporte de ingresos                              |
+| GET      | `/api/admin/reports/services`                  | Admin     | Reporte de servicios                             |
+| GET      | `/api/admin/clients`                           | Admin     | Listar clientes                                  |
+| GET      | `/api/admin/clients/:userId`                   | Admin     | Perfil completo de cliente                       |
 
 ---
 
