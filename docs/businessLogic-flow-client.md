@@ -57,11 +57,11 @@ La home carga los datos del cliente y muestra accesos directos a las funciones p
 Pantalla: Home
 │
 ├── Al entrar
-│   └── GET /api/profile
+│   └── GET /api/client/profile
 │       → Carga: datos del usuario, vehículos, direcciones, membresías
 │
 ├── Sección "Próximas citas"
-│   └── GET /api/bookings?status=pending&limit=3
+│   └── GET /api/client/bookings?status=pending&limit=3
 │       → Muestra las próximas 3 citas pendientes o aceptadas
 │       → Toca una cita → flujo 4.2 (detalle de cita)
 │
@@ -86,7 +86,7 @@ El cliente pasa por varios pasos para configurar su cita. El ID de la cita se ge
 Inicia al tocar "Agendar lavado"
 │
 └── PASO 0 — Generar ID de cita
-    └── POST /api/bookings  → { id: "booking-abc" }
+    └── POST /api/client/bookings  → { id: "booking-abc" }
         (se guarda localmente para usar en el PUT final)
 ```
 
@@ -96,7 +96,7 @@ Inicia al tocar "Agendar lavado"
 Pantalla: ¿Con qué vehículo?
 │
 ├── Carga vehículos guardados
-│   └── GET /api/vehicles
+│   └── GET /api/client/vehicles
 │
 ├── Opción A: Seleccionar un vehículo guardado
 │   └── Guarda selección → continúa a Paso 2
@@ -105,8 +105,8 @@ Pantalla: ¿Con qué vehículo?
     ├── Llena: tamaño, marca, modelo, color, placa (opcional)
     └── Guarda localmente → continúa a Paso 2
     Nota: si quiere guardar el vehículo para futuros usos:
-          POST /api/vehicles → { id }
-          PUT /api/vehicles/:id → guarda el vehículo
+          POST /api/client/vehicles → { id }
+          PUT /api/client/vehicles/:id → guarda el vehículo
 ```
 
 ### Paso 2 — Elegir dirección
@@ -115,7 +115,7 @@ Pantalla: ¿Con qué vehículo?
 Pantalla: ¿Dónde hacemos el lavado?
 │
 ├── Carga direcciones guardadas
-│   └── GET /api/addresses
+│   └── GET /api/client/addresses
 │
 ├── Opción A: Seleccionar una dirección guardada
 │   └── Guarda selección → continúa a Paso 3
@@ -124,8 +124,8 @@ Pantalla: ¿Dónde hacemos el lavado?
     ├── Llena: colonia, calle, número, coto, referencia
     └── Guarda localmente → continúa a Paso 3
     Nota: si quiere guardar la dirección:
-          POST /api/addresses → { id }
-          PUT /api/addresses/:id → guarda la dirección
+          POST /api/client/addresses → { id }
+          PUT /api/client/addresses/:id → guarda la dirección
 ```
 
 ### Paso 3 — Elegir servicio
@@ -134,7 +134,7 @@ Pantalla: ¿Dónde hacemos el lavado?
 Pantalla: ¿Qué tipo de lavado?
 │
 ├── Carga servicios y precios según tamaño de vehículo
-│   └── GET /api/catalog/services
+│   └── GET /api/client/catalog/services
 │
 ├── Cliente elige tipo de lavado (basic / complete / premium / detail / full)
 │
@@ -156,7 +156,7 @@ Pantalla: ¿Qué tipo de lavado?
 Pantalla: ¿Cuándo?
 │
 ├── Cliente selecciona fecha en el calendario
-│   └── GET /api/availability?date=YYYY-MM-DD&vehicleSize=X
+│   └── GET /api/client/availability?date=YYYY-MM-DD&vehicleSize=X
 │       → Muestra horarios disponibles con cupos restantes
 │         (cupos = número de empresas disponibles en ese slot)
 │
@@ -176,7 +176,7 @@ Pantalla: Resumen de la cita
 │   precio total (o "Membresía" si aplica)
 │
 ├── Cliente confirma
-│   └── PUT /api/bookings/:bookingId
+│   └── PUT /api/client/bookings/:bookingId
 │       body: { vehicleId/vehicleData, addressId/addressLabel,
 │               washType, addOns, date, time, membershipId? }
 │       ├── Éxito → cita creada en status "pending"
@@ -202,13 +202,13 @@ Pantalla: Resumen de la cita
 Pantalla: Mis citas
 │
 ├── Al entrar (default: citas activas)
-│   └── GET /api/bookings?status=pending&page=1
+│   └── GET /api/client/bookings?status=pending&page=1
 │
 ├── Pestañas de filtro:
 │   ├── Activas (pending + accepted + in_progress)
-│   │   └── GET /api/bookings?status=pending  (y accepted, in_progress)
+│   │   └── GET /api/client/bookings?status=pending  (y accepted, in_progress)
 │   └── Historial (completed + cancelled)
-│       └── GET /api/bookings?status=completed
+│       └── GET /api/client/bookings?status=completed
 │
 └── Al tocar una cita → flujo 4.2
 ```
@@ -219,21 +219,21 @@ Pantalla: Mis citas
 Pantalla: Detalle de cita
 │
 ├── Al entrar
-│   └── GET /api/bookings/:bookingId
+│   └── GET /api/client/bookings/:bookingId
 │       → Muestra: empresa asignada (si ya confirmó), vehículo, dirección,
 │         servicio, add-ons, fecha, hora, precio, estado
 │
 ├── Si status = "pending" o "accepted"
 │   ├── [Reagendar]
 │   │   └── Pantalla: elegir nueva fecha/hora
-│   │       └── GET /api/availability?date=X&vehicleSize=Y
-│   │           → PATCH /api/bookings/:id/reschedule
+│   │       └── GET /api/client/availability?date=X&vehicleSize=Y
+│   │           → PATCH /api/client/bookings/:id/reschedule
 │   │               ├── Éxito → cita actualizada
 │   │               └── Error 400 SLOT_UNAVAILABLE → "Horario no disponible"
 │   │
 │   └── [Cancelar]
 │       └── Confirmación "¿Seguro que quieres cancelar?"
-│           └── PATCH /api/bookings/:id/cancel
+│           └── PATCH /api/client/bookings/:id/cancel
 │               → cita pasa a "cancelled"
 │
 ├── Si status = "completed" y sin feedback
@@ -255,7 +255,7 @@ Pantalla: Calificar servicio
 │   ├── Extras (selección múltiple): amabilidad, productos, rapidez, etc.
 │   └── Comentario libre (opcional)
 │
-└── POST /api/bookings/:id/feedback
+└── POST /api/client/bookings/:id/feedback
     ├── Éxito → muestra "¡Gracias por tu calificación!"
     └── Error 400 FEEDBACK_ALREADY_EXISTS → muestra el feedback previo
 ```
@@ -270,7 +270,7 @@ Pantalla: Calificar servicio
 Pantalla: Paquetes
 │
 ├── Al entrar
-│   └── GET /api/catalog/packages
+│   └── GET /api/client/catalog/packages
 │       → Muestra: Básico, Completo, Premium
 │         con precio, lavadas incluidas, add-ons y duraciones disponibles
 │
@@ -282,11 +282,11 @@ Pantalla: Paquetes
 │
 └── Cliente toca "Comprar"
     └── PASO 0: Generar ID de membresía
-        └── POST /api/memberships → { id }
+        └── POST /api/client/memberships → { id }
             └── Pantalla: Confirmar compra
                 → Resumen: paquete, duración, tamaño, precio
                 └── Confirmar
-                    └── PUT /api/memberships/:id
+                    └── PUT /api/client/memberships/:id
                         body: { packageId, durationId, vehicleSize }
                         ├── Éxito → "¡Membresía activada!" → flujo 5.2
                         └── Error 400 INVALID_PACKAGE → mensaje de error
@@ -298,13 +298,13 @@ Pantalla: Paquetes
 Pantalla: Mi membresía
 │
 ├── Al entrar
-│   └── GET /api/memberships/:membershipId
+│   └── GET /api/client/memberships/:membershipId
 │       → Muestra: paquete, vencimiento, lavadas restantes,
 │         usos restantes de cada add-on incluido
 │
 └── [Cancelar membresía]
     └── Confirmación
-        └── DELETE /api/memberships/:id
+        └── DELETE /api/client/memberships/:id
             ├── Éxito → membresía cancelada
             └── Error 400 MEMBERSHIP_NOT_ACTIVE → ya estaba cancelada
 ```
@@ -319,16 +319,16 @@ Pantalla: Mi membresía
 Pantalla: Perfil
 │
 ├── Al entrar
-│   └── GET /api/profile
+│   └── GET /api/client/profile
 │       → Muestra: nombre, email, teléfono,
 │         cantidad de vehículos, direcciones y membresías
 │
 ├── [Editar datos]
-│   └── PUT /api/profile
+│   └── PUT /api/client/profile
 │       body: { name?, phone?, email? }
 │
 ├── [Cambiar contraseña]
-│   └── PUT /api/profile/password
+│   └── PUT /api/client/profile/password
 │       body: { currentPassword, newPassword }
 │
 ├── [Mis vehículos] → flujo 6.2
@@ -342,17 +342,17 @@ Pantalla: Perfil
 Pantalla: Mis vehículos
 │
 ├── Al entrar
-│   └── GET /api/vehicles
+│   └── GET /api/client/vehicles
 │
 ├── Al tocar un vehículo → modo edición
-│   └── PUT /api/vehicles/:id (usa el id existente, idempotente)
+│   └── PUT /api/client/vehicles/:id (usa el id existente, idempotente)
 │
 ├── [Agregar vehículo]
-│   ├── POST /api/vehicles → { id }
-│   └── Cliente llena el formulario → PUT /api/vehicles/:id
+│   ├── POST /api/client/vehicles → { id }
+│   └── Cliente llena el formulario → PUT /api/client/vehicles/:id
 │
 └── [Eliminar vehículo]
-    └── DELETE /api/vehicles/:id
+    └── DELETE /api/client/vehicles/:id
 ```
 
 ### 6.3 Direcciones guardadas
@@ -361,19 +361,19 @@ Pantalla: Mis vehículos
 Pantalla: Mis direcciones
 │
 ├── Al entrar
-│   └── GET /api/addresses
+│   └── GET /api/client/addresses
 │
 ├── Al tocar una dirección → modo edición
-│   └── PUT /api/addresses/:id (idempotente)
+│   └── PUT /api/client/addresses/:id (idempotente)
 │
 ├── [Agregar dirección]
-│   ├── POST /api/addresses → { id }
-│   └── Cliente llena el formulario → PUT /api/addresses/:id
+│   ├── POST /api/client/addresses → { id }
+│   └── Cliente llena el formulario → PUT /api/client/addresses/:id
 │       Validaciones: solo Tlajomulco de Zúñiga, colonias con cobertura
 │       Error 400 INVALID_LOCATION → "Esta zona no tiene cobertura"
 │
 └── [Eliminar dirección]
-    └── DELETE /api/addresses/:id
+    └── DELETE /api/client/addresses/:id
 ```
 
 ---
@@ -384,18 +384,18 @@ Pantalla: Mis direcciones
 |-----------------------------|----------------------------------------------------------------------------------|
 | Login                       | `POST /api/auth/login`, `GET /api/auth/me`                                      |
 | Registro                    | `POST /api/auth/register`                                                        |
-| Home                        | `GET /api/profile`, `GET /api/bookings?status=pending&limit=3`                  |
-| Reserva — Vehículo          | `GET /api/vehicles`, (opcional) `POST + PUT /api/vehicles`                      |
-| Reserva — Dirección         | `GET /api/addresses`, (opcional) `POST + PUT /api/addresses`                    |
-| Reserva — Servicio          | `GET /api/catalog/services`                                                      |
-| Reserva — Fecha/Hora        | `GET /api/availability`                                                          |
-| Reserva — Confirmar         | `POST /api/bookings` (gen. ID), `PUT /api/bookings/:id`                         |
-| Mis citas — Listado         | `GET /api/bookings`                                                              |
-| Mis citas — Detalle         | `GET /api/bookings/:id`, `PATCH .../reschedule`, `PATCH .../cancel`             |
-| Calificar servicio          | `POST /api/bookings/:id/feedback`                                                |
-| Paquetes                    | `GET /api/catalog/packages`                                                      |
-| Comprar membresía           | `POST /api/memberships` (gen. ID), `PUT /api/memberships/:id`                  |
-| Detalle de membresía        | `GET /api/memberships/:id`, `DELETE /api/memberships/:id`                       |
-| Perfil                      | `GET /api/profile`, `PUT /api/profile`, `PUT /api/profile/password`             |
-| Mis vehículos               | `GET /api/vehicles`, `POST + PUT /api/vehicles`, `DELETE /api/vehicles/:id`     |
-| Mis direcciones             | `GET /api/addresses`, `POST + PUT /api/addresses`, `DELETE /api/addresses/:id` |
+| Home                        | `GET /api/client/profile`, `GET /api/client/bookings?status=pending&limit=3`                  |
+| Reserva — Vehículo          | `GET /api/client/vehicles`, (opcional) `POST + PUT /api/client/vehicles`                      |
+| Reserva — Dirección         | `GET /api/client/addresses`, (opcional) `POST + PUT /api/client/addresses`                    |
+| Reserva — Servicio          | `GET /api/client/catalog/services`                                                      |
+| Reserva — Fecha/Hora        | `GET /api/client/availability`                                                          |
+| Reserva — Confirmar         | `POST /api/client/bookings` (gen. ID), `PUT /api/client/bookings/:id`                         |
+| Mis citas — Listado         | `GET /api/client/bookings`                                                              |
+| Mis citas — Detalle         | `GET /api/client/bookings/:id`, `PATCH .../reschedule`, `PATCH .../cancel`             |
+| Calificar servicio          | `POST /api/client/bookings/:id/feedback`                                                |
+| Paquetes                    | `GET /api/client/catalog/packages`                                                      |
+| Comprar membresía           | `POST /api/client/memberships` (gen. ID), `PUT /api/client/memberships/:id`                  |
+| Detalle de membresía        | `GET /api/client/memberships/:id`, `DELETE /api/client/memberships/:id`                       |
+| Perfil                      | `GET /api/client/profile`, `PUT /api/client/profile`, `PUT /api/client/profile/password`             |
+| Mis vehículos               | `GET /api/client/vehicles`, `POST + PUT /api/client/vehicles`, `DELETE /api/client/vehicles/:id`     |
+| Mis direcciones             | `GET /api/client/addresses`, `POST + PUT /api/client/addresses`, `DELETE /api/client/addresses/:id` |

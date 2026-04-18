@@ -2,7 +2,8 @@
 
 > Documento de planeación. Ningún endpoint existe aún. Describe todos los endpoints que consume la **app móvil del cliente** para reemplazar AsyncStorage y conectarse al backend.
 >
-> Prefijo base: `/api`  
+> Prefijo base: `/api/client`  
+> Auth compartida: `/api/auth`  
 > Formato: JSON  
 > Autenticación: Bearer token en header `Authorization: Bearer <token>` (salvo rutas marcadas como públicas)
 
@@ -16,7 +17,7 @@ Cualquier formulario de la app (vehículo, dirección, cita, membresía) usa **d
 La app llama al `POST` del recurso al abrir el formulario. El backend responde solo con un `id` nuevo. No se guarda nada más.
 
 ```
-POST /api/vehicles
+POST /api/client/vehicles
 → { id: "abc123" }
 ```
 
@@ -24,7 +25,7 @@ POST /api/vehicles
 Al confirmar el formulario, la app hace `PUT` con el `id` del paso 1. El backend crea el recurso si no existía, o lo actualiza si ya existía (idempotente).
 
 ```
-PUT /api/vehicles/abc123
+PUT /api/client/vehicles/abc123
 body: { brand, model, color, size, plate }
 → { id: "abc123", brand, model, ... }
 ```
@@ -253,9 +254,9 @@ Devuelve el usuario autenticado. Requiere auth.
 
 ---
 
-## 2. Perfil — `/api/profile`
+## 2. Perfil — `/api/client/profile`
 
-### `GET /api/profile`
+### `GET /api/client/profile`
 Devuelve el perfil completo del usuario. Requiere auth.
 
 **Response `200`:**
@@ -271,7 +272,7 @@ interface ProfileResponse {
 
 ---
 
-### `PUT /api/profile`
+### `PUT /api/client/profile`
 Actualiza datos del perfil. Requiere auth.
 
 **Request body:**
@@ -290,7 +291,7 @@ interface UpdateProfileRequest {
 
 ---
 
-### `PUT /api/profile/password`
+### `PUT /api/client/profile/password`
 Cambia la contraseña. Requiere auth.
 
 **Request body:**
@@ -308,16 +309,16 @@ interface ChangePasswordRequest {
 
 ---
 
-## 3. Vehículos — `/api/vehicles`
+## 3. Vehículos — `/api/client/vehicles`
 
-### `GET /api/vehicles`
+### `GET /api/client/vehicles`
 Lista los vehículos del usuario. Requiere auth.
 
 **Response `200`:** `ApiResponse<SavedVehicle[]>`
 
 ---
 
-### `POST /api/vehicles` ★
+### `POST /api/client/vehicles` ★
 Solo genera y devuelve un nuevo ID. Se llama al abrir el formulario de nuevo vehículo. Requiere auth.
 
 **Request body:** vacío  
@@ -325,7 +326,7 @@ Solo genera y devuelve un nuevo ID. Se llama al abrir el formulario de nuevo veh
 
 ---
 
-### `PUT /api/vehicles/:vehicleId`
+### `PUT /api/client/vehicles/:vehicleId`
 Crea o actualiza un vehículo con el ID generado. Idempotente. Requiere auth.
 
 **Request body:**
@@ -346,7 +347,7 @@ interface UpsertVehicleRequest {
 
 ---
 
-### `DELETE /api/vehicles/:vehicleId`
+### `DELETE /api/client/vehicles/:vehicleId`
 Elimina un vehículo. Requiere auth.
 
 **Response `200`:** `ApiResponse<{ message: string }>`
@@ -357,16 +358,16 @@ Elimina un vehículo. Requiere auth.
 
 ---
 
-## 4. Direcciones — `/api/addresses`
+## 4. Direcciones — `/api/client/addresses`
 
-### `GET /api/addresses`
+### `GET /api/client/addresses`
 Lista las direcciones del usuario. Requiere auth.
 
 **Response `200`:** `ApiResponse<SavedAddress[]>`
 
 ---
 
-### `POST /api/addresses` ★
+### `POST /api/client/addresses` ★
 Solo genera y devuelve un nuevo ID. Se llama al abrir el formulario de nueva dirección. Requiere auth.
 
 **Request body:** vacío  
@@ -374,7 +375,7 @@ Solo genera y devuelve un nuevo ID. Se llama al abrir el formulario de nueva dir
 
 ---
 
-### `PUT /api/addresses/:addressId`
+### `PUT /api/client/addresses/:addressId`
 Crea o actualiza una dirección con el ID generado. Idempotente. El backend valida que `state`, `city` y `colony` sean zonas de cobertura. Requiere auth.
 
 **Request body:**
@@ -400,7 +401,7 @@ interface UpsertAddressRequest {
 
 ---
 
-### `DELETE /api/addresses/:addressId`
+### `DELETE /api/client/addresses/:addressId`
 Elimina una dirección. Requiere auth.
 
 **Response `200`:** `ApiResponse<{ message: string }>`
@@ -411,9 +412,9 @@ Elimina una dirección. Requiere auth.
 
 ---
 
-## 5. Membresías — `/api/memberships`
+## 5. Membresías — `/api/client/memberships`
 
-### `GET /api/memberships`
+### `GET /api/client/memberships`
 Lista las membresías del usuario. Requiere auth.
 
 **Query params:**
@@ -427,7 +428,7 @@ interface GetMembershipsQuery {
 
 ---
 
-### `POST /api/memberships` ★
+### `POST /api/client/memberships` ★
 Solo genera y devuelve un nuevo ID. Se llama al iniciar el flujo de compra de un paquete. Requiere auth.
 
 **Request body:** vacío  
@@ -435,7 +436,7 @@ Solo genera y devuelve un nuevo ID. Se llama al iniciar el flujo de compra de un
 
 ---
 
-### `PUT /api/memberships/:membershipId`
+### `PUT /api/client/memberships/:membershipId`
 Activa la membresía con el ID generado. Idempotente. El backend calcula `expirationDate`, `washesRemaining` y `addOnUsage` según el paquete y duración. Requiere auth.
 
 **Request body:**
@@ -454,7 +455,7 @@ interface UpsertMembershipRequest {
 
 ---
 
-### `GET /api/memberships/:membershipId`
+### `GET /api/client/memberships/:membershipId`
 Detalle de una membresía. Requiere auth.
 
 **Response `200`:** `ApiResponse<Membership>`
@@ -465,7 +466,7 @@ Detalle de una membresía. Requiere auth.
 
 ---
 
-### `DELETE /api/memberships/:membershipId`
+### `DELETE /api/client/memberships/:membershipId`
 Cancela una membresía activa. Requiere auth.
 
 **Response `200`:** `ApiResponse<Membership>`
@@ -477,12 +478,12 @@ Cancela una membresía activa. Requiere auth.
 
 ---
 
-## 6. Citas — `/api/bookings`
+## 6. Citas — `/api/client/bookings`
 
 > **Cómo funciona la asignación de empresa desde el cliente:**  
 > El cliente **nunca elige** una empresa. Simplemente escoge un horario disponible y el backend asigna automáticamente una de las empresas de lavado disponibles en ese slot. Si la empresa asignada rechaza la cita, el sistema busca otra empresa disponible y la reasigna sin que el cliente tenga que hacer nada. El cliente solo ve el nombre de la empresa en el detalle de su cita una vez que fue confirmada. Todos los endpoints de citas del cliente son contra el sistema en general, no contra una empresa específica.
 
-### `GET /api/bookings`
+### `GET /api/client/bookings`
 Lista las citas del usuario. Requiere auth.
 
 **Query params:**
@@ -498,7 +499,7 @@ interface GetBookingsQuery {
 
 ---
 
-### `GET /api/bookings/:bookingId`
+### `GET /api/client/bookings/:bookingId`
 Detalle de una cita. Requiere auth.
 
 **Response `200`:** `ApiResponse<Booking>`
@@ -509,7 +510,7 @@ Detalle de una cita. Requiere auth.
 
 ---
 
-### `POST /api/bookings` ★
+### `POST /api/client/bookings` ★
 Solo genera y devuelve un nuevo ID. Se llama al iniciar el flujo de reserva. Requiere auth.
 
 **Request body:** vacío  
@@ -517,7 +518,7 @@ Solo genera y devuelve un nuevo ID. Se llama al iniciar el flujo de reserva. Req
 
 ---
 
-### `PUT /api/bookings/:bookingId`
+### `PUT /api/client/bookings/:bookingId`
 Crea o actualiza la cita con el ID generado. Idempotente. El cliente **no indica empresa** — el backend selecciona automáticamente una empresa disponible en el horario elegido. Valida disponibilidad del horario y descuenta lavada de membresía si aplica. La cita queda con `status: "pending"` mientras la empresa confirma. Requiere auth.
 
 **Request body:**
@@ -562,7 +563,7 @@ interface UpsertBookingRequest {
 
 ---
 
-### `PATCH /api/bookings/:bookingId/reschedule`
+### `PATCH /api/client/bookings/:bookingId/reschedule`
 Reagenda una cita. Solo permitido en estado `pending` o `accepted`. Requiere auth.
 
 **Request body:**
@@ -583,7 +584,7 @@ interface RescheduleBookingRequest {
 
 ---
 
-### `PATCH /api/bookings/:bookingId/cancel`
+### `PATCH /api/client/bookings/:bookingId/cancel`
 Cancela una cita. No permitido en estado `in_progress` o `completed`. Requiere auth.
 
 **Request body:**
@@ -602,7 +603,7 @@ interface CancelBookingRequest {
 
 ---
 
-### `POST /api/bookings/:bookingId/feedback`
+### `POST /api/client/bookings/:bookingId/feedback`
 Envía el feedback de una cita completada. Solo si `status === "completed"` y no tiene feedback previo. Requiere auth.
 
 **Request body:**
@@ -626,9 +627,9 @@ interface CreateFeedbackRequest {
 
 ---
 
-## 7. Disponibilidad — `/api/availability`
+## 7. Disponibilidad — `/api/client/availability`
 
-### `GET /api/availability`
+### `GET /api/client/availability`
 Consulta los horarios disponibles para una fecha. Ruta pública — no requiere auth.
 
 La disponibilidad de cada horario está determinada por cuántas empresas de lavado están disponibles en ese horario. Si a las 11 AM hay 5 empresas registradas y disponibles, `spotsLeft` es 5. Al agendar una cita en ese horario, el backend asigna una empresa y el `spotsLeft` baja a 4.
@@ -659,11 +660,11 @@ interface TimeSlot {
 
 ---
 
-## 8. Catálogo — `/api/catalog`
+## 8. Catálogo — `/api/client/catalog`
 
 Rutas públicas — no requieren auth. La app las consume para mostrar paquetes y precios en vez de tenerlos hardcodeados.
 
-### `GET /api/catalog/packages`
+### `GET /api/client/catalog/packages`
 Lista todos los paquetes disponibles con precios y duraciones.
 
 **Response `200`:**
@@ -698,7 +699,7 @@ interface PackageDurationCatalog {
 
 ---
 
-### `GET /api/catalog/companies`
+### `GET /api/client/catalog/companies`
 Lista las empresas de lavado activas registradas en el sistema. Ruta pública.
 
 **Response `200`:**
@@ -708,7 +709,7 @@ Lista las empresas de lavado activas registradas en el sistema. Ruta pública.
 
 ---
 
-### `GET /api/catalog/services`
+### `GET /api/client/catalog/services`
 Lista tipos de lavado, add-ons y precios base por tamaño de vehículo.
 
 **Response `200`:**
@@ -743,30 +744,30 @@ interface ServiceOption {
 | POST     | `/api/auth/login`                     | Pública | Iniciar sesión                               |
 | POST     | `/api/auth/logout`                    | Cliente | Cerrar sesión                                |
 | GET      | `/api/auth/me`                        | Cliente | Usuario autenticado actual                   |
-| GET      | `/api/profile`                        | Cliente | Perfil completo                              |
-| PUT      | `/api/profile`                        | Cliente | Actualizar perfil                            |
-| PUT      | `/api/profile/password`               | Cliente | Cambiar contraseña                           |
-| GET      | `/api/vehicles`                       | Cliente | Listar vehículos                             |
-| POST ★   | `/api/vehicles`                       | Cliente | Generar ID para nuevo vehículo               |
-| PUT      | `/api/vehicles/:id`                   | Cliente | Crear o actualizar vehículo                  |
-| DELETE   | `/api/vehicles/:id`                   | Cliente | Eliminar vehículo                            |
-| GET      | `/api/addresses`                      | Cliente | Listar direcciones                           |
-| POST ★   | `/api/addresses`                      | Cliente | Generar ID para nueva dirección              |
-| PUT      | `/api/addresses/:id`                  | Cliente | Crear o actualizar dirección                 |
-| DELETE   | `/api/addresses/:id`                  | Cliente | Eliminar dirección                           |
-| GET      | `/api/memberships`                    | Cliente | Listar membresías                            |
-| POST ★   | `/api/memberships`                    | Cliente | Generar ID para nueva membresía              |
-| PUT      | `/api/memberships/:id`                | Cliente | Activar membresía                            |
-| GET      | `/api/memberships/:id`                | Cliente | Detalle de membresía                         |
-| DELETE   | `/api/memberships/:id`                | Cliente | Cancelar membresía                           |
-| GET      | `/api/bookings`                       | Cliente | Listar mis citas                             |
-| GET      | `/api/bookings/:id`                   | Cliente | Detalle de cita                              |
-| POST ★   | `/api/bookings`                       | Cliente | Generar ID para nueva cita                   |
-| PUT      | `/api/bookings/:id`                   | Cliente | Crear o actualizar cita                      |
-| PATCH    | `/api/bookings/:id/reschedule`        | Cliente | Reagendar cita                               |
-| PATCH    | `/api/bookings/:id/cancel`            | Cliente | Cancelar cita                                |
-| POST     | `/api/bookings/:id/feedback`          | Cliente | Enviar feedback                              |
-| GET      | `/api/availability`                   | Pública | Consultar horarios disponibles (spotsLeft = empresas disponibles) |
-| GET      | `/api/catalog/companies`              | Pública | Listar empresas de lavado activas            |
-| GET      | `/api/catalog/packages`               | Pública | Catálogo de paquetes                         |
-| GET      | `/api/catalog/services`               | Pública | Catálogo de servicios y precios              |
+| GET      | `/api/client/profile`                        | Cliente | Perfil completo                              |
+| PUT      | `/api/client/profile`                        | Cliente | Actualizar perfil                            |
+| PUT      | `/api/client/profile/password`               | Cliente | Cambiar contraseña                           |
+| GET      | `/api/client/vehicles`                       | Cliente | Listar vehículos                             |
+| POST ★   | `/api/client/vehicles`                       | Cliente | Generar ID para nuevo vehículo               |
+| PUT      | `/api/client/vehicles/:id`                   | Cliente | Crear o actualizar vehículo                  |
+| DELETE   | `/api/client/vehicles/:id`                   | Cliente | Eliminar vehículo                            |
+| GET      | `/api/client/addresses`                      | Cliente | Listar direcciones                           |
+| POST ★   | `/api/client/addresses`                      | Cliente | Generar ID para nueva dirección              |
+| PUT      | `/api/client/addresses/:id`                  | Cliente | Crear o actualizar dirección                 |
+| DELETE   | `/api/client/addresses/:id`                  | Cliente | Eliminar dirección                           |
+| GET      | `/api/client/memberships`                    | Cliente | Listar membresías                            |
+| POST ★   | `/api/client/memberships`                    | Cliente | Generar ID para nueva membresía              |
+| PUT      | `/api/client/memberships/:id`                | Cliente | Activar membresía                            |
+| GET      | `/api/client/memberships/:id`                | Cliente | Detalle de membresía                         |
+| DELETE   | `/api/client/memberships/:id`                | Cliente | Cancelar membresía                           |
+| GET      | `/api/client/bookings`                       | Cliente | Listar mis citas                             |
+| GET      | `/api/client/bookings/:id`                   | Cliente | Detalle de cita                              |
+| POST ★   | `/api/client/bookings`                       | Cliente | Generar ID para nueva cita                   |
+| PUT      | `/api/client/bookings/:id`                   | Cliente | Crear o actualizar cita                      |
+| PATCH    | `/api/client/bookings/:id/reschedule`        | Cliente | Reagendar cita                               |
+| PATCH    | `/api/client/bookings/:id/cancel`            | Cliente | Cancelar cita                                |
+| POST     | `/api/client/bookings/:id/feedback`          | Cliente | Enviar feedback                              |
+| GET      | `/api/client/availability`                   | Pública | Consultar horarios disponibles (spotsLeft = empresas disponibles) |
+| GET      | `/api/client/catalog/companies`              | Pública | Listar empresas de lavado activas            |
+| GET      | `/api/client/catalog/packages`               | Pública | Catálogo de paquetes                         |
+| GET      | `/api/client/catalog/services`               | Pública | Catálogo de servicios y precios              |

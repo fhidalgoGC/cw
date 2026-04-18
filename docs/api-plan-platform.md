@@ -1,11 +1,12 @@
-# Plan de API — App Administrador (Car Wash)
+# Plan de API — Plataforma / Super Admin (Car Wash)
 
-> Documento de planeación. Ningún endpoint existe aún. Describe todos los endpoints que consume la **app del administrador** para gestionar el negocio: citas, catálogos, reportes, clientes y disponibilidad.
+> Documento de planeación. Ningún endpoint existe aún. Describe todos los endpoints que consume la **app de la plataforma** para gestionar el negocio: empresas, citas, catálogos, reportes y clientes.
 >
-> Prefijo base: `/api/admin`  
+> Prefijo base: `/api/platform`  
+> Auth compartida: `/api/auth`  
 > Formato: JSON  
 > Autenticación: Bearer token en header `Authorization: Bearer <token>`  
-> Todos los endpoints requieren `role: "admin"`. El backend retorna `403 FORBIDDEN` si un cliente intenta acceder.
+> Todos los endpoints requieren `role: "admin"`. El backend retorna `403 FORBIDDEN` si cualquier otro rol intenta acceder.
 
 ---
 
@@ -145,9 +146,9 @@ Devuelve el administrador autenticado.
 
 ---
 
-## 2. Gestión de Citas — `/api/admin/bookings`
+## 2. Gestión de Citas — `/api/platform/bookings`
 
-### `GET /api/admin/bookings`
+### `GET /api/platform/bookings`
 Lista todas las citas del sistema con filtros y paginación.
 
 **Query params:**
@@ -173,7 +174,7 @@ interface AdminGetBookingsQuery {
 
 ---
 
-### `GET /api/admin/bookings/:bookingId`
+### `GET /api/platform/bookings/:bookingId`
 Detalle completo de una cita.
 
 **Response `200`:** `ApiResponse<AdminBookingItem>`
@@ -183,7 +184,7 @@ Detalle completo de una cita.
 
 ---
 
-### `PATCH /api/admin/bookings/:bookingId/accept`
+### `PATCH /api/platform/bookings/:bookingId/accept`
 Acepta una cita (cambia `status` de `pending` → `accepted`).
 
 **Request body:** vacío  
@@ -195,7 +196,7 @@ Acepta una cita (cambia `status` de `pending` → `accepted`).
 
 ---
 
-### `PATCH /api/admin/bookings/:bookingId/reject`
+### `PATCH /api/platform/bookings/:bookingId/reject`
 Rechaza una cita pendiente (cambia `status` de `pending` → `cancelled`, `cancelledBy: "admin"`).
 
 **Request body:**
@@ -213,7 +214,7 @@ interface RejectBookingRequest {
 
 ---
 
-### `PATCH /api/admin/bookings/:bookingId/start`
+### `PATCH /api/platform/bookings/:bookingId/start`
 Marca la cita como en curso (cambia `status` de `accepted` → `in_progress`).
 
 **Request body:** vacío  
@@ -225,7 +226,7 @@ Marca la cita como en curso (cambia `status` de `accepted` → `in_progress`).
 
 ---
 
-### `PATCH /api/admin/bookings/:bookingId/complete`
+### `PATCH /api/platform/bookings/:bookingId/complete`
 Marca la cita como completada (cambia `status` de `in_progress` → `completed`).
 
 **Request body:** vacío  
@@ -237,7 +238,7 @@ Marca la cita como completada (cambia `status` de `in_progress` → `completed`)
 
 ---
 
-### `PATCH /api/admin/bookings/:bookingId/reassign`
+### `PATCH /api/platform/bookings/:bookingId/reassign`
 Reasigna manualmente una cita a otra empresa disponible. Se usa cuando la empresa asignada rechaza o cuando el admin quiere cambiar la asignación. El backend elige la siguiente empresa disponible en el mismo horario. Si no hay empresas disponibles, la cita queda con `status: "cancelled"`.
 
 **Request body:**
@@ -256,7 +257,7 @@ interface ReassignBookingRequest {
 
 ---
 
-### `PATCH /api/admin/bookings/:bookingId/cancel`
+### `PATCH /api/platform/bookings/:bookingId/cancel`
 Cancela una cita desde el admin (disponible en `pending`, `accepted` e `in_progress`).
 
 **Request body:**
@@ -274,9 +275,9 @@ interface AdminCancelBookingRequest {
 
 ---
 
-## 3. Agenda del Día — `/api/admin/agenda`
+## 3. Agenda del Día — `/api/platform/agenda`
 
-### `GET /api/admin/agenda`
+### `GET /api/platform/agenda`
 Vista de todas las citas de un día específico, ordenadas por hora. Ideal para la vista principal del admin.
 
 **Query params:**
@@ -306,13 +307,13 @@ interface AgendaResponse {
 
 ---
 
-## 4. Disponibilidad Global — `/api/admin/availability`
+## 4. Disponibilidad Global — `/api/platform/availability`
 
 La disponibilidad global define qué horarios existen en el sistema (ej. 9 AM, 10 AM, 11 AM…) y qué fechas están completamente bloqueadas. La **capacidad** de cada slot (cuántos clientes puede recibir) se calcula automáticamente contando las empresas activas disponibles en ese horario. Si en la fecha X a las 11 AM hay 3 empresas disponibles, el slot tiene capacidad 3.
 
 > **Regla:** un horario aparece como `available: false` en la app del cliente si ninguna empresa activa está disponible en él, o si la fecha está bloqueada globalmente o en el calendario de todas las empresas.
 
-### `GET /api/admin/availability`
+### `GET /api/platform/availability`
 Devuelve la configuración global de horarios y fechas bloqueadas, junto con la capacidad calculada por slot.
 
 **Response `200`:**
@@ -338,7 +339,7 @@ interface BlockedDate {
 
 ---
 
-### `PUT /api/admin/availability`
+### `PUT /api/platform/availability`
 Actualiza los horarios que existen en el sistema (activa o desactiva slots globalmente). Desactivar un slot significa que ninguna empresa puede recibir citas en ese horario.
 
 **Request body:**
@@ -352,7 +353,7 @@ interface UpdateAvailabilityRequest {
 
 ---
 
-### `POST /api/admin/availability/block`
+### `POST /api/platform/availability/block`
 Bloquea una o varias fechas (los clientes no podrán agendar en esas fechas).
 
 **Request body:**
@@ -367,7 +368,7 @@ interface BlockDatesRequest {
 
 ---
 
-### `DELETE /api/admin/availability/block`
+### `DELETE /api/platform/availability/block`
 Desbloquea fechas previamente bloqueadas.
 
 **Request body:**
@@ -381,13 +382,13 @@ interface UnblockDatesRequest {
 
 ---
 
-## 5. Empresas — `/api/admin/companies`
+## 5. Empresas — `/api/platform/companies`
 
 Las empresas son los prestadores de servicio que realizan los lavados. Cada empresa define sus propios horarios disponibles. La capacidad de cada slot horario = número de empresas activas disponibles en ese slot. Cuando se agenda una cita, el sistema asigna automáticamente una empresa; si la empresa rechaza, el sistema intenta con la siguiente disponible.
 
 ---
 
-### `GET /api/admin/companies`
+### `GET /api/platform/companies`
 Lista todas las empresas registradas (activas e inactivas).
 
 **Query params:**
@@ -404,7 +405,7 @@ interface GetCompaniesQuery {
 
 ---
 
-### `POST /api/admin/companies`
+### `POST /api/platform/companies`
 Registra una nueva empresa en el sistema. El backend crea credenciales de acceso para que la empresa pueda iniciar sesión y gestionar sus citas asignadas.
 
 **Request body:**
@@ -424,7 +425,7 @@ interface CreateCompanyRequest {
 
 ---
 
-### `GET /api/admin/companies/:companyId`
+### `GET /api/platform/companies/:companyId`
 Detalle de una empresa con sus estadísticas.
 
 **Response `200`:**
@@ -448,7 +449,7 @@ interface CompanyDetail extends Company {
 
 ---
 
-### `PUT /api/admin/companies/:companyId`
+### `PUT /api/platform/companies/:companyId`
 Actualiza los datos de una empresa.
 
 **Request body:**
@@ -469,7 +470,7 @@ interface UpdateCompanyRequest {
 
 ---
 
-### `GET /api/admin/companies/:companyId/availability`
+### `GET /api/platform/companies/:companyId/availability`
 Consulta los horarios configurados por una empresa específica.
 
 **Response `200`:** `ApiResponse<CompanyAvailability>`
@@ -479,7 +480,7 @@ Consulta los horarios configurados por una empresa específica.
 
 ---
 
-### `PUT /api/admin/companies/:companyId/availability`
+### `PUT /api/platform/companies/:companyId/availability`
 Actualiza los horarios disponibles de una empresa. Se puede configurar qué días y horas está disponible la empresa para recibir citas.
 
 **Request body:**
@@ -497,7 +498,7 @@ interface UpdateCompanyAvailabilityRequest {
 
 ---
 
-## 6. Catálogo — `/api/admin/catalog`
+## 6. Catálogo — `/api/platform/catalog`
 
 El admin puede ver y editar los catálogos que la app cliente consume. Cambios aquí se reflejan automáticamente en la app sin necesidad de actualización.
 
@@ -505,7 +506,7 @@ El admin puede ver y editar los catálogos que la app cliente consume. Cambios a
 
 ### 5.1 Paquetes / Suscripciones
 
-#### `GET /api/admin/catalog/packages`
+#### `GET /api/platform/catalog/packages`
 Lista todos los paquetes (activos e inactivos).
 
 **Response `200`:**
@@ -528,7 +529,7 @@ interface AdminPackage {
 
 ---
 
-#### `PUT /api/admin/catalog/packages/:packageId`
+#### `PUT /api/platform/catalog/packages/:packageId`
 Actualiza un paquete existente (precio, descripción, beneficios, add-ons incluidos, etc.).
 
 **Request body:**
@@ -554,7 +555,7 @@ interface UpdatePackageRequest {
 
 ### 5.2 Servicios y Tipos de Lavado
 
-#### `GET /api/admin/catalog/services`
+#### `GET /api/platform/catalog/services`
 Lista todos los servicios (tipos de lavado, add-ons y precios base por tamaño).
 
 **Response `200`:**
@@ -580,7 +581,7 @@ interface AdminServiceOption {
 
 ---
 
-#### `PUT /api/admin/catalog/services/vehicle-prices`
+#### `PUT /api/platform/catalog/services/vehicle-prices`
 Actualiza los precios base por tamaño de vehículo.
 
 **Request body:**
@@ -595,7 +596,7 @@ interface UpdateVehiclePricesRequest {
 
 ---
 
-#### `PUT /api/admin/catalog/services/wash-type-prices`
+#### `PUT /api/platform/catalog/services/wash-type-prices`
 Actualiza los precios adicionales por tipo de lavado.
 
 **Request body:**
@@ -610,7 +611,7 @@ interface UpdateWashTypePricesRequest {
 
 ---
 
-#### `PUT /api/admin/catalog/services/:serviceId`
+#### `PUT /api/platform/catalog/services/:serviceId`
 Actualiza un servicio específico (nombre, precio, tiempo estimado, activo/inactivo).
 
 **Request body:**
@@ -633,7 +634,7 @@ interface UpdateServiceRequest {
 
 ### 5.3 Zonas de Cobertura
 
-#### `GET /api/admin/catalog/zones`
+#### `GET /api/platform/catalog/zones`
 Lista los estados, ciudades y colonias de cobertura disponibles.
 
 **Response `200`:**
@@ -649,7 +650,7 @@ interface ZoneCatalog {
 
 ---
 
-#### `PUT /api/admin/catalog/zones`
+#### `PUT /api/platform/catalog/zones`
 Actualiza las zonas de cobertura (agregar o quitar colonias, ciudades, etc.).
 
 **Request body:**
@@ -665,9 +666,9 @@ interface UpdateZoneCatalogRequest {
 
 ---
 
-## 6. Reportes — `/api/admin/reports`
+## 6. Reportes — `/api/platform/reports`
 
-### `GET /api/admin/reports/revenue`
+### `GET /api/platform/reports/revenue`
 Reporte de ingresos por período.
 
 **Query params:**
@@ -707,7 +708,7 @@ interface RevenueByDay {
 
 ---
 
-### `GET /api/admin/reports/bookings`
+### `GET /api/platform/reports/bookings`
 Reporte de citas: cantidad por estado, por día, tendencias.
 
 **Query params:**
@@ -742,7 +743,7 @@ interface BookingsByDay {
 
 ---
 
-### `GET /api/admin/reports/services`
+### `GET /api/platform/reports/services`
 Reporte de servicios más solicitados.
 
 **Query params:**
@@ -784,7 +785,7 @@ interface VehicleSizeCount {
 
 ---
 
-### `GET /api/admin/reports/memberships`
+### `GET /api/platform/reports/memberships`
 Reporte de membresías vendidas y activas.
 
 **Query params:**
@@ -823,9 +824,9 @@ interface MembershipByDuration {
 
 ---
 
-## 7. Clientes — `/api/admin/clients`
+## 7. Clientes — `/api/platform/clients`
 
-### `GET /api/admin/clients`
+### `GET /api/platform/clients`
 Lista todos los clientes registrados con estadísticas.
 
 **Query params:**
@@ -841,7 +842,7 @@ interface AdminGetClientsQuery {
 
 ---
 
-### `GET /api/admin/clients/:userId`
+### `GET /api/platform/clients/:userId`
 Perfil completo de un cliente con historial y estadísticas.
 
 **Response `200`:** `ApiResponse<AdminClientDetail>`
@@ -851,7 +852,7 @@ Perfil completo de un cliente con historial y estadísticas.
 
 ---
 
-### `GET /api/admin/clients/:userId/bookings`
+### `GET /api/platform/clients/:userId/bookings`
 Historial completo de citas de un cliente específico.
 
 **Query params:**
@@ -867,7 +868,7 @@ interface ClientBookingsQuery {
 
 ---
 
-### `GET /api/admin/clients/:userId/memberships`
+### `GET /api/platform/clients/:userId/memberships`
 Membresías de un cliente específico.
 
 **Response `200`:** `ApiResponse<Membership[]>`
@@ -930,38 +931,38 @@ Membresías de un cliente específico.
 |--------|---------------------------------------------------|------------------------------------------------------------------|
 | POST   | `/api/auth/login`                                 | Login del admin                                                  |
 | GET    | `/api/auth/me`                                    | Admin autenticado actual                                         |
-| GET    | `/api/admin/bookings`                             | Listar todas las citas (filtros: status, fecha, empresa, cliente)|
-| GET    | `/api/admin/bookings/:id`                         | Detalle de cita (incluye empresa asignada)                       |
-| PATCH  | `/api/admin/bookings/:id/accept`                  | Aceptar cita (confirmar cuando empresa aceptó)                   |
-| PATCH  | `/api/admin/bookings/:id/reject`                  | Rechazar cita (cancela con razón)                                |
-| PATCH  | `/api/admin/bookings/:id/reassign`                | Reasignar cita a otra empresa                                    |
-| PATCH  | `/api/admin/bookings/:id/start`                   | Marcar cita en curso                                             |
-| PATCH  | `/api/admin/bookings/:id/complete`                | Marcar cita completada                                           |
-| PATCH  | `/api/admin/bookings/:id/cancel`                  | Cancelar cita                                                    |
-| GET    | `/api/admin/agenda`                               | Agenda del día (con resumen de estados)                          |
-| GET    | `/api/admin/availability`                         | Ver horarios globales y capacidad por empresa                    |
-| PUT    | `/api/admin/availability`                         | Activar/desactivar slots horarios globalmente                    |
-| POST   | `/api/admin/availability/block`                   | Bloquear fechas globalmente                                      |
-| DELETE | `/api/admin/availability/block`                   | Desbloquear fechas                                               |
-| GET    | `/api/admin/companies`                            | Listar empresas de lavado                                        |
-| POST   | `/api/admin/companies`                            | Registrar nueva empresa                                          |
-| GET    | `/api/admin/companies/:id`                        | Detalle y estadísticas de empresa                                |
-| PUT    | `/api/admin/companies/:id`                        | Actualizar datos de empresa                                      |
-| GET    | `/api/admin/companies/:id/availability`           | Ver horarios de una empresa                                      |
-| PUT    | `/api/admin/companies/:id/availability`           | Actualizar horarios de una empresa                               |
-| GET    | `/api/admin/catalog/packages`                     | Ver catálogo de paquetes                                         |
-| PUT    | `/api/admin/catalog/packages/:id`                 | Editar paquete (precios, duración, beneficios)                   |
-| GET    | `/api/admin/catalog/services`                     | Ver catálogo de servicios                                        |
-| PUT    | `/api/admin/catalog/services/vehicle-prices`      | Actualizar precios por tamaño de vehículo                        |
-| PUT    | `/api/admin/catalog/services/wash-type-prices`    | Actualizar precios por tipo de lavado                            |
-| PUT    | `/api/admin/catalog/services/:id`                 | Editar servicio individual                                       |
-| GET    | `/api/admin/catalog/zones`                        | Ver zonas de cobertura                                           |
-| PUT    | `/api/admin/catalog/zones`                        | Actualizar zonas de cobertura                                    |
-| GET    | `/api/admin/reports/revenue`                      | Reporte de ingresos por período                                  |
-| GET    | `/api/admin/reports/bookings`                     | Reporte de citas por período                                     |
-| GET    | `/api/admin/reports/services`                     | Reporte de servicios más solicitados                             |
-| GET    | `/api/admin/reports/memberships`                  | Reporte de membresías vendidas y activas                         |
-| GET    | `/api/admin/clients`                              | Listar clientes                                                  |
-| GET    | `/api/admin/clients/:userId`                      | Perfil completo de cliente                                       |
-| GET    | `/api/admin/clients/:userId/bookings`             | Historial de citas de un cliente                                 |
-| GET    | `/api/admin/clients/:userId/memberships`          | Membresías de un cliente                                         |
+| GET    | `/api/platform/bookings`                             | Listar todas las citas (filtros: status, fecha, empresa, cliente)|
+| GET    | `/api/platform/bookings/:id`                         | Detalle de cita (incluye empresa asignada)                       |
+| PATCH  | `/api/platform/bookings/:id/accept`                  | Aceptar cita (confirmar cuando empresa aceptó)                   |
+| PATCH  | `/api/platform/bookings/:id/reject`                  | Rechazar cita (cancela con razón)                                |
+| PATCH  | `/api/platform/bookings/:id/reassign`                | Reasignar cita a otra empresa                                    |
+| PATCH  | `/api/platform/bookings/:id/start`                   | Marcar cita en curso                                             |
+| PATCH  | `/api/platform/bookings/:id/complete`                | Marcar cita completada                                           |
+| PATCH  | `/api/platform/bookings/:id/cancel`                  | Cancelar cita                                                    |
+| GET    | `/api/platform/agenda`                               | Agenda del día (con resumen de estados)                          |
+| GET    | `/api/platform/availability`                         | Ver horarios globales y capacidad por empresa                    |
+| PUT    | `/api/platform/availability`                         | Activar/desactivar slots horarios globalmente                    |
+| POST   | `/api/platform/availability/block`                   | Bloquear fechas globalmente                                      |
+| DELETE | `/api/platform/availability/block`                   | Desbloquear fechas                                               |
+| GET    | `/api/platform/companies`                            | Listar empresas de lavado                                        |
+| POST   | `/api/platform/companies`                            | Registrar nueva empresa                                          |
+| GET    | `/api/platform/companies/:id`                        | Detalle y estadísticas de empresa                                |
+| PUT    | `/api/platform/companies/:id`                        | Actualizar datos de empresa                                      |
+| GET    | `/api/platform/companies/:id/availability`           | Ver horarios de una empresa                                      |
+| PUT    | `/api/platform/companies/:id/availability`           | Actualizar horarios de una empresa                               |
+| GET    | `/api/platform/catalog/packages`                     | Ver catálogo de paquetes                                         |
+| PUT    | `/api/platform/catalog/packages/:id`                 | Editar paquete (precios, duración, beneficios)                   |
+| GET    | `/api/platform/catalog/services`                     | Ver catálogo de servicios                                        |
+| PUT    | `/api/platform/catalog/services/vehicle-prices`      | Actualizar precios por tamaño de vehículo                        |
+| PUT    | `/api/platform/catalog/services/wash-type-prices`    | Actualizar precios por tipo de lavado                            |
+| PUT    | `/api/platform/catalog/services/:id`                 | Editar servicio individual                                       |
+| GET    | `/api/platform/catalog/zones`                        | Ver zonas de cobertura                                           |
+| PUT    | `/api/platform/catalog/zones`                        | Actualizar zonas de cobertura                                    |
+| GET    | `/api/platform/reports/revenue`                      | Reporte de ingresos por período                                  |
+| GET    | `/api/platform/reports/bookings`                     | Reporte de citas por período                                     |
+| GET    | `/api/platform/reports/services`                     | Reporte de servicios más solicitados                             |
+| GET    | `/api/platform/reports/memberships`                  | Reporte de membresías vendidas y activas                         |
+| GET    | `/api/platform/clients`                              | Listar clientes                                                  |
+| GET    | `/api/platform/clients/:userId`                      | Perfil completo de cliente                                       |
+| GET    | `/api/platform/clients/:userId/bookings`             | Historial de citas de un cliente                                 |
+| GET    | `/api/platform/clients/:userId/memberships`          | Membresías de un cliente                                         |

@@ -46,17 +46,17 @@ Vista de alto nivel de todo el negocio: cuántas empresas están activas, cuánt
 Pantalla: Dashboard
 │
 ├── Al entrar, carga en paralelo:
-│   ├── GET /api/admin/agenda?date=HOY
+│   ├── GET /api/platform/agenda?date=HOY
 │   │   → Resumen de citas de hoy:
 │   │     total / pendientes / en curso / completadas / canceladas
 │   │
-│   ├── GET /api/admin/companies?active=true
+│   ├── GET /api/platform/companies?active=true
 │   │   → Número de empresas activas
 │   │
-│   ├── GET /api/admin/clients?limit=1
+│   ├── GET /api/platform/clients?limit=1
 │   │   → Total de clientes registrados (via pagination.total)
 │   │
-│   └── GET /api/admin/reports/revenue?period=month
+│   └── GET /api/platform/reports/revenue?period=month
 │       → Ingresos del mes actual (resumen rápido)
 │
 ├── Sección "Citas de hoy"
@@ -69,7 +69,7 @@ Pantalla: Dashboard
 └── Sección "Alertas"
     → Citas con companyStatus = "rejected_by_company" sin reasignar
     → Empresas inactivas con citas asignadas
-    (requiere GET /api/admin/bookings?companyStatus=rejected_by_company)
+    (requiere GET /api/platform/bookings?companyStatus=rejected_by_company)
 ```
 
 ---
@@ -84,11 +84,11 @@ La plataforma tiene control total sobre las empresas: las registra, las activa o
 Pantalla: Empresas
 │
 ├── Al entrar
-│   └── GET /api/admin/companies
+│   └── GET /api/platform/companies
 │       → Lista: nombre, estado, citas completadas, rating
 │
 ├── Filtros: activas / inactivas / búsqueda por nombre
-│   └── GET /api/admin/companies?active=true&search=...
+│   └── GET /api/platform/companies?active=true&search=...
 │
 ├── Botón "Registrar empresa" → flujo 3.2
 │
@@ -101,7 +101,7 @@ Pantalla: Empresas
 Pantalla: Nueva empresa
 │
 ├── Operador llena: nombre, email, teléfono, contraseña inicial
-│   └── POST /api/admin/companies
+│   └── POST /api/platform/companies
 │       ├── Éxito → empresa creada en estado activo
 │       │           Se le entregan las credenciales a la empresa para que inicie sesión
 │       │           → navega al detalle de la empresa (flujo 3.3)
@@ -116,32 +116,32 @@ Pantalla: Nueva empresa
 Pantalla: Detalle de empresa
 │
 ├── Al entrar
-│   └── GET /api/admin/companies/:companyId
+│   └── GET /api/platform/companies/:companyId
 │       → Muestra: datos de contacto, estado (activa/inactiva),
 │         rating promedio, citas completadas vs rechazadas,
 │         horarios configurados, citas recientes
 │
 ├── [Editar datos]
-│   └── PUT /api/admin/companies/:companyId
+│   └── PUT /api/platform/companies/:companyId
 │       body: { name?, email?, phone?, active? }
 │
 ├── [Activar empresa]  (si está inactiva)
-│   └── PUT /api/admin/companies/:companyId  { active: true }
+│   └── PUT /api/platform/companies/:companyId  { active: true }
 │       → La empresa vuelve a recibir asignaciones de citas
 │
 ├── [Desactivar empresa]  (si está activa)
-│   └── PUT /api/admin/companies/:companyId  { active: false }
+│   └── PUT /api/platform/companies/:companyId  { active: false }
 │       → La empresa deja de recibir nuevas citas
 │         Las citas ya asignadas siguen activas
 │
 ├── [Ver / editar horarios de la empresa]
-│   ├── GET /api/admin/companies/:companyId/availability
+│   ├── GET /api/platform/companies/:companyId/availability
 │   │   → Muestra qué slots tiene activos y fechas bloqueadas
-│   └── PUT /api/admin/companies/:companyId/availability
+│   └── PUT /api/platform/companies/:companyId/availability
 │       → La plataforma puede ajustar horarios de cualquier empresa
 │
 └── [Ver citas de esta empresa]
-    └── GET /api/admin/bookings?companyId=:companyId → flujo 4 con filtro
+    └── GET /api/platform/bookings?companyId=:companyId → flujo 4 con filtro
 ```
 
 ---
@@ -156,7 +156,7 @@ La plataforma puede ver todas las citas del sistema: por empresa, por cliente, p
 Pantalla: Citas
 │
 ├── Al entrar (default: citas de hoy, todos los estados)
-│   └── GET /api/admin/bookings?date=HOY&page=1
+│   └── GET /api/platform/bookings?date=HOY&page=1
 │
 ├── Filtros disponibles:
 │   ├── Por estado (pending / accepted / in_progress / completed / cancelled)
@@ -165,7 +165,7 @@ Pantalla: Citas
 │   ├── Por estado de asignación (companyStatus)
 │   ├── Por cliente (userId)
 │   └── Búsqueda libre (nombre de cliente o placa)
-│   └── GET /api/admin/bookings?status=X&dateFrom=Y&companyId=Z&search=...
+│   └── GET /api/platform/bookings?status=X&dateFrom=Y&companyId=Z&search=...
 │
 └── Toca una cita → flujo 4.2
 ```
@@ -176,7 +176,7 @@ Pantalla: Citas
 Pantalla: Detalle de cita
 │
 ├── Al entrar
-│   └── GET /api/admin/bookings/:bookingId
+│   └── GET /api/platform/bookings/:bookingId
 │       → Muestra datos completos del cliente, vehículo, dirección,
 │         empresa asignada, estado de asignación (companyStatus),
 │         historial de asignaciones (attemptCount)
@@ -184,21 +184,21 @@ Pantalla: Detalle de cita
 ├── Acciones de intervención según estado:
 │   │
 │   ├── [Reasignar empresa]  (cuando companyStatus = "rejected_by_company")
-│   │   └── PATCH /api/admin/bookings/:id/reassign
+│   │   └── PATCH /api/platform/bookings/:id/reassign
 │   │       → Sin body: el sistema elige la siguiente empresa disponible
 │   │       → Con body { companyId }: asigna a una empresa específica
 │   │
 │   ├── [Aceptar cita]  (cuando empresa ya confirmó, falta confirmación plataforma)
-│   │   └── PATCH /api/admin/bookings/:id/accept
+│   │   └── PATCH /api/platform/bookings/:id/accept
 │   │
 │   ├── [Marcar en curso]
-│   │   └── PATCH /api/admin/bookings/:id/start
+│   │   └── PATCH /api/platform/bookings/:id/start
 │   │
 │   ├── [Marcar completada]
-│   │   └── PATCH /api/admin/bookings/:id/complete
+│   │   └── PATCH /api/platform/bookings/:id/complete
 │   │
 │   └── [Cancelar]
-│       └── PATCH /api/admin/bookings/:id/cancel  (pide razón opcional)
+│       └── PATCH /api/platform/bookings/:id/cancel  (pide razón opcional)
 │
 └── Enlace al perfil del cliente → flujo 5.2
 ```
@@ -209,13 +209,13 @@ Pantalla: Detalle de cita
 Pantalla: Agenda del día
 │
 ├── Al entrar
-│   └── GET /api/admin/agenda?date=YYYY-MM-DD
+│   └── GET /api/platform/agenda?date=YYYY-MM-DD
 │       → Citas ordenadas por hora con empresa asignada y estado de asignación
 │
 ├── Acciones rápidas por cita (mismo set que en detalle)
 │
 ├── [Bloquear este día]
-│   └── POST /api/admin/availability/block  { dates: ["YYYY-MM-DD"] }
+│   └── POST /api/platform/availability/block  { dates: ["YYYY-MM-DD"] }
 │
 └── Navegar a otro día con flechas o selector de fecha
 ```
@@ -232,12 +232,12 @@ La plataforma puede ver el listado completo de clientes registrados y su histori
 Pantalla: Clientes
 │
 ├── Al entrar
-│   └── GET /api/admin/clients
+│   └── GET /api/platform/clients
 │       → Lista: nombre, teléfono, email, total citas,
 │         membresías activas, dinero gastado
 │
 ├── Búsqueda por nombre, email o teléfono
-│   └── GET /api/admin/clients?search=...
+│   └── GET /api/platform/clients?search=...
 │
 └── Toca un cliente → flujo 5.2
 ```
@@ -248,15 +248,15 @@ Pantalla: Clientes
 Pantalla: Perfil de cliente
 │
 ├── Al entrar
-│   └── GET /api/admin/clients/:userId
+│   └── GET /api/platform/clients/:userId
 │       → Muestra: datos personales, estadísticas, vehículos, direcciones,
 │         membresías y citas recientes
 │
 ├── [Ver historial completo de citas]
-│   └── GET /api/admin/clients/:userId/bookings?page=N
+│   └── GET /api/platform/clients/:userId/bookings?page=N
 │
 └── [Ver membresías]
-    └── GET /api/admin/clients/:userId/memberships
+    └── GET /api/platform/clients/:userId/memberships
 ```
 
 ---
@@ -271,11 +271,11 @@ La plataforma es la única que puede crear y editar los catálogos del sistema. 
 Pantalla: Catálogo — Paquetes
 │
 ├── Al entrar
-│   └── GET /api/admin/catalog/packages
+│   └── GET /api/platform/catalog/packages
 │       → Lista paquetes activos e inactivos: Básico, Completo, Premium
 │
 └── [Editar paquete]
-    └── PUT /api/admin/catalog/packages/:packageId
+    └── PUT /api/platform/catalog/packages/:packageId
         Puede cambiar: nombre, descripción, color, si es popular,
         activo/inactivo, beneficios, add-ons incluidos,
         precios por duración (1 semana / 1 mes / 3 meses) y tamaño de vehículo
@@ -287,20 +287,20 @@ Pantalla: Catálogo — Paquetes
 Pantalla: Catálogo — Servicios
 │
 ├── Al entrar
-│   └── GET /api/admin/catalog/services
+│   └── GET /api/platform/catalog/services
 │       → Muestra: precios base por tamaño, precios por tipo de lavado,
 │                  add-ons con precio y estado
 │
 ├── [Editar precios por tamaño de vehículo]
-│   └── PUT /api/admin/catalog/services/vehicle-prices
+│   └── PUT /api/platform/catalog/services/vehicle-prices
 │       body: { prices: { small: 150, suv: 200, large: 250 } }
 │
 ├── [Editar precios por tipo de lavado]
-│   └── PUT /api/admin/catalog/services/wash-type-prices
+│   └── PUT /api/platform/catalog/services/wash-type-prices
 │       body: { prices: { basic: 0, complete: 80, premium: 150, ... } }
 │
 └── [Editar add-on individual]
-    └── PUT /api/admin/catalog/services/:serviceId
+    └── PUT /api/platform/catalog/services/:serviceId
         Puede cambiar: nombre, precio, tiempo estimado, activo/inactivo
 ```
 
@@ -310,11 +310,11 @@ Pantalla: Catálogo — Servicios
 Pantalla: Catálogo — Zonas
 │
 ├── Al entrar
-│   └── GET /api/admin/catalog/zones
+│   └── GET /api/platform/catalog/zones
 │       → Muestra colonias, ciudades y estados con cobertura
 │
 └── [Agregar o quitar zona]
-    └── PUT /api/admin/catalog/zones
+    └── PUT /api/platform/catalog/zones
         body: { states?, cities?, colonies? }
         Nota: quitar una colonia no cancela citas existentes en esa zona
 ```
@@ -325,20 +325,20 @@ Pantalla: Catálogo — Zonas
 Pantalla: Catálogo — Horarios globales
 │
 ├── Al entrar
-│   └── GET /api/admin/availability
+│   └── GET /api/platform/availability
 │       → Muestra qué horarios existen y cuántas empresas hay en cada uno
 │
 ├── [Activar / desactivar slot global]
-│   └── PUT /api/admin/availability
+│   └── PUT /api/platform/availability
 │       → Desactivar un slot lo oculta a todos los clientes,
 │         aunque haya empresas disponibles en él
 │
 ├── [Bloquear fechas completas]  (días festivos, mantenimiento)
-│   └── POST /api/admin/availability/block
+│   └── POST /api/platform/availability/block
 │       body: { dates: ["YYYY-MM-DD", ...], reason?: string }
 │
 └── [Desbloquear fechas]
-    └── DELETE /api/admin/availability/block
+    └── DELETE /api/platform/availability/block
         body: { dates: ["YYYY-MM-DD", ...] }
 ```
 
@@ -354,7 +354,7 @@ Vista financiera y operativa de todo el negocio.
 Pantalla: Reportes — Ingresos
 │
 ├── Default: mes actual
-│   └── GET /api/admin/reports/revenue?period=month
+│   └── GET /api/platform/reports/revenue?period=month
 │       → Total de ingresos, ingresos por membresías vs citas individuales,
 │         ticket promedio, gráfica diaria
 │
@@ -370,7 +370,7 @@ Pantalla: Reportes — Ingresos
 ```
 Pantalla: Reportes — Citas
 │
-└── GET /api/admin/reports/bookings?dateFrom=X&dateTo=Y
+└── GET /api/platform/reports/bookings?dateFrom=X&dateTo=Y
     → Total de citas, desglose por estado,
       tasa de cancelación y completado, gráfica por día
 ```
@@ -380,7 +380,7 @@ Pantalla: Reportes — Citas
 ```
 Pantalla: Reportes — Servicios
 │
-└── GET /api/admin/reports/services?dateFrom=X&dateTo=Y
+└── GET /api/platform/reports/services?dateFrom=X&dateTo=Y
     → Tipos de lavado más pedidos (con %), add-ons más usados,
       distribución por tamaño de vehículo
 ```
@@ -390,7 +390,7 @@ Pantalla: Reportes — Servicios
 ```
 Pantalla: Reportes — Membresías
 │
-└── GET /api/admin/reports/memberships?dateFrom=X&dateTo=Y
+└── GET /api/platform/reports/memberships?dateFrom=X&dateTo=Y
     → Membresías vendidas, ingresos generados, activas actualmente,
       desglose por paquete y por duración
 ```
@@ -402,20 +402,20 @@ Pantalla: Reportes — Membresías
 | Pantalla                       | Endpoints que consume                                                                    |
 |--------------------------------|------------------------------------------------------------------------------------------|
 | Login                          | `POST /api/auth/login`, `GET /api/auth/me`                                              |
-| Dashboard global               | `GET /api/admin/agenda`, `GET /api/admin/companies`, `GET /api/admin/reports/revenue`, `GET /api/admin/bookings?companyStatus=rejected_by_company` |
-| Empresas — Listado             | `GET /api/admin/companies`                                                               |
-| Empresas — Registrar           | `POST /api/admin/companies`                                                              |
-| Empresas — Detalle             | `GET /api/admin/companies/:id`, `PUT /api/admin/companies/:id`, `GET/PUT .../availability` |
-| Citas — Listado                | `GET /api/admin/bookings` (con filtros)                                                  |
-| Citas — Detalle / intervención | `GET /api/admin/bookings/:id`, acciones (accept/reassign/start/complete/cancel)          |
-| Agenda del día                 | `GET /api/admin/agenda`, `POST /api/admin/availability/block`                           |
-| Clientes — Listado             | `GET /api/admin/clients`                                                                 |
-| Clientes — Perfil              | `GET /api/admin/clients/:id`, `GET .../bookings`, `GET .../memberships`                 |
-| Catálogo — Paquetes            | `GET /api/admin/catalog/packages`, `PUT /api/admin/catalog/packages/:id`                |
-| Catálogo — Servicios           | `GET /api/admin/catalog/services`, `PUT` de precios y servicios                         |
-| Catálogo — Zonas               | `GET /api/admin/catalog/zones`, `PUT /api/admin/catalog/zones`                          |
-| Catálogo — Horarios globales   | `GET/PUT /api/admin/availability`, `POST/DELETE /api/admin/availability/block`          |
-| Reportes — Ingresos            | `GET /api/admin/reports/revenue`                                                         |
-| Reportes — Citas               | `GET /api/admin/reports/bookings`                                                        |
-| Reportes — Servicios           | `GET /api/admin/reports/services`                                                        |
-| Reportes — Membresías          | `GET /api/admin/reports/memberships`                                                     |
+| Dashboard global               | `GET /api/platform/agenda`, `GET /api/platform/companies`, `GET /api/platform/reports/revenue`, `GET /api/platform/bookings?companyStatus=rejected_by_company` |
+| Empresas — Listado             | `GET /api/platform/companies`                                                               |
+| Empresas — Registrar           | `POST /api/platform/companies`                                                              |
+| Empresas — Detalle             | `GET /api/platform/companies/:id`, `PUT /api/platform/companies/:id`, `GET/PUT .../availability` |
+| Citas — Listado                | `GET /api/platform/bookings` (con filtros)                                                  |
+| Citas — Detalle / intervención | `GET /api/platform/bookings/:id`, acciones (accept/reassign/start/complete/cancel)          |
+| Agenda del día                 | `GET /api/platform/agenda`, `POST /api/platform/availability/block`                           |
+| Clientes — Listado             | `GET /api/platform/clients`                                                                 |
+| Clientes — Perfil              | `GET /api/platform/clients/:id`, `GET .../bookings`, `GET .../memberships`                 |
+| Catálogo — Paquetes            | `GET /api/platform/catalog/packages`, `PUT /api/platform/catalog/packages/:id`                |
+| Catálogo — Servicios           | `GET /api/platform/catalog/services`, `PUT` de precios y servicios                         |
+| Catálogo — Zonas               | `GET /api/platform/catalog/zones`, `PUT /api/platform/catalog/zones`                          |
+| Catálogo — Horarios globales   | `GET/PUT /api/platform/availability`, `POST/DELETE /api/platform/availability/block`          |
+| Reportes — Ingresos            | `GET /api/platform/reports/revenue`                                                         |
+| Reportes — Citas               | `GET /api/platform/reports/bookings`                                                        |
+| Reportes — Servicios           | `GET /api/platform/reports/services`                                                        |
+| Reportes — Membresías          | `GET /api/platform/reports/memberships`                                                     |

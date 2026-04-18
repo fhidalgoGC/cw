@@ -17,7 +17,7 @@ title = "Plan de API — Car Wash Backend (actualizado)"
 id = "68rAr72Kq9Og7byG8Uiml"
 uri = "file://docs/api-plan-client.md"
 type = "text"
-title = "API Plan — App Cliente (con empresas)"
+title = "API Plan — /api/client"
 
 [[outputs]]
 id = "fTiU_WieBBYyv_W2tZBK4"
@@ -48,3 +48,15 @@ id = "p8r0o0Ms4yCpLUdSxNIZv"
 uri = "file://docs/businessLogic-flow-platform.md"
 type = "text"
 title = "Flujo — Plataforma (Super Admin)"
+
+[[outputs]]
+id = "V4Bk4ybaeXMbfGJ4CeDJd"
+uri = "file://docs/api-plan-company.md"
+type = "text"
+title = "API Plan — /api/company"
+
+[[outputs]]
+id = "PltG6EATLyj7SflivLZXb"
+uri = "file://docs/api-plan-platform.md"
+type = "text"
+title = "API Plan — /api/platform"
