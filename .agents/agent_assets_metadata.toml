@@ -24,3 +24,9 @@ id = "fTiU_WieBBYyv_W2tZBK4"
 uri = "file://docs/api-plan-admin.md"
 type = "text"
 title = "API Plan — App Admin (con empresas)"
+
+[[outputs]]
+id = "eGPJNUOpWSUYWTStRDOE8"
+uri = "file://docs/businessLogic-flow-admin.md"
+type = "text"
+title = "Flujo de la App Admin — Car Wash"
