@@ -17,10 +17,10 @@ title = "Plan de API — Car Wash Backend (actualizado)"
 id = "68rAr72Kq9Og7byG8Uiml"
 uri = "file://docs/api-plan-client.md"
 type = "text"
-title = "API Plan — App Cliente"
+title = "API Plan — App Cliente (con empresas)"
 
 [[outputs]]
 id = "fTiU_WieBBYyv_W2tZBK4"
 uri = "file://docs/api-plan-admin.md"
 type = "text"
-title = "API Plan — App Administrador"
+title = "API Plan — App Admin (con empresas)"

@@ -57,7 +57,7 @@ type PackageId = "basico" | "completo" | "premium";
 
 type DurationId = "1semana" | "1mes" | "3meses";
 
-type UserRole = "client" | "admin";
+type UserRole = "client" | "admin" | "company";
 
 // ─── Modelos principales ─────────────────────────────────────────────────────
 
@@ -124,10 +124,11 @@ interface Booking {
   time: string;           // "10:00 AM"
   totalPrice: number;
   status: BookingStatus;
+  assignedCompany?: Company; // empresa asignada para este servicio
   usedMembershipId?: string;
   comments?: string;
   feedback?: BookingFeedback;
-  cancelledBy?: "client" | "admin";
+  cancelledBy?: "client" | "admin" | "company";
   cancelReason?: string;
   createdAt: string;      // ISO
   updatedAt: string;      // ISO
@@ -140,6 +141,13 @@ interface BookingFeedback {
   extras: string[];       // ["amabilidad", "productos", ...]
   comment?: string;
   createdAt: string;      // ISO
+}
+
+// Vista pública de una empresa (lo que ve el cliente)
+interface Company {
+  id: string;
+  name: string;
+  rating?: number;        // promedio de calificaciones recibidas
 }
 
 // ─── Wrappers de respuesta ────────────────────────────────────────────────────
@@ -620,6 +628,8 @@ interface CreateFeedbackRequest {
 ### `GET /api/availability`
 Consulta los horarios disponibles para una fecha. Ruta pública — no requiere auth.
 
+La disponibilidad de cada horario está determinada por cuántas empresas de lavado están disponibles en ese horario. Si a las 11 AM hay 5 empresas registradas y disponibles, `spotsLeft` es 5. Al agendar una cita en ese horario, el backend asigna una empresa y el `spotsLeft` baja a 4.
+
 **Query params:**
 ```typescript
 interface GetAvailabilityQuery {
@@ -637,8 +647,8 @@ interface AvailabilityResponse {
 
 interface TimeSlot {
   time: string;       // "09:00 AM"
-  available: boolean;
-  spotsLeft: number;
+  available: boolean; // false si spotsLeft === 0 o la fecha está bloqueada
+  spotsLeft: number;  // número de empresas disponibles en este horario
 }
 
 // ApiResponse<AvailabilityResponse>
@@ -681,6 +691,16 @@ interface PackageDurationCatalog {
 }
 
 // ApiResponse<PackageCatalog[]>
+```
+
+---
+
+### `GET /api/catalog/companies`
+Lista las empresas de lavado activas registradas en el sistema. Ruta pública.
+
+**Response `200`:**
+```typescript
+// ApiResponse<Company[]>
 ```
 
 ---
@@ -743,6 +763,7 @@ interface ServiceOption {
 | PATCH    | `/api/bookings/:id/reschedule`        | Cliente | Reagendar cita                               |
 | PATCH    | `/api/bookings/:id/cancel`            | Cliente | Cancelar cita                                |
 | POST     | `/api/bookings/:id/feedback`          | Cliente | Enviar feedback                              |
-| GET      | `/api/availability`                   | Pública | Consultar horarios disponibles               |
+| GET      | `/api/availability`                   | Pública | Consultar horarios disponibles (spotsLeft = empresas disponibles) |
+| GET      | `/api/catalog/companies`              | Pública | Listar empresas de lavado activas            |
 | GET      | `/api/catalog/packages`               | Pública | Catálogo de paquetes                         |
 | GET      | `/api/catalog/services`               | Pública | Catálogo de servicios y precios              |

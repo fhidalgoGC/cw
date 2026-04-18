@@ -16,7 +16,32 @@
 Tipos adicionales exclusivos del admin:
 
 ```typescript
-// Booking enriquecido para el admin (incluye datos del cliente)
+// Empresa de lavado registrada en el sistema
+interface Company {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  active: boolean;
+  rating?: number;           // promedio de calificaciones
+  totalBookings: number;
+  completedBookings: number;
+  createdAt: string;         // ISO
+}
+
+// Disponibilidad de una empresa (sus propios horarios)
+interface CompanyAvailability {
+  companyId: string;
+  slots: CompanySlot[];
+  blockedDates: string[];    // "YYYY-MM-DD"
+}
+
+interface CompanySlot {
+  time: string;              // "09:00 AM"
+  enabled: boolean;
+}
+
+// Booking enriquecido para el admin (incluye datos del cliente y empresa asignada)
 interface AdminBookingItem {
   id: string;
   userId: string;
@@ -29,17 +54,24 @@ interface AdminBookingItem {
   vehicleColor?: string;
   vehiclePlate?: string;
   addressLabel?: string;
-  addressFull?: string;       // dirección completa formateada
+  addressFull?: string;          // dirección completa formateada
   washType: WashType;
   addOns: string[];
-  date: string;               // "YYYY-MM-DD"
-  time: string;               // "10:00 AM"
+  date: string;                  // "YYYY-MM-DD"
+  time: string;                  // "10:00 AM"
   totalPrice: number;
   status: BookingStatus;
+  assignedCompanyId?: string;    // empresa asignada actualmente
+  assignedCompanyName?: string;
+  companyStatus:                 // estado de aceptación de la empresa
+    | "pending_acceptance"       // asignada, esperando respuesta
+    | "accepted_by_company"      // empresa aceptó
+    | "rejected_by_company";     // empresa rechazó → el sistema reasigna
+  assignmentAttempts: number;    // cuántas empresas han rechazado esta cita
   usedMembershipId?: string;
   comments?: string;
   feedback?: BookingFeedback;
-  cancelledBy?: "client" | "admin";
+  cancelledBy?: "client" | "admin" | "company";
   cancelReason?: string;
   createdAt: string;
   updatedAt: string;
@@ -122,13 +154,18 @@ Lista todas las citas del sistema con filtros y paginación.
 ```typescript
 interface AdminGetBookingsQuery {
   status?: BookingStatus;
-  date?: string;       // "YYYY-MM-DD" — citas de ese día exacto
-  dateFrom?: string;   // inicio de rango
-  dateTo?: string;     // fin de rango
-  userId?: string;     // filtrar por cliente específico
-  search?: string;     // búsqueda por nombre de cliente o placa
-  page?: number;       // default: 1
-  limit?: number;      // default: 20
+  date?: string;        // "YYYY-MM-DD" — citas de ese día exacto
+  dateFrom?: string;    // inicio de rango
+  dateTo?: string;      // fin de rango
+  userId?: string;      // filtrar por cliente específico
+  companyId?: string;   // filtrar por empresa asignada
+  companyStatus?:       // filtrar por estado de asignación
+    | "pending_acceptance"
+    | "accepted_by_company"
+    | "rejected_by_company";
+  search?: string;      // búsqueda por nombre de cliente o placa
+  page?: number;        // default: 1
+  limit?: number;       // default: 20
 }
 ```
 
@@ -200,6 +237,25 @@ Marca la cita como completada (cambia `status` de `in_progress` → `completed`)
 
 ---
 
+### `PATCH /api/admin/bookings/:bookingId/reassign`
+Reasigna manualmente una cita a otra empresa disponible. Se usa cuando la empresa asignada rechaza o cuando el admin quiere cambiar la asignación. El backend elige la siguiente empresa disponible en el mismo horario. Si no hay empresas disponibles, la cita queda con `status: "cancelled"`.
+
+**Request body:**
+```typescript
+interface ReassignBookingRequest {
+  companyId?: string; // si se omite, el backend elige automáticamente
+}
+```
+
+**Response `200`:** `ApiResponse<AdminBookingItem>`
+
+**Errores:**
+- `404 BOOKING_NOT_FOUND`
+- `400 NO_COMPANIES_AVAILABLE` — no hay empresas disponibles en ese horario
+- `400 INVALID_STATUS_TRANSITION` — solo se puede reasignar en `pending` o cuando `companyStatus === "rejected_by_company"`
+
+---
+
 ### `PATCH /api/admin/bookings/:bookingId/cancel`
 Cancela una cita desde el admin (disponible en `pending`, `accepted` e `in_progress`).
 
@@ -250,22 +306,26 @@ interface AgendaResponse {
 
 ---
 
-## 4. Disponibilidad y Agenda — `/api/admin/availability`
+## 4. Disponibilidad Global — `/api/admin/availability`
+
+La disponibilidad global define qué horarios existen en el sistema (ej. 9 AM, 10 AM, 11 AM…) y qué fechas están completamente bloqueadas. La **capacidad** de cada slot (cuántos clientes puede recibir) se calcula automáticamente contando las empresas activas disponibles en ese horario. Si en la fecha X a las 11 AM hay 3 empresas disponibles, el slot tiene capacidad 3.
+
+> **Regla:** un horario aparece como `available: false` en la app del cliente si ninguna empresa activa está disponible en él, o si la fecha está bloqueada globalmente o en el calendario de todas las empresas.
 
 ### `GET /api/admin/availability`
-Devuelve la configuración actual de horarios y fechas bloqueadas.
+Devuelve la configuración global de horarios y fechas bloqueadas, junto con la capacidad calculada por slot.
 
 **Response `200`:**
 ```typescript
 interface AvailabilityConfig {
   slots: ScheduleSlot[];
-  maxConcurrentBookings: number; // citas permitidas por horario
   blockedDates: BlockedDate[];
 }
 
 interface ScheduleSlot {
-  time: string;    // "09:00 AM"
-  enabled: boolean;
+  time: string;           // "09:00 AM"
+  enabled: boolean;       // si el horario existe en el sistema
+  companiesAvailable: number; // empresas activas con este horario habilitado
 }
 
 interface BlockedDate {
@@ -279,13 +339,12 @@ interface BlockedDate {
 ---
 
 ### `PUT /api/admin/availability`
-Actualiza la configuración de horarios disponibles.
+Actualiza los horarios que existen en el sistema (activa o desactiva slots globalmente). Desactivar un slot significa que ninguna empresa puede recibir citas en ese horario.
 
 **Request body:**
 ```typescript
 interface UpdateAvailabilityRequest {
   slots?: ScheduleSlot[];
-  maxConcurrentBookings?: number;
 }
 ```
 
@@ -322,7 +381,123 @@ interface UnblockDatesRequest {
 
 ---
 
-## 5. Catálogo — `/api/admin/catalog`
+## 5. Empresas — `/api/admin/companies`
+
+Las empresas son los prestadores de servicio que realizan los lavados. Cada empresa define sus propios horarios disponibles. La capacidad de cada slot horario = número de empresas activas disponibles en ese slot. Cuando se agenda una cita, el sistema asigna automáticamente una empresa; si la empresa rechaza, el sistema intenta con la siguiente disponible.
+
+---
+
+### `GET /api/admin/companies`
+Lista todas las empresas registradas (activas e inactivas).
+
+**Query params:**
+```typescript
+interface GetCompaniesQuery {
+  active?: boolean;    // filtrar solo activas
+  search?: string;     // búsqueda por nombre
+  page?: number;
+  limit?: number;
+}
+```
+
+**Response `200`:** `PaginatedResponse<Company>`
+
+---
+
+### `POST /api/admin/companies`
+Registra una nueva empresa en el sistema. El backend crea credenciales de acceso para que la empresa pueda iniciar sesión y gestionar sus citas asignadas.
+
+**Request body:**
+```typescript
+interface CreateCompanyRequest {
+  name: string;
+  email: string;       // se usará como usuario de login
+  phone: string;
+  password: string;    // contraseña inicial para el acceso de la empresa
+}
+```
+
+**Response `201`:** `ApiResponse<Company>`
+
+**Errores:**
+- `400 EMAIL_ALREADY_EXISTS`
+
+---
+
+### `GET /api/admin/companies/:companyId`
+Detalle de una empresa con sus estadísticas.
+
+**Response `200`:**
+```typescript
+interface CompanyDetail extends Company {
+  availability: CompanyAvailability;
+  recentBookings: AdminBookingItem[];
+  stats: {
+    totalBookings: number;
+    completedBookings: number;
+    rejectedBookings: number;
+    averageRating: number;
+  };
+}
+
+// ApiResponse<CompanyDetail>
+```
+
+**Errores:**
+- `404 COMPANY_NOT_FOUND`
+
+---
+
+### `PUT /api/admin/companies/:companyId`
+Actualiza los datos de una empresa.
+
+**Request body:**
+```typescript
+interface UpdateCompanyRequest {
+  name?: string;
+  email?: string;
+  phone?: string;
+  active?: boolean;    // desactivar impide que se asignen nuevas citas
+}
+```
+
+**Response `200`:** `ApiResponse<Company>`
+
+**Errores:**
+- `404 COMPANY_NOT_FOUND`
+- `400 EMAIL_ALREADY_EXISTS`
+
+---
+
+### `GET /api/admin/companies/:companyId/availability`
+Consulta los horarios configurados por una empresa específica.
+
+**Response `200`:** `ApiResponse<CompanyAvailability>`
+
+**Errores:**
+- `404 COMPANY_NOT_FOUND`
+
+---
+
+### `PUT /api/admin/companies/:companyId/availability`
+Actualiza los horarios disponibles de una empresa. Se puede configurar qué días y horas está disponible la empresa para recibir citas.
+
+**Request body:**
+```typescript
+interface UpdateCompanyAvailabilityRequest {
+  slots: CompanySlot[];
+  blockedDates?: string[]; // "YYYY-MM-DD" — días que la empresa no trabaja
+}
+```
+
+**Response `200`:** `ApiResponse<CompanyAvailability>`
+
+**Errores:**
+- `404 COMPANY_NOT_FOUND`
+
+---
+
+## 6. Catálogo — `/api/admin/catalog`
 
 El admin puede ver y editar los catálogos que la app cliente consume. Cambios aquí se reflejan automáticamente en la app sin necesidad de actualización.
 
@@ -699,63 +874,94 @@ Membresías de un cliente específico.
 
 ---
 
-## 8. Transiciones de estado válidas
+## 9. Transiciones de estado válidas
+
+### Flujo completo con asignación de empresa
 
 ```
-             admin acepta                     admin inicia
-pending ──────────────────── accepted ─────────────────── in_progress ───── completed
-   │                            │                               │
-   │     admin rechaza          │     admin cancela             │ admin cancela
-   └────────────────────────────┴───────────────────────────────┘
-                    (todos terminan en: cancelled)
+                   ┌─ empresa acepta ──────────────────────────────────────────────────┐
+                   │                                                                    ↓
+ cliente agenda → pending ──── sistema asigna empresa ──── empresa acepta ──── accepted ──── start ──── in_progress ──── complete ──── completed
+                   │                      │                      │                │                        │
+                   │              empresa rechaza          empresa rechaza    admin cancela          admin cancela
+                   │           (sistema reasigna)        (sin más empresas)
+                   │                      │                      │
+                   └──────────────────────┴──────────────────────┴─────────── cancelled
+                           (cliente o admin también pueden cancelar)
 ```
 
-| Estado actual | Acción permitida admin       | Estado resultante |
-|---------------|------------------------------|-------------------|
-| `pending`     | `accept`                     | `accepted`        |
-| `pending`     | `reject`                     | `cancelled`       |
-| `accepted`    | `start`                      | `in_progress`     |
-| `accepted`    | `cancel`                     | `cancelled`       |
-| `in_progress` | `complete`                   | `completed`       |
-| `in_progress` | `cancel`                     | `cancelled`       |
-| `completed`   | — (ninguna acción permitida) | —                 |
-| `cancelled`   | — (ninguna acción permitida) | —                 |
+**Descripción del flujo de asignación:**
 
-> El cliente solo puede cancelar desde `pending` o `accepted`. El admin puede cancelar en cualquier estado excepto `completed`.
+1. El cliente agenda → cita queda en `status: "pending"`, `companyStatus: "pending_acceptance"`
+2. El sistema asigna automáticamente una empresa disponible en ese horario
+3. La empresa acepta → `companyStatus: "accepted_by_company"`, el admin puede cambiar `status` a `"accepted"`
+4. Si la empresa rechaza → `companyStatus: "rejected_by_company"` → sistema intenta con la siguiente empresa (`companyStatus: "pending_acceptance"` de nuevo)
+5. Si no hay más empresas disponibles → `status: "cancelled"` automáticamente
+
+### Tabla de transiciones del estado principal (`status`)
+
+| Estado actual | Quién puede actuar    | Acción     | Estado resultante |
+|---------------|-----------------------|------------|-------------------|
+| `pending`     | Admin                 | `accept`   | `accepted`        |
+| `pending`     | Admin / Cliente       | `cancel`   | `cancelled`       |
+| `pending`     | Sistema (auto)        | —          | `cancelled` si no hay empresas |
+| `accepted`    | Admin                 | `start`    | `in_progress`     |
+| `accepted`    | Admin / Cliente       | `cancel`   | `cancelled`       |
+| `in_progress` | Admin                 | `complete` | `completed`       |
+| `in_progress` | Admin                 | `cancel`   | `cancelled`       |
+| `completed`   | — (ninguna acción)    | —          | —                 |
+| `cancelled`   | — (ninguna acción)    | —          | —                 |
+
+### Tabla de `companyStatus` (asignación de empresa)
+
+| `companyStatus`         | Significado                                               |
+|-------------------------|-----------------------------------------------------------|
+| `pending_acceptance`    | Empresa asignada, aún no responde                        |
+| `accepted_by_company`   | Empresa confirmó que realizará el servicio               |
+| `rejected_by_company`   | Empresa rechazó; se espera reasignación o cancelación    |
+
+> El cliente solo puede cancelar desde `pending` o `accepted`. El admin puede cancelar en cualquier estado excepto `completed`. Una empresa no puede cancelar una cita `in_progress` o `completed`.
 
 ---
 
-## 9. Tabla resumen
+## 10. Tabla resumen
 
-| Método | Endpoint                                          | Descripción                                       |
-|--------|---------------------------------------------------|---------------------------------------------------|
-| POST   | `/api/auth/login`                                 | Login del admin                                   |
-| GET    | `/api/auth/me`                                    | Admin autenticado actual                          |
-| GET    | `/api/admin/bookings`                             | Listar todas las citas (con filtros)              |
-| GET    | `/api/admin/bookings/:id`                         | Detalle de cita                                   |
-| PATCH  | `/api/admin/bookings/:id/accept`                  | Aceptar cita                                      |
-| PATCH  | `/api/admin/bookings/:id/reject`                  | Rechazar cita                                     |
-| PATCH  | `/api/admin/bookings/:id/start`                   | Marcar cita en curso                              |
-| PATCH  | `/api/admin/bookings/:id/complete`                | Marcar cita completada                            |
-| PATCH  | `/api/admin/bookings/:id/cancel`                  | Cancelar cita                                     |
-| GET    | `/api/admin/agenda`                               | Agenda del día                                    |
-| GET    | `/api/admin/availability`                         | Ver config de horarios                            |
-| PUT    | `/api/admin/availability`                         | Actualizar horarios disponibles                   |
-| POST   | `/api/admin/availability/block`                   | Bloquear fechas                                   |
-| DELETE | `/api/admin/availability/block`                   | Desbloquear fechas                                |
-| GET    | `/api/admin/catalog/packages`                     | Ver catálogo de paquetes                          |
-| PUT    | `/api/admin/catalog/packages/:id`                 | Editar paquete (precios, duración, beneficios)    |
-| GET    | `/api/admin/catalog/services`                     | Ver catálogo de servicios                         |
-| PUT    | `/api/admin/catalog/services/vehicle-prices`      | Actualizar precios por tamaño de vehículo         |
-| PUT    | `/api/admin/catalog/services/wash-type-prices`    | Actualizar precios por tipo de lavado             |
-| PUT    | `/api/admin/catalog/services/:id`                 | Editar servicio individual                        |
-| GET    | `/api/admin/catalog/zones`                        | Ver zonas de cobertura                            |
-| PUT    | `/api/admin/catalog/zones`                        | Actualizar zonas de cobertura                     |
-| GET    | `/api/admin/reports/revenue`                      | Reporte de ingresos por período                   |
-| GET    | `/api/admin/reports/bookings`                     | Reporte de citas por período                      |
-| GET    | `/api/admin/reports/services`                     | Reporte de servicios más solicitados              |
-| GET    | `/api/admin/reports/memberships`                  | Reporte de membresías vendidas y activas          |
-| GET    | `/api/admin/clients`                              | Listar clientes                                   |
-| GET    | `/api/admin/clients/:userId`                      | Perfil completo de cliente                        |
-| GET    | `/api/admin/clients/:userId/bookings`             | Historial de citas de un cliente                  |
-| GET    | `/api/admin/clients/:userId/memberships`          | Membresías de un cliente                          |
+| Método | Endpoint                                          | Descripción                                                      |
+|--------|---------------------------------------------------|------------------------------------------------------------------|
+| POST   | `/api/auth/login`                                 | Login del admin                                                  |
+| GET    | `/api/auth/me`                                    | Admin autenticado actual                                         |
+| GET    | `/api/admin/bookings`                             | Listar todas las citas (filtros: status, fecha, empresa, cliente)|
+| GET    | `/api/admin/bookings/:id`                         | Detalle de cita (incluye empresa asignada)                       |
+| PATCH  | `/api/admin/bookings/:id/accept`                  | Aceptar cita (confirmar cuando empresa aceptó)                   |
+| PATCH  | `/api/admin/bookings/:id/reject`                  | Rechazar cita (cancela con razón)                                |
+| PATCH  | `/api/admin/bookings/:id/reassign`                | Reasignar cita a otra empresa                                    |
+| PATCH  | `/api/admin/bookings/:id/start`                   | Marcar cita en curso                                             |
+| PATCH  | `/api/admin/bookings/:id/complete`                | Marcar cita completada                                           |
+| PATCH  | `/api/admin/bookings/:id/cancel`                  | Cancelar cita                                                    |
+| GET    | `/api/admin/agenda`                               | Agenda del día (con resumen de estados)                          |
+| GET    | `/api/admin/availability`                         | Ver horarios globales y capacidad por empresa                    |
+| PUT    | `/api/admin/availability`                         | Activar/desactivar slots horarios globalmente                    |
+| POST   | `/api/admin/availability/block`                   | Bloquear fechas globalmente                                      |
+| DELETE | `/api/admin/availability/block`                   | Desbloquear fechas                                               |
+| GET    | `/api/admin/companies`                            | Listar empresas de lavado                                        |
+| POST   | `/api/admin/companies`                            | Registrar nueva empresa                                          |
+| GET    | `/api/admin/companies/:id`                        | Detalle y estadísticas de empresa                                |
+| PUT    | `/api/admin/companies/:id`                        | Actualizar datos de empresa                                      |
+| GET    | `/api/admin/companies/:id/availability`           | Ver horarios de una empresa                                      |
+| PUT    | `/api/admin/companies/:id/availability`           | Actualizar horarios de una empresa                               |
+| GET    | `/api/admin/catalog/packages`                     | Ver catálogo de paquetes                                         |
+| PUT    | `/api/admin/catalog/packages/:id`                 | Editar paquete (precios, duración, beneficios)                   |
+| GET    | `/api/admin/catalog/services`                     | Ver catálogo de servicios                                        |
+| PUT    | `/api/admin/catalog/services/vehicle-prices`      | Actualizar precios por tamaño de vehículo                        |
+| PUT    | `/api/admin/catalog/services/wash-type-prices`    | Actualizar precios por tipo de lavado                            |
+| PUT    | `/api/admin/catalog/services/:id`                 | Editar servicio individual                                       |
+| GET    | `/api/admin/catalog/zones`                        | Ver zonas de cobertura                                           |
+| PUT    | `/api/admin/catalog/zones`                        | Actualizar zonas de cobertura                                    |
+| GET    | `/api/admin/reports/revenue`                      | Reporte de ingresos por período                                  |
+| GET    | `/api/admin/reports/bookings`                     | Reporte de citas por período                                     |
+| GET    | `/api/admin/reports/services`                     | Reporte de servicios más solicitados                             |
+| GET    | `/api/admin/reports/memberships`                  | Reporte de membresías vendidas y activas                         |
+| GET    | `/api/admin/clients`                              | Listar clientes                                                  |
+| GET    | `/api/admin/clients/:userId`                      | Perfil completo de cliente                                       |
+| GET    | `/api/admin/clients/:userId/bookings`             | Historial de citas de un cliente                                 |
+| GET    | `/api/admin/clients/:userId/memberships`          | Membresías de un cliente                                         |
