@@ -30,3 +30,21 @@ id = "eGPJNUOpWSUYWTStRDOE8"
 uri = "file://docs/businessLogic-flow-admin.md"
 type = "text"
 title = "Flujo de la App Admin — Car Wash"
+
+[[outputs]]
+id = "6jwi7LCHGTJ38Y7KlBbrP"
+uri = "file://docs/businessLogic-flow-client.md"
+type = "text"
+title = "Flujo — App Cliente"
+
+[[outputs]]
+id = "dkBbvDz2dx2PVY4lkWP3i"
+uri = "file://docs/businessLogic-flow-company.md"
+type = "text"
+title = "Flujo — App Empresa"
+
+[[outputs]]
+id = "p8r0o0Ms4yCpLUdSxNIZv"
+uri = "file://docs/businessLogic-flow-platform.md"
+type = "text"
+title = "Flujo — Plataforma (Super Admin)"
