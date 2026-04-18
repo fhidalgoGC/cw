@@ -479,6 +479,9 @@ Cancela una membresía activa. Requiere auth.
 
 ## 6. Citas — `/api/bookings`
 
+> **Cómo funciona la asignación de empresa desde el cliente:**  
+> El cliente **nunca elige** una empresa. Simplemente escoge un horario disponible y el backend asigna automáticamente una de las empresas de lavado disponibles en ese slot. Si la empresa asignada rechaza la cita, el sistema busca otra empresa disponible y la reasigna sin que el cliente tenga que hacer nada. El cliente solo ve el nombre de la empresa en el detalle de su cita una vez que fue confirmada. Todos los endpoints de citas del cliente son contra el sistema en general, no contra una empresa específica.
+
 ### `GET /api/bookings`
 Lista las citas del usuario. Requiere auth.
 
@@ -515,7 +518,7 @@ Solo genera y devuelve un nuevo ID. Se llama al iniciar el flujo de reserva. Req
 ---
 
 ### `PUT /api/bookings/:bookingId`
-Crea o actualiza la cita con el ID generado. Idempotente. Valida disponibilidad de horario y descuenta lavada de membresía si aplica. La cita queda con `status: "pending"`. Requiere auth.
+Crea o actualiza la cita con el ID generado. Idempotente. El cliente **no indica empresa** — el backend selecciona automáticamente una empresa disponible en el horario elegido. Valida disponibilidad del horario y descuenta lavada de membresía si aplica. La cita queda con `status: "pending"` mientras la empresa confirma. Requiere auth.
 
 **Request body:**
 ```typescript
