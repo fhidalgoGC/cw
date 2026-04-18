@@ -12,3 +12,15 @@ id = "hS_B7hXZIsWsMmvmjelgV"
 uri = "file://docs/api-plan.md"
 type = "text"
 title = "Plan de API — Car Wash Backend (actualizado)"
+
+[[outputs]]
+id = "68rAr72Kq9Og7byG8Uiml"
+uri = "file://docs/api-plan-client.md"
+type = "text"
+title = "API Plan — App Cliente"
+
+[[outputs]]
+id = "fTiU_WieBBYyv_W2tZBK4"
+uri = "file://docs/api-plan-admin.md"
+type = "text"
+title = "API Plan — App Administrador"
